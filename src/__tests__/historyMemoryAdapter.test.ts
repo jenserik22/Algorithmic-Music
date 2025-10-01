@@ -26,7 +26,7 @@ describe('MemoryHistoryAdapter', () => {
 
   it('get/remove/clear work as expected', async () => {
     const a = await adapter.add({ algorithm: 'stochastic', params, createdAt: 2000 });
-    const b = await adapter.add({ algorithm: 'euclidean', params, createdAt: 2001 });
+    await adapter.add({ algorithm: 'euclidean', params, createdAt: 2001 });
     const got = await adapter.get(a.id);
     expect(got?.algorithm).toBe('stochastic');
 

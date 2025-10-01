@@ -7,28 +7,28 @@
 - [✔] Code merged and reviewed
 
 ## Phase 0 – Foundations
-- [ ] Repository scaffolded with lint/format configs
-- [ ] Test harnesses configured (Vitest/Jest, RTL, Playwright, axe-core)
-- [ ] CI pipeline running lint + tests on push
-- [ ] Supabase project provisioned
-- [ ] Database migrations created (enums, tables, RLS)
-- [ ] RLS and constraints verified via pgTAP/sql tests
-- [ ] Tone.js deterministic prototype validated by tests
-- [ ] Shared mocks/fixtures implemented
-- [ ] Design system tokens/themes established
+- [G] Repository scaffolded with lint/format configs
+- [G] Test harnesses configured (Vitest, RTL, axe-core)
+- [G] CI pipeline running lint + tests on push
+ - [✔] Supabase project provisioned
+- [G] Database migrations created (enums, tables, RLS)
+- [R] RLS and constraints verified via pgTAP/sql tests
+- [G] Tone.js deterministic prototype validated by tests
+- [G] Shared mocks/fixtures implemented
+- [G] Design system tokens/themes established
 
 ## Phase 1 – Core MVP
-- [ ] Markov engine (tests → implementation)
-- [ ] Cellular Automata engine
-- [ ] L-Systems engine
-- [ ] Generative Grammar engine
-- [ ] Stochastic engine
-- [ ] Euclidean rhythms engine
+- [G] Markov engine (tests → implementation)
+- [G] Cellular Automata engine
+- [G] L-Systems engine
+- [G] Generative Grammar engine
+- [G] Stochastic engine
+- [G] Euclidean rhythms engine
 - [ ] Simple/Advanced UI flows with presets
 - [ ] Generation progress + retry/cancel handling
 - [ ] Playback controls + visualization toggles
-- [ ] IndexedDB/local storage history (20 limit)
-- [ ] Supabase history sync + migration flow
+- [G] IndexedDB/local storage history (20 limit)
+- [G] Supabase history sync + migration flow
 - [ ] Folders/playlists, tagging, favorites, bulk ops
 - [ ] Multi-format export pipeline (MP3/WAV/OGG/FLAC)
 - [ ] Settings export/import (JSON/URL, batch zip)

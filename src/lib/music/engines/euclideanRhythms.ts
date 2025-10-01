@@ -16,12 +16,14 @@ function bjorklund(steps: number, pulses: number): number[] {
   let divisor = steps - pulses;
   remainders.push(pulses);
   let level = 0;
-  while (true) {
+  let continueLoop = true;
+  while (continueLoop) {
     counts.push(Math.floor(divisor / remainders[level]));
     const remainder = divisor % remainders[level];
     remainders.push(remainder);
     level++;
-    if (remainders[level] <= 1) break;
+    continueLoop = remainders[level] > 1;
+    if (!continueLoop) break;
     divisor = remainders[level - 1];
   }
   counts.push(divisor);
