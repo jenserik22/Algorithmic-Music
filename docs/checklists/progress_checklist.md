@@ -42,10 +42,10 @@
 - [G] Process visualization toggle
 - [G] Preset management enhancements + sharing
 - [G] Mobile/low-power device warnings
-- [ ] Asset loading optimization
-- [ ] Progressive generation (if feasible) validated
-- [ ] Accessibility audit (axe-core + manual)
-- [ ] Error messaging refinements
+- [G] Asset loading optimization (idle preloading, lazy deps)
+- [G] Progressive generation (validated)
+- [G] Accessibility audit (axe-core + component checks)
+- [G] Error messaging refinements
 
 ## Phase 3 – Backlog Prep
 - [ ] Premium tier requirements captured

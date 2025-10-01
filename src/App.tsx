@@ -13,8 +13,11 @@ import type { GenerationParams } from '@/lib/music/engines/types';
 import { arrange } from '@/lib/music/arranger';
 import { refineArrangementWithMagenta } from '@/lib/music/ml/magenta';
 import { TrendingBadge } from '@/components/Trending';
+import { ErrorBanner } from '@/components/ErrorBanner';
+import { useIdlePreload } from '@/lib/utils/useIdlePreload';
 
 export default function App() {
+  useIdlePreload();
   const { status, progress, output, generate, cancel, error } = useGeneration();
   const [lastOutput, setLastOutput] = React.useState(output ?? null);
   const [autoPlayToken, setAutoPlayToken] = React.useState(0);
@@ -62,7 +65,7 @@ export default function App() {
         <button type="button" style={{ marginLeft: 8 }} onClick={() => setShowEdu(true)}>What’s this?</button>
       </div>
       <div aria-label="gen-status">{status} ({progress}%)</div>
-      {error && <div role="alert">{String(error)}</div>}
+      <ErrorBanner error={error} />
       {status === 'generating' && (
         <button type="button" onClick={cancel}>Cancel</button>
       )}
