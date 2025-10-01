@@ -37,11 +37,12 @@
 - [ ] Cross-browser/device compatibility run
 
 ## Phase 2 – Enhancements
-- [ ] Trending metrics views + UI badges
-- [ ] Algorithm education modal
-- [ ] Process visualization toggle
-- [ ] Preset management enhancements + sharing
-- [ ] Asset loading optimization + mobile warnings
+- [G] Trending metrics views + UI badges
+- [G] Algorithm education modal
+- [G] Process visualization toggle
+- [G] Preset management enhancements + sharing
+- [G] Mobile/low-power device warnings
+- [ ] Asset loading optimization
 - [ ] Progressive generation (if feasible) validated
 - [ ] Accessibility audit (axe-core + manual)
 - [ ] Error messaging refinements
