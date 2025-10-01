@@ -23,6 +23,9 @@ export function GeneratorUI({ onGenerate }: { onGenerate: (x: { algorithm: Algor
   const [timeSignature, setTimeSignature] = useState<string>(base.timeSignature);
   const [durationSecs, setDurationSecs] = useState<number>(base.durationSecs);
   const [density, setDensity] = useState<number>(base.density);
+  const [style, setStyle] = useState<'edm'|'cinematic'|'lofi'|'jazz'>('edm');
+  const [variation, setVariation] = useState<number>(0.4);
+  const [fillRate, setFillRate] = useState<number>(0.5);
 
   // sync state when preset changes (only in simple or when not manually edited)
   React.useEffect(() => {
@@ -34,7 +37,7 @@ export function GeneratorUI({ onGenerate }: { onGenerate: (x: { algorithm: Algor
   }, [base]);
 
   const handleGenerate = () => {
-    const params: GenerationParams = { seed, bpm, key: keySig, timeSignature, durationSecs, density };
+    const params: GenerationParams = { seed, bpm, key: keySig, timeSignature, durationSecs, density, style, variation, fillRate };
     onGenerate({ algorithm, params });
   };
 
@@ -90,6 +93,22 @@ export function GeneratorUI({ onGenerate }: { onGenerate: (x: { algorithm: Algor
           <div>
             <label htmlFor="density">Density</label>
             <input id="density" type="number" step="0.05" min="0" max="1" aria-label="Density" value={density} onChange={e => setDensity(Number(e.target.value))} />
+          </div>
+          <div>
+            <label htmlFor="style">Style</label>
+            <select id="style" aria-label="Style" value={style} onChange={e => setStyle(e.target.value as any)}>
+              {['edm','cinematic','lofi','jazz'].map(s => <option key={s} value={s}>{s}</option>)}
+            </select>
+          </div>
+          <div>
+            <label htmlFor="variation">Variation</label>
+            <input id="variation" type="range" min="0" max="1" step="0.05" aria-label="Variation" value={variation} onChange={e => setVariation(Number(e.target.value))} />
+            <span>{variation.toFixed(2)}</span>
+          </div>
+          <div>
+            <label htmlFor="fillRate">Fill rate</label>
+            <input id="fillRate" type="range" min="0" max="1" step="0.1" aria-label="Fill rate" value={fillRate} onChange={e => setFillRate(Number(e.target.value))} />
+            <span>{fillRate.toFixed(1)}</span>
           </div>
         </div>
       )}

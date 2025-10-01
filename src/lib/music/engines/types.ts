@@ -7,6 +7,10 @@ export interface GenerationParams {
   timeSignature: string; // e.g., '4/4'
   durationSecs: number;
   density: number; // 0..1
+  // Optional musical controls (backward compatible)
+  style?: 'edm' | 'cinematic' | 'lofi' | 'jazz';
+  variation?: number; // 0..1 amount of randomness/humanization
+  fillRate?: number; // 0..1 likelihood of drum fills per 4/8 bars
 }
 
 export interface NoteEvent {
@@ -23,6 +27,8 @@ export interface EngineOutput {
     bpm?: number;
     key?: string;
     swing?: number; // 0..1
+    style?: string;
+    variation?: number;
   };
 }
 
