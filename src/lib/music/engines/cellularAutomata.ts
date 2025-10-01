@@ -40,7 +40,7 @@ export const CellularAutomataEngine: Engine = {
     const width = steps; // time axis
     const height = 8; // pitch lanes
     const initProb = 0.4; // keep grid independent of density for deterministic density scaling
-    let grid = Array.from({ length: height }, () => Array.from({ length: width }, () => (rand() < initProb ? 1 : 0)));
+    let grid: number[][] = Array.from({ length: height }, () => Array.from({ length: width }, () => (rand() < initProb ? 1 : 0)) as number[]);
 
     // Evolve fixed steps so cell structure is consistent across densities
     const evolve = 3;
