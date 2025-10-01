@@ -1,6 +1,5 @@
 import React, { useMemo, useState } from 'react';
 import type { GenerationParams, Complexity } from '@/lib/music/engines/types';
-import { MusicIcon, RefreshIcon } from '@/components/icons';
 
 type Algorithm = 'stochastic' | 'markov' | 'cellular_automata' | 'l_system' | 'generative_grammar' | 'euclidean' | 'helix';
 
@@ -304,18 +303,16 @@ export function GeneratorUI({ onGenerate }: { onGenerate: (x: { algorithm: Algor
         <button 
           type="button" 
           onClick={handleGenerate}
-          className="flex-1 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:ring-4 focus:ring-blue-500 focus:ring-opacity-50 transition-colors font-medium flex items-center justify-center gap-2"
+          className="flex-1 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:ring-4 focus:ring-blue-500 focus:ring-opacity-50 transition-colors font-medium"
         >
-          <MusicIcon className="w-4 h-4" />
-          Generate Music
+          🎵 Generate Music
         </button>
         <button 
           type="button" 
           onClick={handleCreateSimilar}
-          className="px-4 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700 focus:ring-4 focus:ring-gray-500 focus:ring-opacity-50 transition-colors font-medium flex items-center justify-center gap-2"
+          className="px-4 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700 focus:ring-4 focus:ring-gray-500 focus:ring-opacity-50 transition-colors font-medium"
         >
-          <RefreshIcon className="w-4 h-4" />
-          Similar
+          🔄 Similar
         </button>
       </div>
     </div>

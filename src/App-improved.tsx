@@ -15,7 +15,6 @@ import { refineArrangementWithMagenta } from '@/lib/music/ml/magenta';
 import { TrendingBadge } from '@/components/Trending';
 import { ErrorBanner } from '@/components/ErrorBanner';
 import { useIdlePreload } from '@/lib/utils/useIdlePreload';
-import { SunIcon, MoonIcon, MusicIcon, SettingsIcon, FolderIcon, ExclamationIcon, ChartBarIcon, RocketIcon } from '@/components/icons';
 
 export default function App() {
   useIdlePreload();
@@ -26,22 +25,7 @@ export default function App() {
   const [showProcess, setShowProcess] = React.useState(false);
   const [lastAlgo, setLastAlgo] = React.useState<AlgorithmName | null>(null);
   const [lastParams, setLastParams] = React.useState<GenerationParams | null>(null);
-  const [isDarkMode, setIsDarkMode] = React.useState(() => {
-    if (typeof window !== 'undefined') {
-      return localStorage.getItem('darkMode') === 'true' || 
-             (!localStorage.getItem('darkMode') && window.matchMedia('(prefers-color-scheme: dark)').matches);
-    }
-    return false;
-  });
-
-  React.useEffect(() => {
-    if (isDarkMode) {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
-    localStorage.setItem('darkMode', isDarkMode.toString());
-  }, [isDarkMode]);
+  const [isDarkMode, setIsDarkMode] = React.useState(false);
 
   const onGenerate = async ({ algorithm, params }: { algorithm: AlgorithmName; params: GenerationParams }) => {
     try {
@@ -88,14 +72,12 @@ export default function App() {
             </h1>
             <button
               onClick={() => setIsDarkMode(!isDarkMode)}
-              className={`p-3 rounded-lg transition-colors shadow-sm border ${
-                isDarkMode 
-                  ? 'bg-gray-800 border-gray-600 text-yellow-400 hover:bg-gray-700' 
-                  : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'
+              className={`p-2 rounded-lg transition-colors ${
+                isDarkMode ? 'bg-gray-700 text-yellow-400 hover:bg-gray-600' : 'bg-white text-gray-600 hover:bg-gray-100'
               }`}
               title="Toggle theme"
             >
-              {isDarkMode ? <SunIcon className="w-5 h-5" /> : <MoonIcon className="w-5 h-5" />}
+              {isDarkMode ? '🌞' : '🌙'}
             </button>
           </div>
           
@@ -163,9 +145,8 @@ export default function App() {
             <div className={`p-6 rounded-lg border ${
               isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'
             }`}>
-              <h2 className={`text-xl font-semibold mb-4 flex items-center gap-2 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-                <SettingsIcon className="w-5 h-5" />
-                Generator Controls
+              <h2 className={`text-xl font-semibold mb-4 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                🎛️ Generator Controls
               </h2>
               <GeneratorUI onGenerate={onGenerate} />
             </div>
@@ -173,9 +154,8 @@ export default function App() {
             <div className={`p-6 rounded-lg border ${
               isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'
             }`}>
-              <h2 className={`text-xl font-semibold mb-4 flex items-center gap-2 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-                <FolderIcon className="w-5 h-5" />
-                Presets & Settings
+              <h2 className={`text-xl font-semibold mb-4 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                📁 Presets & Settings
               </h2>
               <PresetManager
                 current={lastAlgo && lastParams ? { algorithm: lastAlgo, params: lastParams } : null}
@@ -190,9 +170,8 @@ export default function App() {
             <div className={`p-6 rounded-lg border ${
               isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'
             }`}>
-              <h2 className={`text-xl font-semibold mb-4 flex items-center gap-2 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-                <SettingsIcon className="w-4 h-4" />
-                Advanced Options
+              <h2 className={`text-xl font-semibold mb-4 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                ⚙️ Advanced Options
               </h2>
               <div className="space-y-3">
                 <label className={`flex items-center gap-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
@@ -206,10 +185,9 @@ export default function App() {
                 </label>
                 <button 
                   onClick={quickGenerate}
-                  className="w-full px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center justify-center gap-2"
+                  className="w-full px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
                 >
-                  <RocketIcon className="w-4 h-4" />
-                  Quick Generate & Play
+                  🚀 Quick Generate & Play
                 </button>
               </div>
             </div>
@@ -243,9 +221,8 @@ export default function App() {
             <div className={`p-6 rounded-lg border ${
               isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'
             }`}>
-              <h2 className={`text-xl font-semibold mb-4 flex items-center gap-2 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-                <ExclamationIcon className="w-5 h-5" />
-                System Info
+              <h2 className={`text-xl font-semibold mb-4 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                ⚠️ System Info
               </h2>
               <PerfWarnings />
             </div>
