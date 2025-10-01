@@ -1,10 +1,10 @@
 import React from 'react';
 import type { EngineOutput } from '@/lib/music/engines/types';
-import { Player } from '@/lib/audio/player';
+import { WebAudioPlayer } from '@/lib/audio/webAudioPlayer';
 
 export function PlaybackControls({ output }: { output: EngineOutput | null }) {
   const [status, setStatus] = React.useState<'stopped'|'playing'|'paused'>('stopped');
-  const playerRef = React.useRef<Player>(new Player());
+  const playerRef = React.useRef<WebAudioPlayer>(new WebAudioPlayer());
 
   const onPlay = () => {
     if (!output) return;
