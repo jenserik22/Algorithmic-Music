@@ -14,10 +14,16 @@ export interface NoteEvent {
   pitch: number; // MIDI note number
   duration: number; // seconds
   velocity: number; // 0..1
+  track?: 'lead' | 'chords' | 'bass' | 'drums';
 }
 
 export interface EngineOutput {
   events: NoteEvent[];
+  meta?: {
+    bpm?: number;
+    key?: string;
+    swing?: number; // 0..1
+  };
 }
 
 export interface Engine {

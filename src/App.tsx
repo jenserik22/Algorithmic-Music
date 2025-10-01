@@ -5,6 +5,7 @@ import { Visualizer } from '@/components/Visualizer';
 import { useGeneration } from '@/lib/music/useGeneration';
 import type { AlgorithmName } from '@/lib/music/engines';
 import type { GenerationParams } from '@/lib/music/engines/types';
+import { arrange } from '@/lib/music/arranger';
 
 export default function App() {
   const { status, progress, output, generate, cancel, error } = useGeneration();
@@ -13,7 +14,8 @@ export default function App() {
   const onGenerate = async ({ algorithm, params }: { algorithm: AlgorithmName; params: GenerationParams }) => {
     try {
       const out = await generate(algorithm, params);
-      setLastOutput(out);
+      const enriched = arrange(params, out);
+      setLastOutput(enriched);
     } catch {
       /* cancelled or error */
     }
