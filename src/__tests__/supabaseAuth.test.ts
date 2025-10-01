@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { signUp, signIn, signOut } from '../lib/supabase/auth';
+import { signUp, signIn, signOut, type SupabaseAuthClient } from '../lib/supabase/auth';
 
 function makeAuthMock() {
   return {
@@ -8,7 +8,7 @@ function makeAuthMock() {
       signInWithPassword: vi.fn(async () => ({ data: { session: { access_token: 't' } }, error: null })),
       signOut: vi.fn(async () => ({ error: null })),
     }
-  } as any;
+  } as unknown as SupabaseAuthClient;
 }
 
 describe('supabase auth helpers', () => {

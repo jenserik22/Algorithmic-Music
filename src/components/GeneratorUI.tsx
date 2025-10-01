@@ -51,7 +51,7 @@ export function GeneratorUI({ onGenerate }: { onGenerate: (x: { algorithm: Algor
       </div>
       <div>
         <label htmlFor="preset">Preset</label>
-        <select id="preset" aria-label="Preset" value={presetKey} onChange={e => setPresetKey(e.target.value as any)}>
+        <select id="preset" aria-label="Preset" value={presetKey} onChange={e => setPresetKey(e.target.value as keyof typeof PRESETS)}>
           {Object.entries(PRESETS).map(([k, v]) => (
             <option key={k} value={k}>{v.label}</option>
           ))}

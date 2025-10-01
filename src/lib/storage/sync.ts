@@ -1,12 +1,22 @@
 import type { HistoryAdapter, GenerationRecord } from './history/types';
 
+export type SelectResult<T> = { data: T | null; error: unknown | null };
+export type InsertResult<T> = { data: T | null; error: unknown | null };
+export type SupabaseLike = {
+  from: (name: string) => {
+    select: () => Promise<SelectResult<unknown[]>>;
+    insert: (rows: unknown | unknown[]) => Promise<InsertResult<unknown>>;
+    delete?: () => Promise<{ data: unknown | null; error: unknown | null }>;
+  };
+};
+
 function keyOf(r: GenerationRecord) {
   return `${r.params.seed}:${r.createdAt}`;
 }
 
 export async function migrateLocalHistoryToSupabase(
   adapter: HistoryAdapter,
-  supabase: any,
+  supabase: SupabaseLike,
   userId: string
 ): Promise<{ inserted: number }> {
   const local = await adapter.list();
@@ -19,9 +29,11 @@ export async function migrateLocalHistoryToSupabase(
   }
   const localUnique = Array.from(map.values());
 
-  const existing = await supabase.from('generations').select();
+  const existing = (await supabase.from('generations').select()) as SelectResult<
+    Array<{ seed: number; created_at: string }>
+  >;
   const existingKeys = new Set<string>(
-    (existing.data || []).map((g: any) => `${g.seed}:${new Date(g.created_at).getTime()}`)
+    (existing.data ?? []).map((g) => `${g.seed}:${new Date(g.created_at).getTime()}`)
   );
 
   const toInsert = localUnique.filter(r => !existingKeys.has(keyOf(r)));
