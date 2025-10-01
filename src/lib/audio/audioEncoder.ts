@@ -22,7 +22,8 @@ export async function encodeAudio(
     case 'wav':
       return await encodeToWav(audioBuffer);
     case 'mp3':
-      return await encodeToMp3(audioBuffer, { quality, bitrate });
+      // MP3 support temporarily disabled due to compatibility issues
+      throw new Error('MP3 export is currently unavailable. Please use WAV format.');
     default:
       throw new Error(`Unsupported format: ${format}`);
   }

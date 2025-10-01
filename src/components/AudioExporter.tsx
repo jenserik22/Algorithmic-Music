@@ -16,6 +16,14 @@ export function AudioExporter({ output, disabled = false, className = '' }: Audi
   const [exportFormat, setExportFormat] = useState<AudioFormat>('wav');
   const [showOptions, setShowOptions] = useState(false);
   
+  // Debug: Log component render
+  console.log('🎛️ AudioExporter rendered:', { 
+    hasOutput: !!output, 
+    eventsCount: output?.events?.length || 0,
+    disabled,
+    isExporting 
+  });
+  
   // Get current theme from DOM
   const isDarkMode = document.documentElement.classList.contains('dark');
 
@@ -23,6 +31,7 @@ export function AudioExporter({ output, disabled = false, className = '' }: Audi
     if (!output || isExporting) return;
 
     setIsExporting(true);
+    
     try {
       // First, we need to render the audio to get an AudioBuffer
       const audioBuffer = await renderOutputToBuffer(output);
@@ -43,8 +52,7 @@ export function AudioExporter({ output, disabled = false, className = '' }: Audi
       
     } catch (error) {
       console.error('Export failed:', error);
-      // You could add a toast notification here
-      alert('Export failed. Please try again.');
+      alert(`Export failed: ${error.message}`);
     } finally {
       setIsExporting(false);
     }
@@ -59,58 +67,91 @@ export function AudioExporter({ output, disabled = false, className = '' }: Audi
           ? Math.max(...engineOutput.events.map(event => event.time + (event.duration || 0.25))) + 1
           : 4.0; // add 1 second buffer
         
-        // Import Tone dynamically to avoid issues
-        const { Tone } = await import('tone');
+        // Import Tone.js the same way as TonePlayer
+        const tone = await import('tone');
         
         // Create an offline context for rendering
         const sampleRate = 44100;
-        const offlineContext = Tone.Offline(() => {
+        const offlineContext = tone.Offline(() => {
           // Create instruments similar to what TonePlayer uses
-          const synth = new Tone.Synth({
+          const synth = new tone.Synth({
             oscillator: { type: 'sawtooth' },
             envelope: { attack: 0.01, decay: 0.2, sustain: 0.3, release: 0.8 }
           }).toDestination();
           
-          const bass = new Tone.MonoSynth({
+          const bass = new tone.MonoSynth({
             oscillator: { type: 'square' },
             envelope: { attack: 0.01, decay: 0.3, sustain: 0.4, release: 0.5 }
           }).toDestination();
           
-          const drums = new Tone.MembraneSynth({
+          const drums = new tone.MembraneSynth({
             envelope: { attack: 0.01, decay: 0.2, sustain: 0, release: 0.3 }
           }).toDestination();
           
-          const noise = new Tone.NoiseSynth({
+          const noise = new tone.NoiseSynth({
             envelope: { attack: 0.01, decay: 0.1, sustain: 0 }
           }).toDestination();
           
-          // Schedule all events
-          for (const event of engineOutput.events) {
-            const pitch = Tone.Frequency(event.pitch, 'midi').toFrequency();
-            const time = event.time;
-            const duration = event.duration;
-            const velocity = event.velocity;
-            
+          // Sort events by time and separate by instrument to avoid scheduling conflicts
+          const sortedEvents = [...engineOutput.events].sort((a, b) => a.time - b.time);
+          
+          // Group events by track to avoid conflicts within the same instrument
+          const eventsByTrack = {
+            synth: [] as typeof sortedEvents,
+            bass: [] as typeof sortedEvents,
+            drums: [] as typeof sortedEvents,
+            noise: [] as typeof sortedEvents
+          };
+          
+          for (const event of sortedEvents) {
             switch (event.track) {
               case 'bass':
-                bass.triggerAttackRelease(pitch, duration, time, velocity);
+                eventsByTrack.bass.push(event);
                 break;
               case 'drums':
                 if (event.pitch < 40) {
-                  // Low drum sounds - use membrane synth
-                  drums.triggerAttackRelease(pitch, 0.1, time, velocity);
+                  eventsByTrack.drums.push(event);
                 } else {
-                  // High drum sounds - use noise
-                  noise.triggerAttackRelease(0.05, time, velocity * 0.7);
+                  eventsByTrack.noise.push(event);
                 }
                 break;
               case 'chords':
               case 'lead':
               default:
-                synth.triggerAttackRelease(pitch, duration, time, velocity * 0.8);
+                eventsByTrack.synth.push(event);
                 break;
             }
           }
+          
+          // Schedule events for each instrument separately with proper timing
+          eventsByTrack.synth.forEach((event, index) => {
+            const pitch = tone.Frequency(event.pitch, 'midi').toFrequency();
+            // Add tiny offset to prevent scheduling conflicts
+            const time = event.time + (index * 0.001);
+            const duration = Math.max(0.01, event.duration);
+            const velocity = event.velocity * 0.8;
+            synth.triggerAttackRelease(pitch, duration, time, velocity);
+          });
+          
+          eventsByTrack.bass.forEach((event, index) => {
+            const pitch = tone.Frequency(event.pitch, 'midi').toFrequency();
+            const time = event.time + (index * 0.001);
+            const duration = Math.max(0.01, event.duration);
+            bass.triggerAttackRelease(pitch, duration, time, event.velocity);
+          });
+          
+          eventsByTrack.drums.forEach((event, index) => {
+            const pitch = tone.Frequency(event.pitch, 'midi').toFrequency();
+            const time = event.time + (index * 0.001);
+            const duration = 0.1;
+            drums.triggerAttackRelease(pitch, duration, time, event.velocity);
+          });
+          
+          eventsByTrack.noise.forEach((event, index) => {
+            const time = event.time + (index * 0.001);
+            const duration = 0.05;
+            noise.triggerAttackRelease(duration, time, event.velocity * 0.7);
+          });
           
         }, duration, 2, sampleRate);
         
@@ -213,7 +254,7 @@ export function AudioExporter({ output, disabled = false, className = '' }: Audi
           Export Format
         </label>
         <div className="flex gap-2">
-          {(['wav', 'mp3'] as AudioFormat[]).map((format) => (
+          {(['wav'] as AudioFormat[]).map((format) => (
             <button
               key={format}
               onClick={() => setExportFormat(format)}
@@ -231,10 +272,10 @@ export function AudioExporter({ output, disabled = false, className = '' }: Audi
           ))}
         </div>
         <div className="text-xs text-gray-500">
-          {exportFormat === 'wav' 
-            ? 'Uncompressed, high quality (larger file size)'
-            : 'Compressed, good quality (smaller file size)'
-          }
+          Uncompressed, CD quality audio (larger file size)
+        </div>
+        <div className="text-xs text-blue-600 dark:text-blue-400">
+          Note: MP3 export temporarily disabled - WAV provides the highest quality
         </div>
       </div>
 
@@ -273,7 +314,8 @@ export function AudioExporter({ output, disabled = false, className = '' }: Audi
             <p className="font-medium mb-1">Export Quality:</p>
             <ul className="space-y-1 text-xs">
               <li>• WAV: 44.1kHz, 16-bit, stereo (CD quality)</li>
-              <li>• MP3: 192kbps, stereo (high quality)</li>
+              <li>• Preserves all audio detail with no compression</li>
+              <li>• Compatible with all audio software and devices</li>
             </ul>
           </div>
         </div>
