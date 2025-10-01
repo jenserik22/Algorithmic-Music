@@ -47,14 +47,25 @@ export default function App() {
   const onGenerate = async ({ algorithm, params }: { algorithm: AlgorithmName; params: GenerationParams }) => {
     try {
       const out = await generate(algorithm, params);
-      const enriched = arrange(params, out);
+      
+      // Some engines (like Enhanced Helix) already generate complete arrangements
+      // Others need the arranger to add chords, bass, drums, etc.
+      const selfArrangingEngines = ['enhanced_helix'];
+      const enriched = selfArrangingEngines.includes(algorithm) 
+        ? out  // Use engine output directly
+        : arrange(params, out); // Apply arranger for simpler engines
+      
       setLastOutput(enriched);
       setLastAlgo(algorithm);
       setLastParams(params);
+      
       // Try AI refinement in background for more realism/variation
-      refineArrangementWithMagenta(params, enriched)
-        .then(refined => setLastOutput(refined))
-        .catch(() => {/* ignore */});
+      // Skip for self-arranging engines as they're already sophisticated
+      if (!selfArrangingEngines.includes(algorithm)) {
+        refineArrangementWithMagenta(params, enriched)
+          .then(refined => setLastOutput(refined))
+          .catch(() => {/* ignore */});
+      }
     } catch {
       /* cancelled or error */
     }
