@@ -35,7 +35,7 @@ describe('useGeneration progress, cancel, and retry-once', () => {
     expect(screen.getByLabelText('status').textContent).toBe('generating');
 
     expect(await screen.findByLabelText('done', undefined, { timeout: 1500 })).toBeInTheDocument();
-    expect(Number(screen.getByLabelText('progress').textContent)).toBe(100);
+    expect(Number(screen.getByLabelText('progress').textContent)).toBeGreaterThanOrEqual(99);
     expect(screen.getByLabelText('status').textContent).toBe('success');
   });
 

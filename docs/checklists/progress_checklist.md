@@ -24,16 +24,16 @@
 - [G] Generative Grammar engine
 - [G] Stochastic engine
 - [G] Euclidean rhythms engine
-- [ ] Simple/Advanced UI flows with presets
-- [ ] Generation progress + retry/cancel handling
-- [ ] Playback controls + visualization toggles
+- [G] Simple/Advanced UI flows with presets
+- [G] Generation progress + retry/cancel handling
+- [G] Playback controls + visualization toggles
 - [G] IndexedDB/local storage history (20 limit)
 - [G] Supabase history sync + migration flow
-- [ ] Folders/playlists, tagging, favorites, bulk ops
-- [ ] Multi-format export pipeline (MP3/WAV/OGG/FLAC)
-- [ ] Settings export/import (JSON/URL, batch zip)
-- [ ] Deterministic seeding QA suite
-- [ ] Performance benchmark suite within SLA
+- [G] Folders/playlists, tagging, favorites, bulk ops
+- [G] Multi-format export pipeline (MP3/WAV/OGG/FLAC)
+- [G] Settings export/import (JSON/URL, batch zip)
+- [G] Deterministic seeding QA suite
+- [G] Performance benchmark suite within SLA
 - [ ] Cross-browser/device compatibility run
 
 ## Phase 2 – Enhancements
