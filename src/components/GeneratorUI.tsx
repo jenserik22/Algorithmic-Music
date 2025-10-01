@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
-import type { GenerationParams } from '@/lib/music/engines/types';
+import type { GenerationParams, Complexity } from '@/lib/music/engines/types';
 
-type Algorithm = 'stochastic' | 'markov' | 'cellular_automata' | 'l_system' | 'generative_grammar' | 'euclidean';
+type Algorithm = 'stochastic' | 'markov' | 'cellular_automata' | 'l_system' | 'generative_grammar' | 'euclidean' | 'helix';
 
 const PRESETS: Record<string, { label: string; params: Omit<GenerationParams, 'seed'> }>
   = {
@@ -26,6 +26,9 @@ export function GeneratorUI({ onGenerate }: { onGenerate: (x: { algorithm: Algor
   const [style, setStyle] = useState<'edm'|'cinematic'|'lofi'|'jazz'>('edm');
   const [variation, setVariation] = useState<number>(0.4);
   const [fillRate, setFillRate] = useState<number>(0.5);
+  const [complexityLevel, setComplexityLevel] = useState<Complexity>('intermediate');
+  const [motion, setMotion] = useState<number>(0.3);
+  const [brightness, setBrightness] = useState<number>(0.5);
 
   // sync state when preset changes (only in simple or when not manually edited)
   React.useEffect(() => {
@@ -37,7 +40,7 @@ export function GeneratorUI({ onGenerate }: { onGenerate: (x: { algorithm: Algor
   }, [base]);
 
   const handleGenerate = () => {
-    const params: GenerationParams = { seed, bpm, key: keySig, timeSignature, durationSecs, density, style, variation, fillRate };
+    const params: GenerationParams = { seed, bpm, key: keySig, timeSignature, durationSecs, density, style, variation, fillRate, complexityLevel, motion, brightness };
     onGenerate({ algorithm, params });
   };
 
@@ -63,7 +66,7 @@ export function GeneratorUI({ onGenerate }: { onGenerate: (x: { algorithm: Algor
       <div>
         <label htmlFor="algorithm">Algorithm</label>
         <select id="algorithm" aria-label="Algorithm" value={algorithm} onChange={e => setAlgorithm(e.target.value as Algorithm)}>
-          {['stochastic','markov','cellular_automata','l_system','generative_grammar','euclidean'].map(a => (
+          {['stochastic','markov','cellular_automata','l_system','generative_grammar','euclidean','helix'].map(a => (
             <option key={a} value={a}>{a}</option>
           ))}
         </select>
@@ -95,7 +98,7 @@ export function GeneratorUI({ onGenerate }: { onGenerate: (x: { algorithm: Algor
             <input id="density" type="number" step="0.05" min="0" max="1" aria-label="Density" value={density} onChange={e => setDensity(Number(e.target.value))} />
           </div>
           <div>
-            <label htmlFor="style">Style</label>
+            <label htmlFor="style">{algorithm === 'helix' ? 'Helix Template' : 'Style'}</label>
             <select id="style" aria-label="Style" value={style} onChange={e => setStyle(e.target.value as any)}>
               {['edm','cinematic','lofi','jazz'].map(s => <option key={s} value={s}>{s}</option>)}
             </select>
@@ -110,6 +113,26 @@ export function GeneratorUI({ onGenerate }: { onGenerate: (x: { algorithm: Algor
             <input id="fillRate" type="range" min="0" max="1" step="0.1" aria-label="Fill rate" value={fillRate} onChange={e => setFillRate(Number(e.target.value))} />
             <span>{fillRate.toFixed(1)}</span>
           </div>
+          {algorithm === 'helix' && (
+            <div>
+              <div>
+                <label htmlFor="complexity">Complexity</label>
+                <select id="complexity" aria-label="Complexity" value={complexityLevel} onChange={e => setComplexityLevel(e.target.value as Complexity)}>
+                  {(['simple','intermediate','full','high'] as Complexity[]).map(c => <option key={c} value={c}>{c}</option>)}
+                </select>
+              </div>
+              <div>
+                <label htmlFor="motion">Motion</label>
+                <input id="motion" type="range" min="0" max="1" step="0.05" aria-label="Motion" value={motion} onChange={e => setMotion(Number(e.target.value))} />
+                <span>{motion.toFixed(2)}</span>
+              </div>
+              <div>
+                <label htmlFor="brightness">Brightness</label>
+                <input id="brightness" type="range" min="0" max="1" step="0.05" aria-label="Brightness" value={brightness} onChange={e => setBrightness(Number(e.target.value))} />
+                <span>{brightness.toFixed(2)}</span>
+              </div>
+            </div>
+          )}
         </div>
       )}
       <div>

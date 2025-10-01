@@ -9,13 +9,16 @@ export class TonePlayer {
   private _status: PlayerStatus = 'stopped';
   private nodes: {
     master?: any;
+    masterFilter?: any;
     comp?: any;
     reverb?: any;
-    chords?: any; chordsGain?: any;
-    lead?: any; leadFX?: any; leadGain?: any;
+    chords?: any; chordsGain?: any; chordsPan?: any;
+    lead?: any; leadFilter?: any; leadFX?: any; leadGain?: any;
     bass?: any; bassGain?: any;
     kick?: any; snare?: any; hat?: any;
+    fxMetal?: any; fxNoise?: any; fxFilter?: any; fxGain?: any;
   } = {};
+  private lfos: any[] = [];
   private scheduledIds: string[] = [];
 
   status(): PlayerStatus { return this._status; }
@@ -31,7 +34,8 @@ export class TonePlayer {
       const comp = new tone.Compressor({ threshold: -18, ratio: 3, attack: 0.003, release: 0.25 });
       const reverb = new tone.Reverb({ decay: 2.2, wet: 0.25 });
       const master = new tone.Gain(1);
-      master.chain(comp, tone.Destination);
+      const masterFilter = new tone.Filter({ type: 'lowpass', frequency: 10000 });
+      master.chain(comp, masterFilter, tone.Destination);
 
       // Chords
       const chords = new tone.PolySynth(tone.Synth, {
@@ -39,17 +43,19 @@ export class TonePlayer {
         envelope: { attack: 0.02, decay: 0.2, sustain: 0.6, release: 0.6 },
       });
       const chordsGain = new tone.Gain(0.7);
-      chords.connect(chordsGain);
-      chordsGain.fan(reverb, master);
+      const chordsPan = new tone.Panner(0);
+      chords.chain(chordsGain, chordsPan);
+      chordsPan.fan(reverb, master);
 
       // Lead
       const lead = new tone.Synth({
         oscillator: { type: 'triangle' },
         envelope: { attack: 0.01, decay: 0.15, sustain: 0.5, release: 0.2 },
       });
+      const leadFilter = new tone.Filter({ type: 'lowpass', frequency: 2000 });
       const leadFX = new tone.PingPongDelay({ delayTime: '8n', feedback: 0.18, wet: 0.25 });
       const leadGain = new tone.Gain(0.8);
-      lead.chain(leadFX, leadGain);
+      lead.chain(leadFilter, leadFX, leadGain);
       leadGain.fan(reverb, master);
 
       // Bass
@@ -72,7 +78,15 @@ export class TonePlayer {
       const hatHP = new tone.Filter({ type: 'highpass', frequency: 6000 });
       hat.chain(hatHP, master);
 
-      this.nodes = { master, comp, reverb, chords, chordsGain, lead, leadFX, leadGain, bass, bassGain, kick, snare, hat };
+      // FX: crash (metal) and riser (noise with sweeping filter)
+      const fxMetal = new tone.MetalSynth({ envelope: { attack: 0.001, decay: 1.0, release: 0.2 }, harmonicity: 5.1, modulationIndex: 32, resonance: 4000, octaves: 1.5, volume: -4 });
+      fxMetal.connect(master);
+      const fxNoise = new tone.NoiseSynth({ noise: { type: 'white' }, envelope: { attack: 0.2, decay: 1.0, sustain: 0 }, volume: -10 });
+      const fxFilter = new tone.Filter({ type: 'lowpass', frequency: 200 });
+      const fxGain = new tone.Gain(0.8);
+      fxNoise.chain(fxFilter, fxGain, reverb, master);
+
+      this.nodes = { master, masterFilter, comp, reverb, chords, chordsGain, chordsPan, lead, leadFilter, leadFX, leadGain, bass, bassGain, kick, snare, hat, fxMetal, fxNoise, fxFilter, fxGain };
       this.ready = true;
     } catch (_e) {
       this.ready = false;
@@ -86,6 +100,11 @@ export class TonePlayer {
     const T = this.tone.Transport;
     for (const id of this.scheduledIds) T.clear(id);
     this.scheduledIds = [];
+    // stop LFOs
+    for (const l of this.lfos) {
+      try { l.stop(); l.disconnect(); l.dispose?.(); } catch { /* ignore */ }
+    }
+    this.lfos = [];
   }
 
   private groupChordNotes(events: NoteEvent[]) {
@@ -114,11 +133,28 @@ export class TonePlayer {
 
     const startAt = T.seconds + 0.05;
     const endTime = out.events.reduce((m, e) => Math.max(m, e.time + e.duration), 0);
+    // Setup LFOs if provided
+    const lfos = out.meta?.lfos ?? [];
+    for (const spec of lfos) {
+      try {
+        const lfo = new tone.LFO({ frequency: spec.rate, min: spec.min ?? 200, max: spec.max ?? 8000, type: spec.shape ?? 'sine' }).start(startAt);
+        if (spec.target === 'master.brightness') {
+          lfo.connect(this.nodes.masterFilter.frequency);
+        } else if (spec.target === 'track:lead.filterCutoff') {
+          lfo.connect(this.nodes.leadFilter.frequency);
+        } else if (spec.target === 'track:chords.pan') {
+          // pan range -1..1
+          lfo.connect(this.nodes.chordsPan.pan);
+        }
+        this.lfos.push(lfo);
+      } catch { /* ignore */ }
+    }
 
     const chordsEv = out.events.filter(e => e.track === 'chords');
     const leadEv = out.events.filter(e => e.track === 'lead');
     const bassEv = out.events.filter(e => e.track === 'bass');
     const drumEv = out.events.filter(e => e.track === 'drums');
+    const fxEv = out.events.filter(e => e.track === 'fx');
 
     // Chords grouped per onset
     for (const group of this.groupChordNotes(chordsEv)) {
@@ -170,6 +206,27 @@ export class TonePlayer {
           this.nodes.snare.triggerAttackRelease('16n', time, 0.6);
         } else {
           this.nodes.hat.triggerAttackRelease('32n', time, 0.4);
+        }
+      }, t);
+      this.scheduledIds.push(id);
+    }
+
+    // Stop and onEnd callback
+    // FX events
+    for (const ev of fxEv) {
+      const t = ev.time + startAt;
+      const id = T.schedule((time: number) => {
+        const code = ev.pitch | 0;
+        if (code === 49) {
+          this.nodes.fxMetal.triggerAttackRelease(0.8, time, 0.9);
+        } else {
+          // riser: sweep filter up across duration
+          const dur = Math.max(0.5, ev.duration);
+          const startF = 200;
+          const endF = 8000;
+          this.nodes.fxFilter.frequency.setValueAtTime(startF, time);
+          this.nodes.fxFilter.frequency.exponentialRampToValueAtTime(endF, time + dur);
+          this.nodes.fxNoise.triggerAttackRelease(dur, time, 0.7);
         }
       }, t);
       this.scheduledIds.push(id);

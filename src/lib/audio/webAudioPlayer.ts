@@ -210,6 +210,37 @@ export class WebAudioPlayer {
         try { noise.start(s); noise.stop(e); } catch (_e) { /* ignore */ }
         stopFns.push(() => { try { noise.stop(); } catch (_e) { /* ignore */ } try { noise.disconnect(); } catch (_e) { /* ignore */ } try { ng.disconnect(); } catch (_e) { /* ignore */ } });
       }
+    } else if (track === 'fx') {
+      const code = ev.pitch | 0;
+      const s = startAt + ev.time;
+      const e = s + Math.max(0.2, ev.duration);
+      if (code === 49) {
+        // Crash: bright noise burst through highpass
+        const noiseBuf = ctx.createBuffer(1, Math.floor(1.2 * ctx.sampleRate), ctx.sampleRate);
+        const data = noiseBuf.getChannelData(0);
+        for (let i = 0; i < data.length; i++) data[i] = Math.random() * 2 - 1;
+        const noise = ctx.createBufferSource();
+        noise.buffer = noiseBuf;
+        const hp = ctx.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 5000;
+        const ng = ctx.createGain();
+        ng.gain.setValueAtTime(0, s);
+        ng.gain.linearRampToValueAtTime(peak, s + 0.01);
+        ng.gain.exponentialRampToValueAtTime(0.0001, e);
+        noise.connect(hp).connect(ng).connect(dry);
+        try { noise.start(s); noise.stop(e); } catch (_e) { /* ignore */ }
+        stopFns.push(() => { try { noise.stop(); } catch (_e) {} try { noise.disconnect(); } catch (_e) {} });
+      } else {
+        // Riser: noise with opening lowpass sweep
+        const noiseBuf = ctx.createBuffer(1, Math.floor(ev.duration * ctx.sampleRate), ctx.sampleRate);
+        const data = noiseBuf.getChannelData(0);
+        for (let i = 0; i < data.length; i++) data[i] = Math.random() * 2 - 1;
+        const noise = ctx.createBufferSource(); noise.buffer = noiseBuf;
+        const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.setValueAtTime(200, s); lp.frequency.exponentialRampToValueAtTime(8000, e);
+        const ng = ctx.createGain(); ng.gain.setValueAtTime(0.05, s); ng.gain.linearRampToValueAtTime(peak * 0.6, e);
+        noise.connect(lp).connect(ng).connect(dry);
+        try { noise.start(s); noise.stop(e); } catch (_e) { /* ignore */ }
+        stopFns.push(() => { try { noise.stop(); } catch (_e) {} try { noise.disconnect(); } catch (_e) {} });
+      }
     }
 
     // Ensure we clear source gate

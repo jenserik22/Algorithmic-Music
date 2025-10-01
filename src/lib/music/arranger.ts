@@ -66,29 +66,61 @@ export function arrange(params: GenerationParams, base: EngineOutput): EngineOut
 
   const arranged: NoteEvent[] = [];
 
+  // Section planning: intro (1 bar), A, B, breakdown (1 bar), outro (1 bar)
+  const minBars = Math.max(4, bars);
+  const introBars = Math.min(1, minBars);
+  const outroBars = Math.min(1, Math.max(0, minBars - 1));
+  const coreBars = Math.max(2, minBars - introBars - outroBars - 1);
+  const aBars = Math.max(2, Math.floor(coreBars * 0.6));
+  const bBars = Math.max(2, coreBars - aBars);
+  const sections: { name: string; startBar: number; len: number; mute: Partial<Record<'chords'|'bass'|'drums'|'lead', boolean>>; crash: boolean; riserBefore: boolean }[] = [];
+  let barPtr = 0;
+  sections.push({ name: 'intro', startBar: barPtr, len: introBars, mute: { bass: true, drums: style !== 'jazz' }, crash: true, riserBefore: false }); barPtr += introBars;
+  sections.push({ name: 'A', startBar: barPtr, len: aBars, mute: {}, crash: true, riserBefore: false }); barPtr += aBars;
+  sections.push({ name: 'B', startBar: barPtr, len: bBars, mute: {}, crash: true, riserBefore: true }); barPtr += bBars;
+  sections.push({ name: 'break', startBar: barPtr, len: 1, mute: { chords: true, bass: true }, crash: false, riserBefore: false }); barPtr += 1;
+  sections.push({ name: 'outro', startBar: barPtr, len: outroBars, mute: { drums: true }, crash: true, riserBefore: false });
+
+  const tensionAtBar = (b: number) => {
+    const pos = b / Math.max(1, minBars - 1);
+    // bell-like: build to B then drop for breakdown, slight rise for outro
+    const baseCurve = Math.sin(Math.PI * pos);
+    return Math.max(0, Math.min(1, baseCurve * (0.5 + 0.5 * variation)));
+  };
+
   // Chords with harmonic rhythm variation (half-bar splits sometimes)
-  for (let b = 0; b < bars; b++) {
+  for (let b = 0; b < minBars; b++) {
     const barStart = b * 4 * beat;
     if (barStart >= params.durationSecs) break;
+    const sec = sections.find(s => b >= s.startBar && b < s.startBar + s.len)!;
+    if (sec?.mute?.chords) continue;
     const degreeSemi = prog[b % prog.length];
     const chordRoot = rootC4 + degreeSemi;
-    const split = roll(0.25 * variation); // chance of two chords in bar
+    const split = roll(0.25 * variation + 0.2 * tensionAtBar(b)); // chance of two chords in bar
     const parts = split ? 2 : 1;
     for (let pIdx = 0; pIdx < parts; pIdx++) {
       const t = barStart + pIdx * (2 * beat);
       const dur = Math.min((split ? 2 * beat : 4 * beat), params.durationSecs - t);
-      const notes = triad(chordRoot + (split && pIdx === 1 ? choose([2, -2, 0]) : 0), minor)
+      let chordTrans = chordRoot + (split && pIdx === 1 ? choose([2, -2, 0]) : 0);
+      const notes = triad(chordTrans, minor)
         .map(p => clampPitch(p, 48, 76));
+      // occasional 7th
+      if (roll(0.3 * variation + 0.2 * tensionAtBar(b))) {
+        const seventh = minor ? chordTrans + 10 : chordTrans + 11;
+        notes.push(clampPitch(seventh, 50, 80));
+      }
       for (const p of notes) {
-        arranged.push({ time: humanizeTime(t), pitch: p, duration: dur, velocity: humanVel(0.55 + 0.2 * rand()), track: 'chords' });
+        arranged.push({ time: humanizeTime(t), pitch: p, duration: dur, velocity: humanVel(0.55 + 0.3 * tensionAtBar(b)), track: 'chords' });
       }
     }
   }
 
   // Bass patterns: root-5th-octave or walking
-  for (let b = 0; b < bars; b++) {
+  for (let b = 0; b < minBars; b++) {
     const barStart = b * 4 * beat;
     if (barStart >= params.durationSecs) break;
+    const sec = sections.find(s => b >= s.startBar && b < s.startBar + s.len)!;
+    if (sec?.mute?.bass) continue;
     const nextSemi = prog[(b + 1) % prog.length];
     const degreeSemi = prog[b % prog.length];
     const root = clampPitch(rootC4 + degreeSemi - 24, 28, 52);
@@ -97,7 +129,7 @@ export function arrange(params: GenerationParams, base: EngineOutput): EngineOut
       const steps = [root, clampPitch(root + 7, 28, 60), clampPitch(root + 12, 28, 60), root];
       for (let i = 0; i < 4; i++) {
         const t = barStart + i * beat;
-        arranged.push({ time: humanizeTime(t), pitch: steps[i], duration: 0.9 * beat, velocity: humanVel(0.7), track: 'bass' });
+        arranged.push({ time: humanizeTime(t), pitch: steps[i], duration: 0.9 * beat, velocity: humanVel(0.7 + 0.2 * tensionAtBar(b)), track: 'bass' });
       }
     } else {
       // walk from root to next root with approach note
@@ -107,7 +139,7 @@ export function arrange(params: GenerationParams, base: EngineOutput): EngineOut
         const t = barStart + i * beat;
         let p = root + i * dir;
         if (i === 3) p = target + (roll(0.5) ? -1 : 0); // approach
-        arranged.push({ time: humanizeTime(t), pitch: clampPitch(p, 28, 60), duration: 0.85 * beat, velocity: humanVel(0.65), track: 'bass' });
+        arranged.push({ time: humanizeTime(t), pitch: clampPitch(p, 28, 60), duration: 0.85 * beat, velocity: humanVel(0.65 + 0.2 * tensionAtBar(b)), track: 'bass' });
       }
     }
   }
@@ -127,21 +159,23 @@ export function arrange(params: GenerationParams, base: EngineOutput): EngineOut
   const sSteps = drumTemplates.snare.map(s => (s + rot * 2) % 16);
   const hSteps = drumTemplates.hats.map(s => (s + rot) % 16);
 
-  for (let b = 0; b < bars; b++) {
+  for (let b = 0; b < minBars; b++) {
     const barStart = b * 4 * beat;
     if (barStart >= params.durationSecs) break;
+    const sec = sections.find(s => b >= s.startBar && b < s.startBar + s.len)!;
+    const drumsMuted = !!sec?.mute?.drums;
     const isFill = (b + 1) % (roll(0.5) ? 4 : 8) === 0 && roll(fillRate);
     // hats
     for (const step of hSteps) {
       const t = barStart + step * sixteenth;
       if (t >= params.durationSecs) break;
-      arranged.push({ time: humanizeTime(t), pitch: 42, duration: 0.05 * beat, velocity: humanVel(isFill ? 0.6 : 0.45), track: 'drums' });
+      if (!drumsMuted) arranged.push({ time: humanizeTime(t), pitch: 42, duration: 0.05 * beat, velocity: humanVel((isFill ? 0.6 : 0.45) + 0.2 * tensionAtBar(b)), track: 'drums' });
     }
     // kicks
     for (const step of kSteps) {
       const t = barStart + step * sixteenth;
       if (t >= params.durationSecs) break;
-      arranged.push({ time: humanizeTime(t), pitch: 36, duration: 0.22 * beat, velocity: humanVel(0.9), track: 'drums' });
+      if (!drumsMuted) arranged.push({ time: humanizeTime(t), pitch: 36, duration: 0.22 * beat, velocity: humanVel(0.9), track: 'drums' });
     }
     // snares + fill roll
     if (isFill) {
@@ -150,14 +184,26 @@ export function arrange(params: GenerationParams, base: EngineOutput): EngineOut
       for (let i = 0; i < 4; i++) {
         const t = start + i * sixteenth;
         if (t >= params.durationSecs) break;
-        arranged.push({ time: humanizeTime(t), pitch: 38, duration: 0.12 * beat, velocity: humanVel(0.6 + 0.1 * i), track: 'drums' });
+        if (!drumsMuted) arranged.push({ time: humanizeTime(t), pitch: 38, duration: 0.12 * beat, velocity: humanVel(0.6 + 0.1 * i), track: 'drums' });
       }
     } else {
       for (const step of sSteps) {
         const t = barStart + step * sixteenth;
         if (t >= params.durationSecs) break;
-        arranged.push({ time: humanizeTime(t), pitch: 38, duration: 0.18 * beat, velocity: humanVel(0.75), track: 'drums' });
+        if (!drumsMuted) arranged.push({ time: humanizeTime(t), pitch: 38, duration: 0.18 * beat, velocity: humanVel(0.75), track: 'drums' });
       }
+    }
+
+    // FX: crashes at section starts
+    if (sections.some(s => s.startBar === b && s.crash)) {
+      arranged.push({ time: barStart, pitch: 49, duration: beat, velocity: 0.9, track: 'fx' });
+    }
+    // FX: riser before section start that requests it
+    const nextSec = sections.find(s => s.startBar === b + 1 && s.riserBefore);
+    if (nextSec) {
+      const dur = Math.min(2 * beat, params.durationSecs - (barStart + 4 * beat - 2 * beat));
+      const start = barStart + 4 * beat - dur;
+      if (dur > 0) arranged.push({ time: start, pitch: 91, duration: dur, velocity: 0.7, track: 'fx' });
     }
   }
 
@@ -188,5 +234,5 @@ export function arrange(params: GenerationParams, base: EngineOutput): EngineOut
 
   arranged.sort((a, b) => a.time - b.time);
   const swing = 0.08 * variation;
-  return { events: arranged, meta: { bpm: params.bpm, key: params.key, style, variation, swing } };
+  return { events: arranged, meta: { bpm: params.bpm, key: params.key, style, variation, swing, lfos: base.meta?.lfos } };
 }
