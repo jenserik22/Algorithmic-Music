@@ -54,3 +54,17 @@
 - [ ] Collaboration feature requirements drafted
 - [ ] ML algorithm exploration outline
 - [ ] Native app exploration outline
+
+---
+
+## Helix Learnings (remember)
+- Config-driven generation (templates + macros) increases quality/variety while staying deterministic by seed.
+- Macros: complexity, motion (LFO depth), brightness; sectioning (intro/A/B/break/outro) with tension curves.
+- LFO automation routing: master brightness, lead filter cutoff, chords pan; keep LFOs transport-bound and disposed on stop.
+- Style templates (EDM/Cinematic/Lo‑Fi/Jazz) guide scales/registers/rhythms; arranger handles FX (crashes/risers) and fills.
+- Progressive generation works by segmenting duration and emitting slices; safe for early playback scheduling.
+
+## Resume Checklist (next session)
+- [ ] Phase 3 backlog: draft epics (premium, gallery, stems/MIDI, collaboration, ML, native);
+- [ ] Implement progressive playback scheduling in TonePlayer (append scheduling while generating);
+- [ ] Add voice‑leading improvements and motif transformations to Helix engine (inversion/augmentation/fragmentation).
