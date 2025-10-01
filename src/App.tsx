@@ -4,6 +4,9 @@ import { PlaybackControls } from '@/components/PlaybackControls';
 import { Visualizer } from '@/components/Visualizer';
 import { EducationModal } from '@/components/EducationModal';
 import { ProcessPanel } from '@/components/ProcessPanel';
+import { PresetManager } from '@/components/PresetManager';
+import { PerfWarnings } from '@/components/PerfWarnings';
+import { toParams, type Settings } from '@/lib/export/settings';
 import { useGeneration } from '@/lib/music/useGeneration';
 import type { AlgorithmName } from '@/lib/music/engines';
 import type { GenerationParams } from '@/lib/music/engines/types';
@@ -65,6 +68,14 @@ export default function App() {
       )}
 
       <GeneratorUI onGenerate={onGenerate} />
+      <PresetManager
+        current={lastAlgo && lastParams ? { algorithm: lastAlgo, params: lastParams } : null}
+        onApply={(s: Settings) => {
+          const p = toParams(s);
+          void onGenerateAndPlay({ algorithm: s.algorithm as AlgorithmName, params: p });
+        }}
+      />
+      <PerfWarnings />
       <div style={{ marginTop: 8 }}>
         <label>
           <input type="checkbox" checked={showProcess} onChange={e => setShowProcess(e.target.checked)} /> Show process

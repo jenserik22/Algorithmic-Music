@@ -47,3 +47,29 @@ export function buildShareURL(baseUrl: string, s: Settings): string {
   const sep = baseUrl.includes('?') ? '&' : '?';
   return `${baseUrl}${sep}settings=${token}`;
 }
+
+// Mapping helpers
+import type { GenerationParams } from '@/lib/music/engines/types';
+
+export function fromParams(algorithm: string, params: GenerationParams): Settings {
+  return {
+    algorithm,
+    bpm: params.bpm,
+    key: params.key,
+    timeSignature: params.timeSignature,
+    durationSecs: params.durationSecs,
+    density: params.density,
+    seed: params.seed,
+  };
+}
+
+export function toParams(s: Settings): GenerationParams {
+  return {
+    bpm: s.bpm,
+    key: s.key,
+    timeSignature: s.timeSignature,
+    durationSecs: s.durationSecs,
+    density: s.density,
+    seed: s.seed,
+  } as GenerationParams;
+}
