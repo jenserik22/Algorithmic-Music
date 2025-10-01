@@ -1,4 +1,5 @@
 import React from 'react';
+import { ChartBarIcon, WaveIcon } from '@/components/icons';
 
 type Mode = 'bars' | 'spectrum';
 

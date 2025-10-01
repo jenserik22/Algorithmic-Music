@@ -222,8 +222,9 @@ export default function App() {
               <div className={`p-6 rounded-lg border ${
                 isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'
               }`}>
-                <h2 className={`text-xl font-semibold mb-4 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-                  🎵 Playback
+                <h2 className={`text-xl font-semibold mb-4 flex items-center gap-2 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                  <MusicIcon className="w-5 h-5" />
+                  Playback
                 </h2>
                 <PlaybackControls output={lastOutput} autoPlayToken={autoPlayToken} />
               </div>
@@ -233,8 +234,9 @@ export default function App() {
             <div className={`p-6 rounded-lg border ${
               isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'
             }`}>
-              <h2 className={`text-xl font-semibold mb-4 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-                📊 Audio Visualizer
+              <h2 className={`text-xl font-semibold mb-4 flex items-center gap-2 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                <ChartBarIcon className="w-5 h-5" />
+                Audio Visualizer
               </h2>
               <Visualizer />
             </div>
