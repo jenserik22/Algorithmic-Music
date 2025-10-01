@@ -15,7 +15,8 @@ import { refineArrangementWithMagenta } from '@/lib/music/ml/magenta';
 import { TrendingBadge } from '@/components/Trending';
 import { ErrorBanner } from '@/components/ErrorBanner';
 import { useIdlePreload } from '@/lib/utils/useIdlePreload';
-import { SunIcon, MoonIcon, MusicIcon, SettingsIcon, FolderIcon, ExclamationIcon, ChartBarIcon, RocketIcon } from '@/components/icons';
+import { SunIcon, MoonIcon, MusicIcon, SettingsIcon, FolderIcon, ExclamationIcon, ChartBarIcon, RocketIcon, DownloadIcon } from '@/components/icons';
+import { AudioExporter } from '@/components/AudioExporter';
 
 export default function App() {
   useIdlePreload();
@@ -229,6 +230,17 @@ export default function App() {
                 <PlaybackControls output={lastOutput} autoPlayToken={autoPlayToken} />
               </div>
             )}
+
+            {/* Export Controls */}
+            <div className={`p-6 rounded-lg border ${
+              isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'
+            }`}>
+              <h2 className={`text-xl font-semibold mb-4 flex items-center gap-2 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                <DownloadIcon className="w-5 h-5" />
+                Export Music
+              </h2>
+              <AudioExporter output={lastOutput} />
+            </div>
 
             {/* Visualizer */}
             <div className={`p-6 rounded-lg border ${
