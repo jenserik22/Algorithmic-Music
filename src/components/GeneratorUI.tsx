@@ -2,7 +2,7 @@ import React, { useMemo, useState } from 'react';
 import type { GenerationParams, Complexity } from '@/lib/music/engines/types';
 import { MusicIcon, RefreshIcon } from '@/components/icons';
 
-type Algorithm = 'stochastic' | 'markov' | 'cellular_automata' | 'l_system' | 'generative_grammar' | 'euclidean' | 'helix';
+type Algorithm = 'stochastic' | 'markov' | 'cellular_automata' | 'l_system' | 'generative_grammar' | 'euclidean' | 'helix' | 'enhanced_helix';
 
 const PRESETS: Record<string, { label: string; params: Omit<GenerationParams, 'seed'> }> = {
   upbeat: { label: '🎵 Upbeat 120', params: { bpm: 120, key: 'C', timeSignature: '4/4', durationSecs: 4, density: 0.5 } },
@@ -21,6 +21,7 @@ const ALGORITHM_INFO: Record<Algorithm, { name: string; description: string }> =
   generative_grammar: { name: '📝 Generative Grammar', description: 'Rule-based composition' },
   euclidean: { name: '⭕ Euclidean Rhythms', description: 'Mathematical rhythm patterns' },
   helix: { name: '🧬 Helix', description: 'SoundHelix-inspired generation' },
+  enhanced_helix: { name: '⚡ Enhanced Helix', description: 'Advanced multi-layered composition with sophisticated harmony' },
 };
 
 export function GeneratorUI({ onGenerate }: { onGenerate: (x: { algorithm: Algorithm; params: GenerationParams }) => void }) {
@@ -267,7 +268,7 @@ export function GeneratorUI({ onGenerate }: { onGenerate: (x: { algorithm: Algor
           </div>
 
           {/* Helix-specific controls */}
-          {algorithm === 'helix' && (
+          {(algorithm === 'helix' || algorithm === 'enhanced_helix') && (
             <div className="col-span-2 grid grid-cols-2 gap-4 pt-4 border-t border-gray-200 dark:border-gray-600">
               <div className="space-y-2">
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">

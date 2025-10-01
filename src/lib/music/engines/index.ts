@@ -6,6 +6,7 @@ import { GenerativeGrammarEngine } from './generativeGrammar';
 import { EuclideanRhythmsEngine } from './euclideanRhythms';
 import { CellularAutomataEngine } from './cellularAutomata';
 import { HelixEngine } from './helix';
+import { EnhancedHelixEngine } from './enhanced-helix';
 
 const registry = {
   stochastic: StochasticEngine,
@@ -15,6 +16,7 @@ const registry = {
   euclidean: EuclideanRhythmsEngine,
   cellular_automata: CellularAutomataEngine,
   helix: HelixEngine,
+  enhanced_helix: EnhancedHelixEngine,
 } as const satisfies Record<string, Engine>;
 
 export type AlgorithmName = keyof typeof registry;
