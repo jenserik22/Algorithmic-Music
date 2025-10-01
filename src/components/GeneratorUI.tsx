@@ -43,6 +43,11 @@ export function GeneratorUI({ onGenerate }: { onGenerate: (x: { algorithm: Algor
     const params: GenerationParams = { seed, bpm, key: keySig, timeSignature, durationSecs, density, style, variation, fillRate, complexityLevel, motion, brightness };
     onGenerate({ algorithm, params });
   };
+  const handleCreateSimilar = () => {
+    const baseParams: GenerationParams = { seed, bpm, key: keySig, timeSignature, durationSecs, density, style, variation, fillRate, complexityLevel, motion, brightness };
+    const jittered = { ...baseParams, seed: baseParams.seed + Math.floor(Math.random() * 1000) };
+    onGenerate({ algorithm, params: jittered });
+  };
 
   return (
     <div>
@@ -137,6 +142,7 @@ export function GeneratorUI({ onGenerate }: { onGenerate: (x: { algorithm: Algor
       )}
       <div>
         <button type="button" onClick={handleGenerate}>Generate</button>
+        <button type="button" style={{ marginLeft: 8 }} onClick={handleCreateSimilar}>Create Similar</button>
       </div>
     </div>
   );

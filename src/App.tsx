@@ -7,6 +7,7 @@ import type { AlgorithmName } from '@/lib/music/engines';
 import type { GenerationParams } from '@/lib/music/engines/types';
 import { arrange } from '@/lib/music/arranger';
 import { refineArrangementWithMagenta } from '@/lib/music/ml/magenta';
+import { TrendingBadge } from '@/components/Trending';
 
 export default function App() {
   const { status, progress, output, generate, cancel, error } = useGeneration();
@@ -46,6 +47,7 @@ export default function App() {
       <div style={{ margin: '12px 0', padding: 12, border: '1px solid #ddd', borderRadius: 8 }}>
         <strong>Hear it now:</strong>
         <button type="button" style={{ marginLeft: 8 }} onClick={playDemo}>Play Demo</button>
+        <TrendingBadge />
       </div>
       <div aria-label="gen-status">{status} ({progress}%)</div>
       {error && <div role="alert">{String(error)}</div>}
