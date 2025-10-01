@@ -325,19 +325,19 @@ export const EnhancedHelixEngine: Engine = {
       // Generate events for this section based on included instruments
       if (section.instruments.includes('lead')) {
         generateLeadLine(events, currentTime, sectionDuration, section, config, leadMotif, {
-          rand, roll, humanizeTime, humanizeVelocity, applySwing, scalePitch, beat, sixteenth
+          rand, roll, humanizeTime, humanizeVelocity, applySwing, scalePitch, beat, sixteenth, choose
         });
       }
       
       if (section.instruments.includes('chords')) {
         generateChordProgression(events, currentTime, sectionDuration, section, config, {
-          rand, roll, humanizeTime, humanizeVelocity, scalePitch, beat, rootC4, scale
+          rand, roll, humanizeTime, humanizeVelocity, scalePitch, beat, rootC4, scale, choose
         });
       }
       
       if (section.instruments.includes('bass')) {
         generateBassLine(events, currentTime, sectionDuration, section, config, {
-          rand, roll, humanizeTime, humanizeVelocity, scalePitch, beat, sixteenth
+          rand, roll, humanizeTime, humanizeVelocity, scalePitch, beat, sixteenth, choose
         });
       }
       
@@ -386,7 +386,7 @@ function generateLeadLine(
   motif: number[],
   utils: any
 ) {
-  const { rand, roll, humanizeTime, humanizeVelocity, applySwing, scalePitch, beat, sixteenth } = utils;
+  const { rand, roll, humanizeTime, humanizeVelocity, applySwing, scalePitch, beat, sixteenth, choose } = utils;
   const noteCount = Math.floor(duration / sixteenth);
   
   for (let i = 0; i < noteCount; i++) {
@@ -410,7 +410,7 @@ function generateLeadLine(
       
       // Musical note durations
       const durationChoices = [sixteenth, sixteenth * 2, sixteenth * 3, sixteenth * 4];
-      const noteDuration = utils.choose(durationChoices);
+      const noteDuration = choose(durationChoices);
       
       const velocity = humanizeVelocity(0.6 + section.energy * 0.3);
       const finalTime = applySwing(humanizeTime(time), config.rhythmPattern.swing);
