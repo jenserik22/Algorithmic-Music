@@ -6,6 +6,7 @@ import { useGeneration } from '@/lib/music/useGeneration';
 import type { AlgorithmName } from '@/lib/music/engines';
 import type { GenerationParams } from '@/lib/music/engines/types';
 import { arrange } from '@/lib/music/arranger';
+import { refineArrangementWithMagenta } from '@/lib/music/ml/magenta';
 
 export default function App() {
   const { status, progress, output, generate, cancel, error } = useGeneration();
@@ -17,6 +18,10 @@ export default function App() {
       const out = await generate(algorithm, params);
       const enriched = arrange(params, out);
       setLastOutput(enriched);
+      // Try AI refinement in background for more realism/variation
+      refineArrangementWithMagenta(params, enriched)
+        .then(refined => setLastOutput(refined))
+        .catch(() => {/* ignore */});
     } catch {
       /* cancelled or error */
     }
