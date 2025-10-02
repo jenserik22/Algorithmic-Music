@@ -17,6 +17,7 @@ import { ErrorBanner } from '@/components/ErrorBanner';
 import { useIdlePreload } from '@/lib/utils/useIdlePreload';
 import { SunIcon, MoonIcon, MusicIcon, SettingsIcon, FolderIcon, ExclamationIcon, ChartBarIcon, RocketIcon, DownloadIcon } from '@/components/icons';
 import { AudioExporter } from '@/components/AudioExporter';
+import { MidiExporter } from '@/components/MidiExporter';
 import { SpectrumAnalyzer } from '@/components/SpectrumAnalyzer';
 
 export default function App() {
@@ -252,11 +253,27 @@ export default function App() {
             <div className={`p-6 rounded-lg border ${
               isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'
             }`}>
-              <h2 className={`text-xl font-semibold mb-4 flex items-center gap-2 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+              <h2 className={`text-xl font-semibold mb-6 flex items-center gap-2 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
                 <DownloadIcon className="w-5 h-5" />
                 Export Music
               </h2>
-              <AudioExporter output={lastOutput} />
+              
+              {/* Export Tabs */}
+              <div className="space-y-6">
+                <div>
+                  <h3 className={`text-lg font-medium mb-3 flex items-center gap-2 ${isDarkMode ? 'text-gray-200' : 'text-gray-800'}`}>
+                    🎵 WAV Audio Export
+                  </h3>
+                  <AudioExporter output={lastOutput} />
+                </div>
+                
+                <div>
+                  <h3 className={`text-lg font-medium mb-3 flex items-center gap-2 ${isDarkMode ? 'text-gray-200' : 'text-gray-800'}`}>
+                    🎼 MIDI Export for DAWs
+                  </h3>
+                  <MidiExporter output={lastOutput} />
+                </div>
+              </div>
             </div>
 
             {/* Spectrum Analyzer */}
