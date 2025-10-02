@@ -57,6 +57,13 @@ export class MidiExporter {
     const bpm = output.meta?.bpm || 120;
     const timeSignature = this.parseTimeSignature(output.meta?.timeSignature || '4/4');
     
+    // Log basic export information
+    console.log('MIDI Export:', {
+      bpm,
+      totalEvents: output.events?.length || 0,
+      trackCount: Object.keys(trackGroups).length
+    });
+    
     // Create tempo track (track 0)
     const tempoTrack = new MidiWriter.Track();
     tempoTrack.addEvent(new MidiWriter.TimeSignatureEvent(
@@ -143,8 +150,10 @@ export class MidiExporter {
     // Sort events by time
     const sortedEvents = [...trackData.events].sort((a, b) => a.time - b.time);
     
-    // Convert note events to MIDI notes
-    sortedEvents.forEach(noteEvent => {
+    // Convert note events to MIDI notes with proper timing
+    let currentTime = 0;
+    
+    sortedEvents.forEach((noteEvent, index) => {
       const velocity = Math.max(1, Math.min(127, Math.round((noteEvent.velocity || 0.7) * 127)));
       let pitch = Math.round(noteEvent.pitch);
       
@@ -156,26 +165,31 @@ export class MidiExporter {
       // Clamp pitch to valid MIDI range
       pitch = Math.max(0, Math.min(127, pitch));
       
-      // Convert duration from seconds to standard notation
-      // Only use valid MIDI durations that the library accepts
+      // Track current time (for future timing features)
+      const eventTime = noteEvent.time;
+      
+      // Convert duration from seconds to standard musical notation
       const durationSecs = noteEvent.duration || 0.25;
+      
+
       let duration: string;
       
+      // Map duration to closest standard musical note value
       if (durationSecs >= 3.0) {
-        duration = '1';  // Whole note (4 beats)
+        duration = '1';  // Whole note
       } else if (durationSecs >= 1.5) {
-        duration = '2';  // Half note (2 beats)  
+        duration = '2';  // Half note
       } else if (durationSecs >= 0.75) {
-        duration = '4';  // Quarter note (1 beat)
+        duration = '4';  // Quarter note
       } else if (durationSecs >= 0.375) {
-        duration = '8';  // Eighth note (0.5 beats)
+        duration = '8';  // Eighth note
       } else if (durationSecs >= 0.1875) {
-        duration = '16'; // Sixteenth note (0.25 beats)
+        duration = '16'; // Sixteenth note
       } else {
-        duration = '32'; // Thirty-second note (shortest)
+        duration = '32'; // Thirty-second note
       }
       
-      // Create MIDI note event with basic parameters only
+      // Create MIDI note event with basic parameters (no wait timing for now)
       const noteEventMidi = new MidiWriter.NoteEvent({
         pitch: [pitch],
         duration: duration,
@@ -183,6 +197,7 @@ export class MidiExporter {
       });
       
       track.addEvent(noteEventMidi);
+      currentTime = eventTime;
     });
     
     return track;
