@@ -45,17 +45,16 @@ export const SpectrumAnalyzer: React.FC<SpectrumAnalyzerProps> = ({
         }
         
         // Create FFT analyzer for bars and circular modes
-        fftAnalyzerRef.current = new Tone.Analyser('fft', 256);
+        fftAnalyzerRef.current = new Tone.Analyser('fft', 512);
         fftAnalyzerRef.current.smoothing = smoothing;
         
-        // Create waveform analyzer for waveform mode
-        waveformAnalyzerRef.current = new Tone.Analyser('waveform', 1024);
-        waveformAnalyzerRef.current.smoothing = 0.1; // Less smoothing for waveform
+        // Create waveform analyzer for waveform mode  
+        waveformAnalyzerRef.current = new Tone.Analyser('waveform', 512);
+        waveformAnalyzerRef.current.smoothing = 0.2; // Some smoothing for cleaner waveform
         
-        // Connect both analyzers to the master destination
-        const destination = Tone.getDestination();
-        destination.connect(fftAnalyzerRef.current);
-        destination.connect(waveformAnalyzerRef.current);
+        // Better connection method - connect TO the analyzers FROM master
+        Tone.getDestination().connect(fftAnalyzerRef.current);
+        Tone.getDestination().connect(waveformAnalyzerRef.current);
         
 
       } catch (error) {
@@ -138,24 +137,35 @@ export const SpectrumAnalyzer: React.FC<SpectrumAnalyzerProps> = ({
   // Bar spectrum visualization
   const drawBarSpectrum = useCallback((canvas: HTMLCanvasElement, ctx: CanvasRenderingContext2D, data: Float32Array) => {
     const colors = getColorScheme();
-    const barCount = Math.min(64, data.length / 2); // Use fewer bars for clarity
+    const barCount = Math.min(32, Math.floor(data.length / 8)); // Use fewer bars, skip some data points
     const barWidth = canvas.width / barCount;
     
     ctx.fillStyle = colors.background;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     
+    // Convert dB values to linear scale properly
     for (let i = 0; i < barCount; i++) {
-      const value = Math.abs(data[i]) * sensitivity;
-      const barHeight = Math.min(value * canvas.height * 2, canvas.height);
+      const dataIndex = Math.floor(i * (data.length / barCount));
+      let value = data[dataIndex];
+      
+      // Convert from dB to linear scale (FFT data is typically in dB)
+      // Tone.js FFT returns values typically between -100 to 0 dB
+      const minDb = -100;
+      const maxDb = 0;
+      value = Math.max(minDb, Math.min(maxDb, value));
+      const normalizedValue = (value - minDb) / (maxDb - minDb);
+      
+      const scaledValue = normalizedValue * sensitivity;
+      const barHeight = Math.max(2, scaledValue * canvas.height * 0.9); // Ensure minimum height
       
       // Create gradient for each bar
       const gradient = ctx.createLinearGradient(0, canvas.height, 0, canvas.height - barHeight);
       
-      if (barHeight > canvas.height * 0.8) {
+      if (scaledValue > 0.8) {
         gradient.addColorStop(0, colors.primary);
         gradient.addColorStop(0.6, colors.secondary);
         gradient.addColorStop(1, colors.accent);
-      } else if (barHeight > canvas.height * 0.4) {
+      } else if (scaledValue > 0.4) {
         gradient.addColorStop(0, colors.primary);
         gradient.addColorStop(1, colors.secondary);
       } else {
@@ -172,16 +182,16 @@ export const SpectrumAnalyzer: React.FC<SpectrumAnalyzerProps> = ({
       ctx.fillRect(x + 1, y, barWidth - 2, barHeight);
       
       // Add glow effect for high values
-      if (barHeight > canvas.height * 0.6) {
+      if (scaledValue > 0.6) {
         ctx.shadowColor = colors.accent;
-        ctx.shadowBlur = 10;
+        ctx.shadowBlur = 5;
         ctx.fillRect(x + 1, y, barWidth - 2, barHeight);
         ctx.shadowBlur = 0;
       }
     }
   }, [sensitivity, getColorScheme]);
 
-  // Waveform visualization
+  // Waveform visualization  
   const drawWaveform = useCallback((canvas: HTMLCanvasElement, ctx: CanvasRenderingContext2D, data: Float32Array) => {
     const colors = getColorScheme();
     
@@ -193,9 +203,12 @@ export const SpectrumAnalyzer: React.FC<SpectrumAnalyzerProps> = ({
     ctx.beginPath();
     
     const centerY = canvas.height / 2;
-    const amplitude = centerY * 0.8 * sensitivity;
+    const amplitude = centerY * 0.6 * sensitivity;
     
-    for (let i = 0; i < data.length; i++) {
+    // Use fewer points to make it less "busy" and easier to see
+    const step = Math.max(1, Math.floor(data.length / canvas.width * 2));
+    
+    for (let i = 0; i < data.length; i += step) {
       const x = (i / data.length) * canvas.width;
       const y = centerY + (data[i] * amplitude);
       
@@ -210,7 +223,7 @@ export const SpectrumAnalyzer: React.FC<SpectrumAnalyzerProps> = ({
     
     // Add glow effect
     ctx.shadowColor = colors.primary;
-    ctx.shadowBlur = 5;
+    ctx.shadowBlur = 3;
     ctx.stroke();
     ctx.shadowBlur = 0;
   }, [sensitivity, getColorScheme]);
@@ -226,12 +239,21 @@ export const SpectrumAnalyzer: React.FC<SpectrumAnalyzerProps> = ({
     ctx.fillStyle = colors.background;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     
-    const barCount = Math.min(64, data.length / 2);
+    const barCount = Math.min(48, Math.floor(data.length / 4)); // Fewer bars
     const angleStep = (Math.PI * 2) / barCount;
     
     for (let i = 0; i < barCount; i++) {
-      const value = Math.abs(data[i]) * sensitivity;
-      const barLength = value * (maxRadius - minRadius);
+      const dataIndex = Math.floor(i * (data.length / barCount));
+      let value = data[dataIndex];
+      
+      // Convert from dB to linear scale (same as bars)
+      const minDb = -100;
+      const maxDb = 0;
+      value = Math.max(minDb, Math.min(maxDb, value));
+      const normalizedValue = (value - minDb) / (maxDb - minDb);
+      
+      const scaledValue = normalizedValue * sensitivity;
+      const barLength = Math.max(2, scaledValue * (maxRadius - minRadius));
       const angle = i * angleStep;
       
       const innerX = centerX + Math.cos(angle) * minRadius;
@@ -241,8 +263,8 @@ export const SpectrumAnalyzer: React.FC<SpectrumAnalyzerProps> = ({
       
       // Color based on frequency (low = red, high = blue)
       const hue = (i / barCount) * 240; // 0-240 degrees
-      const saturation = Math.min(100, value * 100);
-      const lightness = 50 + (value * 30);
+      const saturation = Math.min(100, scaledValue * 100);
+      const lightness = 50 + (scaledValue * 30);
       
       ctx.strokeStyle = `hsl(${hue}, ${saturation}%, ${lightness}%)`;
       ctx.lineWidth = 3;
@@ -253,9 +275,9 @@ export const SpectrumAnalyzer: React.FC<SpectrumAnalyzerProps> = ({
       ctx.stroke();
       
       // Add glow for high values
-      if (value > 0.6) {
+      if (scaledValue > 0.6) {
         ctx.shadowColor = ctx.strokeStyle;
-        ctx.shadowBlur = 8;
+        ctx.shadowBlur = 5;
         ctx.stroke();
         ctx.shadowBlur = 0;
       }
@@ -264,7 +286,7 @@ export const SpectrumAnalyzer: React.FC<SpectrumAnalyzerProps> = ({
     // Draw center circle
     ctx.fillStyle = colors.primary;
     ctx.beginPath();
-    ctx.arc(centerX, centerY, minRadius * 0.1, 0, Math.PI * 2);
+    ctx.arc(centerX, centerY, minRadius * 0.15, 0, Math.PI * 2);
     ctx.fill();
   }, [sensitivity, getColorScheme]);
 
@@ -295,14 +317,6 @@ export const SpectrumAnalyzer: React.FC<SpectrumAnalyzerProps> = ({
       }
       
       const data = currentAnalyzer.getValue() as Float32Array;
-      
-      // Add some fake data if we're not getting any (for testing)
-      if (Math.max(...Array.from(data).map(Math.abs)) < 0.001 && isPlaying) {
-        // Generate some test data for debugging
-        for (let i = 0; i < data.length; i++) {
-          data[i] = Math.sin(Date.now() / 1000 + i / 10) * 0.5;
-        }
-      }
       
       switch (mode) {
         case 'bars':
