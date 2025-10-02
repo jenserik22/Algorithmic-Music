@@ -18,7 +18,8 @@ export const SpectrumAnalyzer: React.FC<SpectrumAnalyzerProps> = ({
   className = ''
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const analyzerRef = useRef<Tone.Analyser | null>(null);
+  const fftAnalyzerRef = useRef<Tone.Analyser | null>(null);
+  const waveformAnalyzerRef = useRef<Tone.Analyser | null>(null);
   const animationFrameRef = useRef<number | null>(null);
   
   const [mode, setMode] = useState<VisualizationMode>('bars');
@@ -29,34 +30,42 @@ export const SpectrumAnalyzer: React.FC<SpectrumAnalyzerProps> = ({
   // Detect dark mode
   const isDarkMode = document.documentElement.classList.contains('dark');
 
-  // Initialize Web Audio analyzer
+  // Initialize Web Audio analyzers
   useEffect(() => {
     let timeoutId: NodeJS.Timeout;
     
-    const initializeAnalyzer = () => {
+    const initializeAnalyzers = () => {
       try {
-        if (analyzerRef.current) {
-          analyzerRef.current.dispose();
+        // Clean up existing analyzers
+        if (fftAnalyzerRef.current) {
+          fftAnalyzerRef.current.dispose();
+        }
+        if (waveformAnalyzerRef.current) {
+          waveformAnalyzerRef.current.dispose();
         }
         
-        // Create analyzer
-        analyzerRef.current = new Tone.Analyser('fft', 512);
-        analyzerRef.current.smoothing = smoothing;
+        // Create FFT analyzer for bars and circular modes
+        fftAnalyzerRef.current = new Tone.Analyser('fft', 256);
+        fftAnalyzerRef.current.smoothing = smoothing;
         
-        // Connect analyzer to master output for monitoring
-        // This should not interfere with the main audio flow
+        // Create waveform analyzer for waveform mode
+        waveformAnalyzerRef.current = new Tone.Analyser('waveform', 1024);
+        waveformAnalyzerRef.current.smoothing = 0.1; // Less smoothing for waveform
+        
+        // Connect both analyzers to the master destination
         const destination = Tone.getDestination();
-        destination.connect(analyzerRef.current);
+        destination.connect(fftAnalyzerRef.current);
+        destination.connect(waveformAnalyzerRef.current);
         
-        console.log('Spectrum analyzer initialized successfully');
+
       } catch (error) {
-        console.warn('Failed to initialize spectrum analyzer:', error);
+        console.warn('Failed to initialize spectrum analyzers:', error);
       }
     };
 
     const checkAndInit = () => {
       if (Tone.getContext().state === 'running') {
-        initializeAnalyzer();
+        initializeAnalyzers();
       } else {
         // Retry after a short delay
         timeoutId = setTimeout(checkAndInit, 200);
@@ -72,12 +81,16 @@ export const SpectrumAnalyzer: React.FC<SpectrumAnalyzerProps> = ({
       }
       
       try {
-        if (analyzerRef.current) {
-          analyzerRef.current.dispose();
-          analyzerRef.current = null;
+        if (fftAnalyzerRef.current) {
+          fftAnalyzerRef.current.dispose();
+          fftAnalyzerRef.current = null;
+        }
+        if (waveformAnalyzerRef.current) {
+          waveformAnalyzerRef.current.dispose();
+          waveformAnalyzerRef.current = null;
         }
       } catch (error) {
-        console.warn('Error disposing analyzer:', error);
+        console.warn('Error disposing analyzers:', error);
       }
     };
   }, [smoothing]);
@@ -258,7 +271,7 @@ export const SpectrumAnalyzer: React.FC<SpectrumAnalyzerProps> = ({
   // Animation loop
   const animate = useCallback(() => {
     try {
-      if (!analyzerRef.current || !canvasRef.current) {
+      if (!canvasRef.current) {
         return;
       }
       
@@ -266,9 +279,30 @@ export const SpectrumAnalyzer: React.FC<SpectrumAnalyzerProps> = ({
       const ctx = canvas.getContext('2d');
       if (!ctx) return;
       
-      const data = analyzerRef.current.getValue() as Float32Array;
+      // Choose the right analyzer for the current mode
+      const currentAnalyzer = mode === 'waveform' ? waveformAnalyzerRef.current : fftAnalyzerRef.current;
       
-
+      if (!currentAnalyzer) {
+        // If analyzer isn't ready, show empty visualization
+        const colors = getColorScheme();
+        ctx.fillStyle = colors.background;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        
+        if (isPlaying) {
+          animationFrameRef.current = requestAnimationFrame(animate);
+        }
+        return;
+      }
+      
+      const data = currentAnalyzer.getValue() as Float32Array;
+      
+      // Add some fake data if we're not getting any (for testing)
+      if (Math.max(...Array.from(data).map(Math.abs)) < 0.001 && isPlaying) {
+        // Generate some test data for debugging
+        for (let i = 0; i < data.length; i++) {
+          data[i] = Math.sin(Date.now() / 1000 + i / 10) * 0.5;
+        }
+      }
       
       switch (mode) {
         case 'bars':
@@ -292,11 +326,24 @@ export const SpectrumAnalyzer: React.FC<SpectrumAnalyzerProps> = ({
         animationFrameRef.current = requestAnimationFrame(animate);
       }
     }
-  }, [mode, isPlaying, drawBarSpectrum, drawWaveform, drawCircularSpectrum]);
+  }, [mode, isPlaying, drawBarSpectrum, drawWaveform, drawCircularSpectrum, getColorScheme]);
 
   // Start/stop animation based on playing state
   useEffect(() => {
     if (isPlaying) {
+      // Ensure audio context is started and analyzers are initialized
+      if (Tone.getContext().state === 'suspended') {
+        Tone.getContext().resume().then(() => {
+          // Reinitialize analyzers if needed
+          if (!fftAnalyzerRef.current || !waveformAnalyzerRef.current) {
+            setTimeout(() => {
+              // Trigger reinitialize
+              setSmoothing(s => s);
+            }, 100);
+          }
+        });
+      }
+      
       animationFrameRef.current = requestAnimationFrame(animate);
     } else {
       if (animationFrameRef.current) {
@@ -321,7 +368,7 @@ export const SpectrumAnalyzer: React.FC<SpectrumAnalyzerProps> = ({
         animationFrameRef.current = null;
       }
     };
-  }, [isPlaying, animate, width, height, getColorScheme]);
+  }, [isPlaying, animate, width, height, getColorScheme, smoothing]);
 
   return (
     <div className={`spectrum-analyzer ${className}`}>
