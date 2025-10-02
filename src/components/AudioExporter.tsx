@@ -16,13 +16,7 @@ export function AudioExporter({ output, disabled = false, className = '' }: Audi
   const [exportFormat, setExportFormat] = useState<AudioFormat>('wav');
   const [showOptions, setShowOptions] = useState(false);
   
-  // Debug: Log component render
-  console.log('🎛️ AudioExporter rendered:', { 
-    hasOutput: !!output, 
-    eventsCount: output?.events?.length || 0,
-    disabled,
-    isExporting 
-  });
+
   
   // Get current theme from DOM
   const isDarkMode = document.documentElement.classList.contains('dark');

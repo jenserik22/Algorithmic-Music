@@ -1,7 +1,7 @@
 import React from 'react';
 import { GeneratorUI } from '@/components/GeneratorUI';
 import { PlaybackControls } from '@/components/PlaybackControls';
-import { Visualizer } from '@/components/Visualizer';
+
 import { EducationModal } from '@/components/EducationModal';
 import { ProcessPanel } from '@/components/ProcessPanel';
 import { PresetManager } from '@/components/PresetManager';
@@ -17,6 +17,7 @@ import { ErrorBanner } from '@/components/ErrorBanner';
 import { useIdlePreload } from '@/lib/utils/useIdlePreload';
 import { SunIcon, MoonIcon, MusicIcon, SettingsIcon, FolderIcon, ExclamationIcon, ChartBarIcon, RocketIcon, DownloadIcon } from '@/components/icons';
 import { AudioExporter } from '@/components/AudioExporter';
+import { SpectrumAnalyzer } from '@/components/SpectrumAnalyzer';
 
 export default function App() {
   useIdlePreload();
@@ -27,6 +28,7 @@ export default function App() {
   const [showProcess, setShowProcess] = React.useState(false);
   const [lastAlgo, setLastAlgo] = React.useState<AlgorithmName | null>(null);
   const [lastParams, setLastParams] = React.useState<GenerationParams | null>(null);
+  const [isPlaying, setIsPlaying] = React.useState(false);
   const [isDarkMode, setIsDarkMode] = React.useState(() => {
     if (typeof window !== 'undefined') {
       return localStorage.getItem('darkMode') === 'true' || 
@@ -238,7 +240,11 @@ export default function App() {
                   <MusicIcon className="w-5 h-5" />
                   Playback
                 </h2>
-                <PlaybackControls output={lastOutput} autoPlayToken={autoPlayToken} />
+                <PlaybackControls 
+                  output={lastOutput} 
+                  autoPlayToken={autoPlayToken} 
+                  onPlaybackStateChange={setIsPlaying}
+                />
               </div>
             )}
 
@@ -253,15 +259,19 @@ export default function App() {
               <AudioExporter output={lastOutput} />
             </div>
 
-            {/* Visualizer */}
+            {/* Spectrum Analyzer */}
             <div className={`p-6 rounded-lg border ${
               isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'
             }`}>
               <h2 className={`text-xl font-semibold mb-4 flex items-center gap-2 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
                 <ChartBarIcon className="w-5 h-5" />
-                Audio Visualizer
+                Spectrum Analyzer
               </h2>
-              <Visualizer />
+              <SpectrumAnalyzer 
+                isPlaying={isPlaying}
+                width={320}
+                height={200}
+              />
             </div>
 
             {/* Performance Warnings */}

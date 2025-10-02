@@ -4,7 +4,11 @@ import { WebAudioPlayer } from '@/lib/audio/webAudioPlayer';
 import { TonePlayer } from '@/lib/audio/tonePlayer';
 import { PlayIcon, PauseIcon, StopIcon } from '@/components/icons';
 
-export function PlaybackControls({ output, autoPlayToken }: { output: EngineOutput | null; autoPlayToken?: number }) {
+export function PlaybackControls({ output, autoPlayToken, onPlaybackStateChange }: { 
+  output: EngineOutput | null; 
+  autoPlayToken?: number;
+  onPlaybackStateChange?: (isPlaying: boolean) => void;
+}) {
   const [status, setStatus] = React.useState<'stopped'|'playing'|'paused'>('stopped');
   const playerRef = React.useRef<WebAudioPlayer | TonePlayer | null>(null);
 
@@ -20,16 +24,31 @@ export function PlaybackControls({ output, autoPlayToken }: { output: EngineOutp
   const onPlay = () => {
     if (!output || !playerRef.current) return;
     setStatus('playing');
+    onPlaybackStateChange?.(true);
     Promise.resolve()
-      .then(() => (playerRef.current as any).play(output, () => setStatus('stopped')))
+      .then(() => (playerRef.current as any).play(output, () => {
+        setStatus('stopped');
+        onPlaybackStateChange?.(false);
+      }))
       .catch(() => {
         // fallback
         playerRef.current = new WebAudioPlayer();
-        playerRef.current.play(output, () => setStatus('stopped'));
+        playerRef.current.play(output, () => {
+          setStatus('stopped');
+          onPlaybackStateChange?.(false);
+        });
       });
   };
-  const onPause = () => { playerRef.current?.pause?.(); setStatus('paused'); };
-  const onStop = () => { playerRef.current?.stop(); setStatus('stopped'); };
+  const onPause = () => { 
+    playerRef.current?.pause?.(); 
+    setStatus('paused'); 
+    onPlaybackStateChange?.(false);
+  };
+  const onStop = () => { 
+    playerRef.current?.stop(); 
+    setStatus('stopped'); 
+    onPlaybackStateChange?.(false);
+  };
 
   React.useEffect(() => {
     if (!autoPlayToken || !output) return;
