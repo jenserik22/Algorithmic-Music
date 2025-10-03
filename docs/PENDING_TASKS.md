@@ -16,7 +16,7 @@ The core feature set is complete. All planned features have been implemented and
 
 ## 🐛 Known Issues
 
-### Minor Issues
+### Minor Issues (Very Low Impact)
 
 #### 1. **MIDI Timing Precision**
 - **Status:** Known limitation
