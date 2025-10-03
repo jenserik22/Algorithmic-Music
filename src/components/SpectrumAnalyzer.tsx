@@ -30,12 +30,19 @@ export const SpectrumAnalyzer: React.FC<SpectrumAnalyzerProps> = ({
   // Detect dark mode
   const isDarkMode = document.documentElement.classList.contains('dark');
 
-  // Initialize Web Audio analyzers
+  // Initialize Web Audio analyzers ONLY when playing starts
   useEffect(() => {
+    if (!isPlaying) return;
+    
     let timeoutId: NodeJS.Timeout;
     
-    const initializeAnalyzers = () => {
+    const initializeAnalyzers = async () => {
       try {
+        // Ensure AudioContext is running first
+        if (Tone.getContext().state !== 'running') {
+          await Tone.start();
+        }
+        
         // Clean up existing analyzers
         if (fftAnalyzerRef.current) {
           fftAnalyzerRef.current.dispose();
@@ -56,43 +63,22 @@ export const SpectrumAnalyzer: React.FC<SpectrumAnalyzerProps> = ({
         Tone.getDestination().connect(fftAnalyzerRef.current);
         Tone.getDestination().connect(waveformAnalyzerRef.current);
         
-
+        console.log('[SpectrumAnalyzer] Analyzers initialized');
       } catch (error) {
-        console.warn('Failed to initialize spectrum analyzers:', error);
+        console.warn('[SpectrumAnalyzer] Failed to initialize:', error);
       }
     };
 
-    const checkAndInit = () => {
-      if (Tone.getContext().state === 'running') {
-        initializeAnalyzers();
-      } else {
-        // Retry after a short delay
-        timeoutId = setTimeout(checkAndInit, 200);
-      }
-    };
-
-    // Start initialization
-    checkAndInit();
+    // Initialize when playback starts
+    initializeAnalyzers();
     
     return () => {
       if (timeoutId) {
         clearTimeout(timeoutId);
       }
-      
-      try {
-        if (fftAnalyzerRef.current) {
-          fftAnalyzerRef.current.dispose();
-          fftAnalyzerRef.current = null;
-        }
-        if (waveformAnalyzerRef.current) {
-          waveformAnalyzerRef.current.dispose();
-          waveformAnalyzerRef.current = null;
-        }
-      } catch (error) {
-        console.warn('Error disposing analyzers:', error);
-      }
+      // Don't dispose analyzers on every re-render, only when component unmounts
     };
-  }, [smoothing]);
+  }, [isPlaying, smoothing]);
 
   // Get color scheme based on theme
   const getColorScheme = useCallback(() => {
@@ -345,19 +331,6 @@ export const SpectrumAnalyzer: React.FC<SpectrumAnalyzerProps> = ({
   // Start/stop animation based on playing state
   useEffect(() => {
     if (isPlaying) {
-      // Ensure audio context is started and analyzers are initialized
-      if (Tone.getContext().state === 'suspended') {
-        Tone.getContext().resume().then(() => {
-          // Reinitialize analyzers if needed
-          if (!fftAnalyzerRef.current || !waveformAnalyzerRef.current) {
-            setTimeout(() => {
-              // Trigger reinitialize
-              setSmoothing(s => s);
-            }, 100);
-          }
-        });
-      }
-      
       animationFrameRef.current = requestAnimationFrame(animate);
     } else {
       if (animationFrameRef.current) {

@@ -3,6 +3,7 @@ import type { EngineOutput } from '@/lib/music/engines/types';
 import { WebAudioPlayer } from '@/lib/audio/webAudioPlayer';
 import { TonePlayer } from '@/lib/audio/tonePlayer';
 import { PlayIcon, PauseIcon, StopIcon } from '@/components/icons';
+import { memoryManager } from '@/lib/utils/memoryManager';
 
 export function PlaybackControls({ output, autoPlayToken, onPlaybackStateChange }: { 
   output: EngineOutput | null; 
@@ -23,10 +24,15 @@ export function PlaybackControls({ output, autoPlayToken, onPlaybackStateChange 
     // Cleanup on unmount
     return () => {
       if (playerRef.current) {
-        playerRef.current.stop();
-        // Note: TonePlayer and WebAudioPlayer don't have explicit dispose methods
-        // but stopping them releases most resources
-        playerRef.current = null;
+        try {
+          playerRef.current.stop();
+          // Note: TonePlayer and WebAudioPlayer don't have explicit dispose methods
+          // but stopping them releases most resources
+        } catch (error) {
+          console.warn('[PlaybackControls] Cleanup error:', error);
+        } finally {
+          playerRef.current = null;
+        }
       }
     };
   }, []);
@@ -40,13 +46,20 @@ export function PlaybackControls({ output, autoPlayToken, onPlaybackStateChange 
         setStatus('stopped');
         onPlaybackStateChange?.(false);
       }))
-      .catch(() => {
-        // fallback
-        playerRef.current = new WebAudioPlayer();
-        playerRef.current.play(output, () => {
+      .catch((error) => {
+        console.warn('[PlaybackControls] Playback failed, trying fallback:', error);
+        // fallback to WebAudioPlayer
+        try {
+          playerRef.current = new WebAudioPlayer();
+          playerRef.current.play(output, () => {
+            setStatus('stopped');
+            onPlaybackStateChange?.(false);
+          });
+        } catch (fallbackError) {
+          console.error('[PlaybackControls] Fallback also failed:', fallbackError);
           setStatus('stopped');
           onPlaybackStateChange?.(false);
-        });
+        }
       });
   };
   const onPause = () => { 

@@ -33,12 +33,34 @@ export class EnhancedTonePlayer {
 
   status(): PlayerStatus { return this._status; }
 
+  private async ensureAudioContext() {
+    if (!this.tone) return;
+    
+    // Ensure AudioContext is running (requires user gesture)
+    if (this.tone.context.state !== 'running') {
+      try {
+        await this.tone.context.resume();
+        console.log('[EnhancedTonePlayer] AudioContext resumed');
+      } catch (error) {
+        console.warn('[EnhancedTonePlayer] Failed to resume AudioContext:', error);
+      }
+    }
+  }
+
   private async ensureReady(bpm = 120) {
     if (this.ready) return;
     try {
       const tone = await import('tone');
       this.tone = tone;
-      await tone.start();
+      
+      // Try to start, but don't fail if it needs user gesture
+      try {
+        await tone.start();
+      } catch (err) {
+        // Expected error if no user gesture yet - will be handled by ensureAudioContext
+        console.log('[EnhancedTonePlayer] AudioContext will start on user gesture');
+      }
+      
       tone.Transport.bpm.value = bpm;
 
       // Create enhanced master chain with professional processing
@@ -202,9 +224,31 @@ export class EnhancedTonePlayer {
     if (this._status === 'playing') return;
 
     await this.ensureReady(output.meta?.bpm);
+    // Start audio context on user gesture (play button click)
+    await this.ensureAudioContext();
+    
     if (!this.tone) throw new Error('Tone.js not initialized');
 
     this._status = 'playing';
+    
+    // Sort all events by time to prevent timing conflicts
+    const sortedEvents = [...output.events].sort((a, b) => a.time - b.time);
+    
+    // Ensure minimum time gap between events
+    const MIN_TIME_GAP = 0.001; // 1ms
+    for (let i = 1; i < sortedEvents.length; i++) {
+      if (sortedEvents[i].time <= sortedEvents[i - 1].time) {
+        sortedEvents[i].time = sortedEvents[i - 1].time + MIN_TIME_GAP;
+      }
+    }
+    
+    // Release all synths before scheduling new notes
+    try {
+      this.nodes.chords?.releaseAll();
+      this.nodes.lead?.disconnect();
+      this.nodes.bass?.disconnect();
+    } catch { /* ignore */ }
+    
     this.tone.Transport.start();
 
     try {
@@ -212,7 +256,7 @@ export class EnhancedTonePlayer {
       this.setupLFOs(output);
 
       // Schedule enhanced events with better processing
-      for (const event of output.events) {
+      for (const event of sortedEvents) {
         this.scheduleEnhancedEvent(event, startTime);
       }
 

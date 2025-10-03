@@ -23,12 +23,34 @@ export class TonePlayer {
 
   status(): PlayerStatus { return this._status; }
 
+  private async ensureAudioContext() {
+    if (!this.tone) return;
+    
+    // Ensure AudioContext is running (requires user gesture)
+    if (this.tone.context.state !== 'running') {
+      try {
+        await this.tone.context.resume();
+        console.log('[TonePlayer] AudioContext resumed');
+      } catch (error) {
+        console.warn('[TonePlayer] Failed to resume AudioContext:', error);
+      }
+    }
+  }
+
   private async ensureReady(bpm = 120) {
     if (this.ready) return;
     try {
       const tone = await import('tone');
       this.tone = tone;
-      await tone.start();
+      
+      // Try to start, but don't fail if it needs user gesture
+      try {
+        await tone.start();
+      } catch (err) {
+        // Expected error if no user gesture yet - will be handled by ensureAudioContext
+        console.log('[TonePlayer] AudioContext will start on user gesture');
+      }
+      
       tone.Transport.bpm.value = bpm;
 
       const comp = new tone.Compressor({ threshold: -18, ratio: 3, attack: 0.003, release: 0.25 });
@@ -121,6 +143,8 @@ export class TonePlayer {
   async play(out: EngineOutput, onEnd?: () => void) {
     try {
       await this.ensureReady(out.meta?.bpm ?? 120);
+      // Start audio context on user gesture (play button click)
+      await this.ensureAudioContext();
     } catch {
       // bubble to caller to fallback
       throw new Error('tone_unavailable');
@@ -131,8 +155,25 @@ export class TonePlayer {
     this.clearSchedule();
     T.bpm.value = out.meta?.bpm ?? T.bpm.value;
 
-    const startAt = T.seconds + 0.05;
-    const endTime = out.events.reduce((m, e) => Math.max(m, e.time + e.duration), 0);
+    // Sort all events by time to prevent timing conflicts
+    const sortedEvents = [...out.events].sort((a, b) => a.time - b.time);
+    
+    // Ensure minimum time gap between events (prevent "Start time must be strictly greater" error)
+    const MIN_TIME_GAP = 0.001; // 1ms
+    for (let i = 1; i < sortedEvents.length; i++) {
+      if (sortedEvents[i].time <= sortedEvents[i - 1].time) {
+        sortedEvents[i].time = sortedEvents[i - 1].time + MIN_TIME_GAP;
+      }
+    }
+
+    const startAt = T.seconds + 0.1; // Slightly more buffer
+    const endTime = sortedEvents.reduce((m, e) => Math.max(m, e.time + e.duration), 0);
+    
+    // Release all synths before scheduling new notes
+    try {
+      this.nodes.chords?.releaseAll();
+    } catch { /* ignore */ }
+    
     // Setup LFOs if provided
     const lfos = out.meta?.lfos ?? [];
     for (const spec of lfos) {
@@ -150,11 +191,12 @@ export class TonePlayer {
       } catch { /* ignore */ }
     }
 
-    const chordsEv = out.events.filter(e => e.track === 'chords');
-    const leadEv = out.events.filter(e => e.track === 'lead');
-    const bassEv = out.events.filter(e => e.track === 'bass');
-    const drumEv = out.events.filter(e => e.track === 'drums');
-    const fxEv = out.events.filter(e => e.track === 'fx');
+    // Use sorted events
+    const chordsEv = sortedEvents.filter(e => e.track === 'chords');
+    const leadEv = sortedEvents.filter(e => e.track === 'lead');
+    const bassEv = sortedEvents.filter(e => e.track === 'bass');
+    const drumEv = sortedEvents.filter(e => e.track === 'drums');
+    const fxEv = sortedEvents.filter(e => e.track === 'fx');
 
     // Chords grouped per onset
     for (const group of this.groupChordNotes(chordsEv)) {
