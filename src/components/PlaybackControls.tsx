@@ -19,6 +19,16 @@ export function PlaybackControls({ output, autoPlayToken, onPlaybackStateChange 
     } catch {
       playerRef.current = new WebAudioPlayer();
     }
+
+    // Cleanup on unmount
+    return () => {
+      if (playerRef.current) {
+        playerRef.current.stop();
+        // Note: TonePlayer and WebAudioPlayer don't have explicit dispose methods
+        // but stopping them releases most resources
+        playerRef.current = null;
+      }
+    };
   }, []);
 
   const onPlay = () => {

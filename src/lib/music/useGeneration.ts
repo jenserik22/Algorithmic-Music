@@ -1,6 +1,8 @@
-import { useRef, useState } from 'react';
+import { useRef, useState, useEffect } from 'react';
 import type { EngineOutput, GenerationParams } from '@/lib/music/engines/types';
 import { getEngine, type AlgorithmName } from '@/lib/music/engines';
+import type { WorkerRequest, WorkerResponse } from './generation.worker';
+import { memoryManager, suggestGarbageCollection } from '@/lib/utils/memoryManager';
 
 type Status = 'idle' | 'generating' | 'success' | 'error';
 
@@ -8,6 +10,73 @@ interface Controller {
   canceled: boolean;
   timer?: ReturnType<typeof setTimeout>;
   interval?: ReturnType<typeof setInterval>;
+  workerId?: string;
+}
+
+// Feature detection for Web Workers
+const supportsWorkers = typeof Worker !== 'undefined';
+
+// Worker pool for parallel generation
+class WorkerPool {
+  private workers: Worker[] = [];
+  private available: Worker[] = [];
+  private maxWorkers = 2; // Limit to 2 workers to avoid memory issues
+
+  constructor() {
+    if (!supportsWorkers) return;
+
+    // Initialize worker pool
+    for (let i = 0; i < this.maxWorkers; i++) {
+      try {
+        const worker = new Worker(
+          new URL('./generation.worker.ts', import.meta.url),
+          { type: 'module' }
+        );
+        this.workers.push(worker);
+        this.available.push(worker);
+
+        // Register for memory management
+        memoryManager.register('worker', () => {
+          worker.terminate();
+        });
+      } catch (error) {
+        console.warn('[WorkerPool] Failed to create worker:', error);
+        break;
+      }
+    }
+
+    console.log(`[WorkerPool] Initialized with ${this.workers.length} workers`);
+  }
+
+  getWorker(): Worker | null {
+    if (!supportsWorkers || this.workers.length === 0) return null;
+    
+    // Get available worker or use first one
+    const worker = this.available.pop() || this.workers[0];
+    return worker;
+  }
+
+  releaseWorker(worker: Worker): void {
+    if (!this.available.includes(worker)) {
+      this.available.push(worker);
+    }
+  }
+
+  terminate(): void {
+    this.workers.forEach(w => w.terminate());
+    this.workers = [];
+    this.available = [];
+  }
+}
+
+// Singleton worker pool
+let workerPool: WorkerPool | null = null;
+
+function getWorkerPool(): WorkerPool {
+  if (!workerPool) {
+    workerPool = new WorkerPool();
+  }
+  return workerPool;
 }
 
 export function useGeneration() {
@@ -40,6 +109,85 @@ export function useGeneration() {
     setOutput(undefined);
     setError(undefined);
 
+    // Try to use Web Worker for generation
+    const pool = getWorkerPool();
+    const worker = pool.getWorker();
+
+    if (worker) {
+      // Use Web Worker (non-blocking)
+      return new Promise<EngineOutput>((resolve, reject) => {
+        const requestId = `gen_${Date.now()}_${Math.random()}`;
+        const c: Controller = { canceled: false, workerId: requestId };
+        ctrlRef.current = c;
+
+        const handleMessage = (event: MessageEvent<WorkerResponse>) => {
+          const response = event.data;
+          
+          // Only handle messages for this request
+          if (response.id !== requestId) return;
+
+          if (c.canceled) {
+            worker.removeEventListener('message', handleMessage);
+            pool.releaseWorker(worker);
+            return reject(new Error('cancelled'));
+          }
+
+          switch (response.type) {
+            case 'progress':
+              if (response.progress !== undefined) {
+                setProgress(Math.floor(response.progress));
+              }
+              break;
+
+            case 'success':
+              worker.removeEventListener('message', handleMessage);
+              pool.releaseWorker(worker);
+              
+              if (response.data) {
+                setProgress(100);
+                setStatus('success');
+                setOutput(response.data);
+                
+                // Suggest GC after generation
+                suggestGarbageCollection();
+                
+                resolve(response.data);
+              } else {
+                const err = new Error('No data in worker response');
+                setStatus('error');
+                setError(err.message);
+                reject(err);
+              }
+              break;
+
+            case 'error':
+              worker.removeEventListener('message', handleMessage);
+              pool.releaseWorker(worker);
+              
+              const error = new Error(response.error || 'Worker generation failed');
+              setStatus('error');
+              setError(error.message);
+              reject(error);
+              break;
+          }
+        };
+
+        worker.addEventListener('message', handleMessage);
+
+        // Send generation request to worker
+        const request: WorkerRequest = {
+          id: requestId,
+          type: 'generate',
+          algorithm,
+          params,
+        };
+        worker.postMessage(request);
+      });
+    }
+
+    // Fallback to main thread (blocking but works everywhere)
+    console.warn('[Generation] Web Workers not available, falling back to main thread');
+    
     const tryOnce = () =>
       new Promise<EngineOutput>((resolve, reject) => {
         const engine = getEngine(algorithm);
@@ -69,6 +217,10 @@ export function useGeneration() {
             setProgress(100);
             setStatus('success');
             setOutput(out);
+            
+            // Suggest GC after generation
+            suggestGarbageCollection();
+            
             resolve(out);
           } catch (e) {
             reject(e as Error);
