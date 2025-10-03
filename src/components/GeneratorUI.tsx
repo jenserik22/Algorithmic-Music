@@ -2,7 +2,7 @@ import React, { useMemo, useState } from 'react';
 import type { GenerationParams, Complexity } from '@/lib/music/engines/types';
 import { MusicIcon, RefreshIcon } from '@/components/icons';
 
-type Algorithm = 'stochastic' | 'markov' | 'cellular_automata' | 'l_system' | 'generative_grammar' | 'euclidean' | 'helix' | 'enhanced_helix';
+type Algorithm = 'stochastic' | 'markov' | 'cellular_automata' | 'l_system' | 'generative_grammar' | 'euclidean' | 'helix' | 'enhanced_helix' | 'enhanced_cellular' | 'enhanced_markov';
 
 const PRESETS: Record<string, { label: string; params: Omit<GenerationParams, 'seed'> }> = {
   upbeat: { label: '🎵 Upbeat 120', params: { bpm: 120, key: 'C', timeSignature: '4/4', durationSecs: 4, density: 0.5 } },
@@ -22,6 +22,8 @@ const ALGORITHM_INFO: Record<Algorithm, { name: string; description: string }> =
   euclidean: { name: '⭕ Euclidean Rhythms', description: 'Mathematical rhythm patterns' },
   helix: { name: '🧬 Helix', description: 'SoundHelix-inspired generation' },
   enhanced_helix: { name: '⚡ Enhanced Helix', description: 'Advanced multi-layered composition with sophisticated harmony' },
+  enhanced_cellular: { name: '🌟 Enhanced Cellular', description: 'Multi-track Conway\'s Life with sophisticated CA rules' },
+  enhanced_markov: { name: '🎼 Enhanced Markov', description: 'Probabilistic multi-track composition with harmonic progressions' },
 };
 
 export function GeneratorUI({ onGenerate }: { onGenerate: (x: { algorithm: Algorithm; params: GenerationParams }) => void }) {

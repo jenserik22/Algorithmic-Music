@@ -51,9 +51,9 @@ export default function App() {
     try {
       const out = await generate(algorithm, params);
       
-      // Some engines (like Enhanced Helix) already generate complete arrangements
+      // Some engines (like Enhanced Helix, Enhanced Cellular, Enhanced Markov) already generate complete arrangements
       // Others need the arranger to add chords, bass, drums, etc.
-      const selfArrangingEngines = ['enhanced_helix'];
+      const selfArrangingEngines = ['enhanced_helix', 'enhanced_cellular', 'enhanced_markov'];
       const enriched = selfArrangingEngines.includes(algorithm) 
         ? out  // Use engine output directly
         : arrange(params, out); // Apply arranger for simpler engines
