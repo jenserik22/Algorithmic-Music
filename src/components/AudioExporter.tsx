@@ -46,7 +46,8 @@ export function AudioExporter({ output, disabled = false, className = '' }: Audi
       
     } catch (error) {
       console.error('Export failed:', error);
-      alert(`Export failed: ${error.message}`);
+      const message = error instanceof Error ? error.message : String(error);
+      alert(`Export failed: ${message}`);
     } finally {
       setIsExporting(false);
     }
@@ -150,7 +151,8 @@ export function AudioExporter({ output, disabled = false, className = '' }: Audi
         }, duration, 2, sampleRate);
         
         // Render offline and convert to AudioBuffer
-        const buffer = await offlineContext;
+        const result = await offlineContext as any;
+        const buffer: AudioBuffer = typeof result?.get === 'function' ? result.get() : (result as AudioBuffer);
         resolve(buffer);
         
       } catch (error) {

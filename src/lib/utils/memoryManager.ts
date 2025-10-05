@@ -150,7 +150,7 @@ export class WeakCache<K extends object, V> {
   private cache = new WeakMap<K, V>();
 
   get(key: K): V | undefined {
-    return this.cache.get(key);
+    return this.cache.get(key as any);
   }
 
   set(key: K, value: V): void {
@@ -158,11 +158,11 @@ export class WeakCache<K extends object, V> {
   }
 
   has(key: K): boolean {
-    return this.cache.has(key);
+    return this.cache.has(key as any);
   }
 
   delete(key: K): void {
-    this.cache.delete(key);
+    this.cache.delete(key as any);
   }
 }
 

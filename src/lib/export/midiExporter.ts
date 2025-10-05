@@ -43,7 +43,8 @@ export class MidiExporter {
       this.downloadMidi(midiData, options.fileName || 'algorithmic-music');
     } catch (error) {
       console.error('MIDI export failed:', error);
-      throw new Error(`MIDI export failed: ${error.message}`);
+      const message = error instanceof Error ? error.message : String(error);
+      throw new Error(`MIDI export failed: ${message}`);
     }
   }
 
@@ -56,7 +57,7 @@ export class MidiExporter {
     
     // Add tempo and time signature
     const bpm = output.meta?.bpm || 120;
-    const timeSignature = this.parseTimeSignature(output.meta?.timeSignature || '4/4');
+    const timeSignature = this.parseTimeSignature((output as any).meta?.timeSignature || '4/4');
     
     // Log basic export information
     console.log('MIDI Export:', {
@@ -69,14 +70,16 @@ export class MidiExporter {
     const tempoTrack = new MidiWriter.Track();
     tempoTrack.addEvent(new MidiWriter.TimeSignatureEvent(
       timeSignature.numerator, 
-      timeSignature.denominator
+      timeSignature.denominator,
+      24,
+      8,
     ));
     tempoTrack.addEvent(new MidiWriter.TempoEvent({ bpm }));
     
     if (options.includeMetadata) {
       tempoTrack.addEvent(new MidiWriter.TextEvent({ text: 'Algorithmic Music Generator' }));
       tempoTrack.addEvent(new MidiWriter.TextEvent({ 
-        text: `Algorithm: ${output.meta?.algorithm || 'Unknown'}` 
+        text: `Algorithm: ${(output as any).meta?.algorithm || 'Unknown'}` 
       }));
       tempoTrack.addEvent(new MidiWriter.TextEvent({ 
         text: `Key: ${output.meta?.key || 'C'}` 
@@ -136,10 +139,7 @@ export class MidiExporter {
     const track = new MidiWriter.Track();
     
     // Set track name
-    track.addEvent(new MidiWriter.TextEvent({ 
-      text: trackData.trackName,
-      type: 'trackName'
-    }));
+    track.addEvent(new (MidiWriter as any).TrackNameEvent({ text: trackData.trackName }));
     
     // Set instrument (program change) - skip for drums (channel 10)
     if (trackData.channel !== 10) {
@@ -304,7 +304,7 @@ export class MidiExporter {
    * Download MIDI file
    */
   private static downloadMidi(data: Uint8Array, fileName: string): void {
-    const blob = new Blob([data], { type: 'audio/midi' });
+    const blob = new Blob([data.buffer], { type: 'audio/midi' });
     const url = URL.createObjectURL(blob);
     
     const link = document.createElement('a');

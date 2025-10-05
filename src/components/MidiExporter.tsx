@@ -44,7 +44,8 @@ export function MidiExporter({ output, disabled = false, className = '' }: MidiE
       
     } catch (error) {
       console.error('MIDI export failed:', error);
-      alert(`MIDI export failed: ${error.message}`);
+      const message = error instanceof Error ? error.message : String(error);
+      alert(`MIDI export failed: ${message}`);
     } finally {
       setIsExporting(false);
     }
@@ -61,56 +62,20 @@ export function MidiExporter({ output, disabled = false, className = '' }: MidiE
     );
   }
 
-  // Get track information for display
+  // Get track information for advanced info box
   const getTrackInfo = () => {
     if (!output || !output.events) return null;
-    
     const tracks = output.events.reduce((acc, event) => {
       const track = event.track || 'lead';
       acc[track] = (acc[track] || 0) + 1;
       return acc;
     }, {} as Record<string, number>);
-    
     return Object.entries(tracks).map(([name, count]) => `${name} (${count})`);
   };
-
   const trackInfo = getTrackInfo();
 
   return (
     <div className={`space-y-4 ${className}`}>
-      {/* MIDI Export Info */}
-      <div className={`p-4 rounded-lg border ${
-        isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-blue-50 border-blue-200'
-      }`}>
-        <div className="flex items-start gap-3">
-          <FileIcon className={`w-5 h-5 mt-0.5 flex-shrink-0 ${
-            isDarkMode ? 'text-blue-400' : 'text-blue-600'
-          }`} />
-          <div className="flex-1">
-            <h4 className={`font-medium ${
-              isDarkMode ? 'text-blue-300' : 'text-blue-800'
-            }`}>
-              MIDI Export
-            </h4>
-            <p className={`text-sm ${
-              isDarkMode ? 'text-gray-300' : 'text-blue-700'
-            }`}>
-              Export your composition as a MIDI file for use in any DAW
-            </p>
-            {/* Compact info row */}
-            <div className={`mt-2 text-xs flex flex-wrap gap-x-4 gap-y-1 ${
-              isDarkMode ? 'text-gray-400' : 'text-blue-600'
-            }`}>
-              <span>Type 1</span>
-              <span>Estimated: {estimatedSize}</span>
-              {trackInfo && <span>Tracks: {trackInfo.join(', ')}</span>}
-              {output?.meta?.bpm && <span>Tempo: {output.meta.bpm} BPM</span>}
-              {output?.meta?.key && <span>Key: {output.meta.key}</span>}
-            </div>
-          </div>
-        </div>
-      </div>
-
       {/* Primary action */}
       <button
         onClick={handleExport}
@@ -148,7 +113,7 @@ export function MidiExporter({ output, disabled = false, className = '' }: MidiE
       </div>
 
       {showAdvanced && (
-        <div className="space-y-3">
+        <div className="space-y-4">
           <label className={`flex items-center gap-2 text-sm ${
             isDarkMode ? 'text-gray-300' : 'text-gray-700'
           }`}>
@@ -179,6 +144,26 @@ export function MidiExporter({ output, disabled = false, className = '' }: MidiE
               <option value="1/4">1/4</option>
             </select>
           </div>
+
+          {/* Info (matches WAV style) */}
+          <div className={`text-xs p-3 rounded-lg border ${
+            isDarkMode ? 'bg-gray-800 border-gray-700 text-gray-400' : 'bg-gray-50 border-gray-200 text-gray-600'
+          }`}>
+            <div className="flex items-start gap-2">
+              <FileIcon className="w-4 h-4 mt-0.5 flex-shrink-0" />
+              <div>
+                <p className="font-medium mb-1">MIDI Export Details:</p>
+                <ul className="space-y-1">
+                  <li>• Format: Standard MIDI File Type 1</li>
+                  <li>• Estimated size: {estimatedSize}</li>
+                  {trackInfo && <li>• Tracks: {trackInfo.join(', ')}</li>}
+                  {output?.meta?.bpm && <li>• Tempo: {output.meta.bpm} BPM</li>}
+                  {output?.meta?.key && <li>• Key: {output.meta.key}</li>}
+                  <li>• Channel mapping: 10 (drums), others for instruments</li>
+                </ul>
+              </div>
+            </div>
+          </div>
         </div>
       )}
 
@@ -191,9 +176,7 @@ export function MidiExporter({ output, disabled = false, className = '' }: MidiE
         </div>
       )}
 
-      {/* Keep feature info behind advanced toggle now (removed from always-on view) */}
-
-      {/* Compatibility block removed from default view to reduce clutter */}
+      {/* All extra details are behind the advanced toggle to match WAV exporter presentation */}
     </div>
   );
 }
