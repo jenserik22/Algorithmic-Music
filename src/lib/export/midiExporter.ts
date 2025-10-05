@@ -4,6 +4,7 @@ import type { EngineOutput, NoteEvent } from '@/lib/music/engines/types';
 interface MidiExportOptions {
   fileName?: string;
   includeMetadata?: boolean;
+  quantize?: 'off' | '1/16' | '1/8' | '1/4';
 }
 
 interface MidiTrackData {
@@ -93,7 +94,7 @@ export class MidiExporter {
     // Create tracks for each instrument
     Object.entries(trackGroups).forEach(([trackName, trackData]) => {
       if (trackData.events.length > 0) {
-        const track = this.createMidiTrack(trackData, bpm);
+        const track = this.createMidiTrack(trackData, bpm, options);
         tracks.push(track);
       }
     });
@@ -131,7 +132,7 @@ export class MidiExporter {
   /**
    * Create a MIDI track from track data
    */
-  private static createMidiTrack(trackData: MidiTrackData, bpm: number): MidiWriter.Track {
+  private static createMidiTrack(trackData: MidiTrackData, bpm: number, options: MidiExportOptions): MidiWriter.Track {
     const track = new MidiWriter.Track();
     
     // Set track name
@@ -150,10 +151,14 @@ export class MidiExporter {
     // Sort events by time
     const sortedEvents = [...trackData.events].sort((a, b) => a.time - b.time);
     
-    // Convert note events to MIDI notes with proper timing
-    let currentTime = 0;
-    
-    sortedEvents.forEach((noteEvent, index) => {
+    // Timing helpers
+    const secondsPerBeat = 60 / bpm;
+    const gridBeats = this.getQuantizeGridBeats(options.quantize);
+
+    // Keep track of running time per track (end of last note)
+    let lastEndTimeSec = 0;
+
+    sortedEvents.forEach((noteEvent) => {
       const velocity = Math.max(1, Math.min(127, Math.round((noteEvent.velocity || 0.7) * 127)));
       let pitch = Math.round(noteEvent.pitch);
       
@@ -165,39 +170,40 @@ export class MidiExporter {
       // Clamp pitch to valid MIDI range
       pitch = Math.max(0, Math.min(127, pitch));
       
-      // Track current time (for future timing features)
-      const eventTime = noteEvent.time;
-      
-      // Convert duration from seconds to standard musical notation
-      const durationSecs = noteEvent.duration || 0.25;
-      
+      // Original event timing
+      const eventTimeSec = Math.max(0, noteEvent.time || 0);
+      const durationSec = Math.max(0.01, noteEvent.duration || 0.25);
 
-      let duration: string;
-      
-      // Map duration to closest standard musical note value
-      if (durationSecs >= 3.0) {
-        duration = '1';  // Whole note
-      } else if (durationSecs >= 1.5) {
-        duration = '2';  // Half note
-      } else if (durationSecs >= 0.75) {
-        duration = '4';  // Quarter note
-      } else if (durationSecs >= 0.375) {
-        duration = '8';  // Eighth note
-      } else if (durationSecs >= 0.1875) {
-        duration = '16'; // Sixteenth note
-      } else {
-        duration = '32'; // Thirty-second note
+      // Compute wait before this note from end of previous note
+      const rawWaitSec = Math.max(0, eventTimeSec - lastEndTimeSec);
+      let waitBeats = rawWaitSec / secondsPerBeat;
+      let durationBeats = durationSec / secondsPerBeat;
+
+      // Quantize to grid if enabled
+      if (gridBeats) {
+        waitBeats = this.quantizeBeats(waitBeats, gridBeats);
+        durationBeats = Math.max(gridBeats / 2, this.quantizeBeats(durationBeats, gridBeats));
       }
-      
-      // Create MIDI note event with basic parameters (no wait timing for now)
-      const noteEventMidi = new MidiWriter.NoteEvent({
+
+      // Map beats to duration strings compatible with midi-writer-js
+      const waitStr = this.beatsToDurationString(waitBeats);
+      const durStr = this.beatsToDurationString(durationBeats) || '16';
+
+      // Create MIDI note event with optional wait
+      const eventConfig: any = {
         pitch: [pitch],
-        duration: duration,
-        velocity: velocity
-      });
-      
+        duration: durStr,
+        velocity,
+      };
+      if (waitStr) {
+        eventConfig.wait = waitStr;
+      }
+
+      const noteEventMidi = new MidiWriter.NoteEvent(eventConfig);
       track.addEvent(noteEventMidi);
-      currentTime = eventTime;
+
+      // Advance last end time
+      lastEndTimeSec = Math.max(lastEndTimeSec, eventTimeSec + durationSec);
     });
     
     return track;
@@ -243,6 +249,44 @@ export class MidiExporter {
     const secondsPerBeat = 60 / bpm;
     const beats = timeInSeconds / secondsPerBeat;
     return Math.round(beats * ticksPerBeat);
+  }
+
+  /**
+   * Convert a number of beats to nearest supported duration string
+   * Supported values in midi-writer-js are note lengths like '1','2','4','8','16','32'.
+   */
+  private static beatsToDurationString(beats: number): string | undefined {
+    if (!isFinite(beats) || beats <= 0) return undefined;
+    const table: Array<{ beats: number; token: string }> = [
+      { beats: 4, token: '1' },
+      { beats: 2, token: '2' },
+      { beats: 1, token: '4' },
+      { beats: 0.5, token: '8' },
+      { beats: 0.25, token: '16' },
+      { beats: 0.125, token: '32' },
+    ];
+    // Choose the closest
+    let best = table[table.length - 1];
+    let bestDiff = Infinity;
+    for (const row of table) {
+      const d = Math.abs(beats - row.beats);
+      if (d < bestDiff) { bestDiff = d; best = row; }
+    }
+    return best.token;
+  }
+
+  private static getQuantizeGridBeats(q?: MidiExportOptions['quantize']): number | null {
+    switch (q) {
+      case '1/4': return 1;
+      case '1/8': return 0.5;
+      case '1/16': return 0.25;
+      default: return null;
+    }
+  }
+
+  private static quantizeBeats(v: number, gridBeats: number): number {
+    if (gridBeats <= 0) return v;
+    return Math.round(v / gridBeats) * gridBeats;
   }
 
   /**

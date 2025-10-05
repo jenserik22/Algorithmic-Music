@@ -12,6 +12,8 @@ interface MidiExporterProps {
 export function MidiExporter({ output, disabled = false, className = '' }: MidiExporterProps) {
   const [isExporting, setIsExporting] = useState(false);
   const [includeMetadata, setIncludeMetadata] = useState(true);
+  const [showAdvanced, setShowAdvanced] = useState(false);
+  const [quantize, setQuantize] = useState<'off' | '1/16' | '1/8' | '1/4'>('off');
   
   // Get current theme from DOM
   const isDarkMode = document.documentElement.classList.contains('dark');
@@ -36,7 +38,8 @@ export function MidiExporter({ output, disabled = false, className = '' }: MidiE
       // Export MIDI file
       MidiExportClass.exportToMidi(output, {
         fileName,
-        includeMetadata
+        includeMetadata,
+        quantize,
       });
       
     } catch (error) {
@@ -84,53 +87,31 @@ export function MidiExporter({ output, disabled = false, className = '' }: MidiE
             isDarkMode ? 'text-blue-400' : 'text-blue-600'
           }`} />
           <div className="flex-1">
-            <h4 className={`font-medium mb-2 ${
+            <h4 className={`font-medium ${
               isDarkMode ? 'text-blue-300' : 'text-blue-800'
             }`}>
               MIDI Export
             </h4>
-            <p className={`text-sm mb-2 ${
+            <p className={`text-sm ${
               isDarkMode ? 'text-gray-300' : 'text-blue-700'
             }`}>
-              Export your algorithmic composition as a MIDI file for use in any DAW
+              Export your composition as a MIDI file for use in any DAW
             </p>
-            
-            {/* File Info */}
-            <div className={`text-xs space-y-1 ${
+            {/* Compact info row */}
+            <div className={`mt-2 text-xs flex flex-wrap gap-x-4 gap-y-1 ${
               isDarkMode ? 'text-gray-400' : 'text-blue-600'
             }`}>
-              <div>Format: Standard MIDI File (Type 1)</div>
-              <div>Estimated size: {estimatedSize}</div>
-              {trackInfo && (
-                <div>Tracks: {trackInfo.join(', ')}</div>
-              )}
-              {output?.meta?.bpm && (
-                <div>Tempo: {output.meta.bpm} BPM</div>
-              )}
-              {output?.meta?.key && (
-                <div>Key: {output.meta.key}</div>
-              )}
+              <span>Type 1</span>
+              <span>Estimated: {estimatedSize}</span>
+              {trackInfo && <span>Tracks: {trackInfo.join(', ')}</span>}
+              {output?.meta?.bpm && <span>Tempo: {output.meta.bpm} BPM</span>}
+              {output?.meta?.key && <span>Key: {output.meta.key}</span>}
             </div>
           </div>
         </div>
       </div>
 
-      {/* Export Options */}
-      <div className="space-y-3">
-        <label className={`flex items-center gap-2 text-sm ${
-          isDarkMode ? 'text-gray-300' : 'text-gray-700'
-        }`}>
-          <input
-            type="checkbox"
-            checked={includeMetadata}
-            onChange={(e) => setIncludeMetadata(e.target.checked)}
-            className="rounded"
-          />
-          Include metadata (song title, algorithm, key, style)
-        </label>
-      </div>
-
-      {/* Export Button */}
+      {/* Primary action */}
       <button
         onClick={handleExport}
         disabled={!isValid || isExporting}
@@ -154,7 +135,53 @@ export function MidiExporter({ output, disabled = false, className = '' }: MidiE
           </>
         )}
       </button>
-      
+
+      {/* Advanced options toggle */}
+      <div>
+        <button
+          type="button"
+          onClick={() => setShowAdvanced(v => !v)}
+          className={`text-sm underline ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}
+        >
+          {showAdvanced ? 'Hide advanced options' : 'Show advanced options'}
+        </button>
+      </div>
+
+      {showAdvanced && (
+        <div className="space-y-3">
+          <label className={`flex items-center gap-2 text-sm ${
+            isDarkMode ? 'text-gray-300' : 'text-gray-700'
+          }`}>
+            <input
+              type="checkbox"
+              checked={includeMetadata}
+              onChange={(e) => setIncludeMetadata(e.target.checked)}
+              className="rounded"
+            />
+            Include metadata (song title, algorithm, key, style)
+          </label>
+
+          {/* Quantize setting */}
+          <div className="flex items-center justify-between text-sm">
+            <label className={isDarkMode ? 'text-gray-300' : 'text-gray-700'}>
+              Quantize grid
+            </label>
+            <select
+              value={quantize}
+              onChange={(e) => setQuantize(e.target.value as typeof quantize)}
+              className={`px-2 py-1 rounded border ${
+                isDarkMode ? 'bg-gray-800 border-gray-700 text-gray-200' : 'bg-white border-gray-300 text-gray-800'
+              }`}
+            >
+              <option value="off">Off</option>
+              <option value="1/16">1/16</option>
+              <option value="1/8">1/8</option>
+              <option value="1/4">1/4</option>
+            </select>
+          </div>
+        </div>
+      )}
+
       {/* Validation Error */}
       {!validation.valid && (
         <div className={`text-xs p-2 rounded ${
@@ -164,33 +191,9 @@ export function MidiExporter({ output, disabled = false, className = '' }: MidiE
         </div>
       )}
 
-      {/* MIDI Features Info */}
-      <div className={`text-xs p-3 rounded-lg border ${
-        isDarkMode ? 'bg-gray-800 border-gray-700 text-gray-400' : 'bg-gray-50 border-gray-200 text-gray-600'
-      }`}>
-        <div className="flex items-start gap-2">
-          <FileIcon className="w-4 h-4 mt-0.5 flex-shrink-0" />
-          <div>
-            <p className="font-medium mb-1">MIDI Export Features:</p>
-            <ul className="space-y-1 text-xs">
-              <li>• <strong>Multi-track separation:</strong> Lead, chords, bass, drums on separate tracks</li>
-              <li>• <strong>General MIDI compatible:</strong> Works with all DAWs and software instruments</li>
-              <li>• <strong>Proper timing:</strong> Preserves exact note timing and duration</li>
-              <li>• <strong>Velocity data:</strong> Maintains note dynamics and expression</li>
-              <li>• <strong>Tempo & time signature:</strong> Embedded for accurate playback</li>
-              <li>• <strong>Instrument mapping:</strong> Realistic instrument assignments per track</li>
-            </ul>
-          </div>
-        </div>
-      </div>
+      {/* Keep feature info behind advanced toggle now (removed from always-on view) */}
 
-      {/* DAW Compatibility */}
-      <div className={`text-xs p-3 rounded-lg border ${
-        isDarkMode ? 'bg-gray-800 border-gray-700 text-gray-400' : 'bg-green-50 border-green-200 text-green-600'
-      }`}>
-        <p className="font-medium mb-1">Compatible with all major DAWs:</p>
-        <p>Ableton Live, Logic Pro, FL Studio, Cubase, Pro Tools, Reaper, Studio One, and more</p>
-      </div>
+      {/* Compatibility block removed from default view to reduce clutter */}
     </div>
   );
 }
