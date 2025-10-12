@@ -15,7 +15,7 @@ export interface ChannelConfig {
 }
 
 export interface MappingState {
-  engine: 'tone' | 'sf';
+  engine: 'tone' | 'sf' | 'sf2';
   channels: ChannelConfig[];
 }
 

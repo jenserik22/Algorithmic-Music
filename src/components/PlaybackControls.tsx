@@ -14,29 +14,34 @@ export function PlaybackControls({ output, autoPlayToken, onPlaybackStateChange 
   onPlaybackStateChange?: (isPlaying: boolean) => void;
 }) {
   const [status, setStatus] = React.useState<'stopped'|'playing'|'paused'>('stopped');
-  const [engine, setEngine] = React.useState<'tone'|'sf'>(() => loadMapping().engine);
+  const [engine, setEngine] = React.useState<'tone'|'sf'|'sf2'>(() => loadMapping().engine as any);
   const [showChMgr, setShowChMgr] = React.useState(false);
-  const playerRef = React.useRef<WebAudioPlayer | TonePlayer | SfPlayer | null>(null);
+  const playerRef = React.useRef<WebAudioPlayer | TonePlayer | SfPlayer | any | null>(null);
 
   React.useEffect(() => {
-    // instantiate based on selected engine
-    try {
-      if (engine === 'sf') {
-        playerRef.current = new SfPlayer();
-      } else {
-        playerRef.current = new TonePlayer();
+    let cancelled = false;
+    (async () => {
+      // instantiate based on selected engine
+      try {
+        if (engine === 'sf') {
+          playerRef.current = new SfPlayer();
+        } else if (engine === 'sf2') {
+          const { Sf2Player } = await import('@/lib/audio/sf2Player');
+          if (!cancelled) playerRef.current = new Sf2Player();
+        } else {
+          playerRef.current = new TonePlayer();
+        }
+      } catch {
+        playerRef.current = new WebAudioPlayer();
       }
-    } catch {
-      playerRef.current = new WebAudioPlayer();
-    }
+    })();
 
     // Cleanup on unmount
     return () => {
+      cancelled = true;
       if (playerRef.current) {
         try {
           playerRef.current.stop();
-          // Note: TonePlayer and WebAudioPlayer don't have explicit dispose methods
-          // but stopping them releases most resources
         } catch (error) {
           console.warn('[PlaybackControls] Cleanup error:', error);
         } finally {
@@ -122,6 +127,7 @@ export function PlaybackControls({ output, autoPlayToken, onPlaybackStateChange 
           >
             <option value="tone">Tone Synth</option>
             <option value="sf">MIDI (SoundFont)</option>
+            <option value="sf2">MIDI (SF2 – GeneralUser GS)</option>
           </select>
           <button
             onClick={() => setShowChMgr(v => !v)}
