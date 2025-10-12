@@ -35,21 +35,21 @@ export class SfPlayer {
     if (this.instrumentCache.has(key)) return this.instrumentCache.get(key);
     const Soundfont = await loadSoundfont();
     if (cfg.isPercussion || cfg.channel === 10 || cfg.source === 'drums') {
-      // Use MusyngKite kits when a named kit is selected; otherwise use FluidR3 percussion
-      const kit = (cfg.drumKit as any) || null;
+      // Use MusyngKite kits (these exist on the CDN with -mp3.js)
+      const kit = (cfg.drumKit as any) || 'standard_kit';
+      const mkKits = ['standard_kit','room_kit','power_kit','electronic_kit','analog_kit','jazz_kit','brush_kit','orchestra_kit','sfx_kit'];
       let inst: any = null;
-      if (kit) {
-        const mkKits = ['room_kit','power_kit','electronic_kit','analog_kit','jazz_kit','brush_kit','orchestra_kit','sfx_kit','standard_kit'];
-        if (mkKits.includes(kit)) {
-          inst = await Soundfont.instrument(this.ctx!, kit, {
-            soundfont: 'MusyngKite',
-            nameToUrl: (n: string, sf: string) => `https://gleitz.github.io/midi-js-soundfonts/${sf}/${n}-mp3.js`,
-          }).catch(() => null);
-        }
+      const tryNames = [kit, ...mkKits.filter((k) => k !== kit)];
+      for (const name of tryNames) {
+        inst = await Soundfont.instrument(this.ctx!, name, {
+          soundfont: 'MusyngKite',
+          nameToUrl: (n: string, sf: string) => `https://gleitz.github.io/midi-js-soundfonts/${sf}/${n}-mp3.js`,
+        }).catch(() => null);
+        if (inst) break;
       }
       if (!inst) {
-        // Fallback to generic percussion from FluidR3_GM (exists on CDN)
-        inst = await Soundfont.instrument(this.ctx!, 'percussion' as any, {
+        // Last resort: use a melodic instrument so playback is not silent
+        inst = await Soundfont.instrument(this.ctx!, 'acoustic_grand_piano' as any, {
           soundfont: 'FluidR3_GM',
           nameToUrl: (n: string, sf: string) => `https://gleitz.github.io/midi-js-soundfonts/${sf}/${n}-mp3.js`,
         }).catch(() => null);
@@ -59,16 +59,28 @@ export class SfPlayer {
       return inst;
     }
     const sfName = findSfName(cfg.program) || 'acoustic_grand_piano';
+    // Try FluidR3 first, then MusyngKite for the same name, then a few fallbacks across packs
     let inst = await Soundfont.instrument(this.ctx!, sfName as any, {
       soundfont: 'FluidR3_GM',
       nameToUrl: (name: string, sf: string) => `https://gleitz.github.io/midi-js-soundfonts/${sf}/${name}-mp3.js`,
     }).catch((_e: any) => null);
     if (!inst) {
-      // fallback to a few common ones if a mapping is missing
-      const fallbacks = ['acoustic_grand_piano', 'electric_piano_1', 'pad_2_warm', 'violin'];
-      for (const name of fallbacks) {
+      inst = await Soundfont.instrument(this.ctx!, sfName as any, {
+        soundfont: 'MusyngKite',
+        nameToUrl: (name: string, sf: string) => `https://gleitz.github.io/midi-js-soundfonts/${sf}/${name}-mp3.js`,
+      }).catch((_e: any) => null);
+    }
+    if (!inst) {
+      const fallbacks = [
+        ['FluidR3_GM','acoustic_grand_piano'],
+        ['MusyngKite','acoustic_grand_piano'],
+        ['FluidR3_GM','electric_piano_1'],
+        ['MusyngKite','pad_2_warm'],
+        ['FluidR3_GM','violin'],
+      ] as const;
+      for (const [pack, name] of fallbacks) {
         inst = await Soundfont.instrument(this.ctx!, name as any, {
-          soundfont: 'FluidR3_GM',
+          soundfont: pack,
           nameToUrl: (n: string, sf: string) => `https://gleitz.github.io/midi-js-soundfonts/${sf}/${n}-mp3.js`,
         }).catch(() => null);
         if (inst) break;
