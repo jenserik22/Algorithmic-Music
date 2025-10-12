@@ -17,7 +17,8 @@ function midiToFreq(midi: number): number {
 export class SfPlayer {
   private ctx: AudioContext | null = null;
   private status_: PlayerStatus = 'stopped';
-  private instrumentCache = new Map<string, any>(); // key: channel id
+  // Cache per channel id, but invalidate when program/percussion changes
+  private instrumentCache = new Map<string, { inst: any; program: number; percussion: boolean; sfName?: string }>();
   private channelNodes = new Map<string, { filter: BiquadFilterNode | null; panner: StereoPannerNode | null; gain: GainNode }>();
   private scheduled: Array<() => void> = [];
   private noiseBuf: AudioBuffer | null = null;
@@ -55,15 +56,28 @@ export class SfPlayer {
 
   private async loadInstrumentFor(cfg: ChannelConfig) {
     const key = cfg.id; // dedicate instrument per channel to allow independent pan/vol
-    if (this.instrumentCache.has(key)) return this.instrumentCache.get(key);
-    const Soundfont = await loadSoundfont();
-    if (cfg.isPercussion || cfg.channel === 10 || cfg.source === 'drums') {
+    const isPerc = !!(cfg.isPercussion || cfg.channel === 10 || cfg.source === 'drums');
+
+    // If cached, verify it matches current config; otherwise invalidate
+    const cached = this.instrumentCache.get(key);
+    if (cached && cached.percussion === isPerc && cached.program === (cfg.program ?? 0)) {
+      // Ensure channel nodes exist and instrument is connected (stop() clears nodes)
+      this.setupChannelNodes(key, cfg, cached.inst);
+      return cached.inst;
+    }
+
+    // Invalidate old cache for this channel id
+    this.instrumentCache.delete(key);
+
+    if (isPerc) {
       // Avoid CDN 404s: synthesize drums locally instead of fetching kits
       const inst = { __drumSynth: true } as any;
       this.setupChannelNodes(key, cfg, null);
-      this.instrumentCache.set(key, inst);
+      this.instrumentCache.set(key, { inst, program: cfg.program ?? 0, percussion: true });
       return inst;
     }
+
+    const Soundfont = await loadSoundfont();
     const sfName = findSfName(cfg.program) || 'acoustic_grand_piano';
     // Try FluidR3 first, then MusyngKite for the same name, then a few fallbacks across packs
     let inst = await Soundfont.instrument(this.ctx!, sfName as any, {
@@ -92,8 +106,9 @@ export class SfPlayer {
         if (inst) break;
       }
     }
+    // Ensure nodes and connect instrument into channel chain
     if (inst) this.setupChannelNodes(key, cfg, inst);
-    this.instrumentCache.set(key, inst);
+    this.instrumentCache.set(key, { inst, program: cfg.program ?? 0, percussion: false, sfName });
     return inst;
   }
 
