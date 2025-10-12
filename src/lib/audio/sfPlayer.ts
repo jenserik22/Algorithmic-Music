@@ -20,6 +20,7 @@ export class SfPlayer {
   private instrumentCache = new Map<string, any>(); // key: channel id
   private channelNodes = new Map<string, { filter: BiquadFilterNode | null; panner: StereoPannerNode | null; gain: GainNode }>();
   private scheduled: Array<() => void> = [];
+  private noiseBuf: AudioBuffer | null = null;
 
   status(): PlayerStatus { return this.status_; }
 
@@ -35,27 +36,9 @@ export class SfPlayer {
     if (this.instrumentCache.has(key)) return this.instrumentCache.get(key);
     const Soundfont = await loadSoundfont();
     if (cfg.isPercussion || cfg.channel === 10 || cfg.source === 'drums') {
-      // Use MusyngKite kits (these exist on the CDN with -mp3.js)
-      const kit = (cfg.drumKit as any) || 'standard_kit';
-      // Only include MusyngKite kits that exist on the CDN
-      const mkKits = ['standard_kit','room_kit','power_kit','electronic_kit','analog_kit','jazz_kit'];
-      let inst: any = null;
-      const tryNames = [kit, ...mkKits.filter((k) => k !== kit)];
-      for (const name of tryNames) {
-        inst = await Soundfont.instrument(this.ctx!, name, {
-          soundfont: 'MusyngKite',
-          nameToUrl: (n: string, sf: string) => `https://gleitz.github.io/midi-js-soundfonts/${sf}/${n}-mp3.js`,
-        }).catch(() => null);
-        if (inst) break;
-      }
-      if (!inst) {
-        // Last resort: use a melodic instrument so playback is not silent
-        inst = await Soundfont.instrument(this.ctx!, 'acoustic_grand_piano' as any, {
-          soundfont: 'FluidR3_GM',
-          nameToUrl: (n: string, sf: string) => `https://gleitz.github.io/midi-js-soundfonts/${sf}/${n}-mp3.js`,
-        }).catch(() => null);
-      }
-      if (inst) this.setupChannelNodes(key, cfg, inst);
+      // Avoid CDN 404s: synthesize drums locally instead of fetching kits
+      const inst = { __drumSynth: true } as any;
+      this.setupChannelNodes(key, cfg, null);
       this.instrumentCache.set(key, inst);
       return inst;
     }
@@ -103,8 +86,9 @@ export class SfPlayer {
     f.frequency.value = 500 + bright * 19500;
     const p = (this.ctx as any).createStereoPanner ? (this.ctx as any).createStereoPanner() : null;
     if (p) p.pan.value = Math.max(-1, Math.min(1, cfg.pan ?? 0));
-    if (p) inst.connect(f).connect(p).connect(g).connect(this.ctx.destination);
-    else inst.connect(f).connect(g).connect(this.ctx.destination);
+    // connect chain to destination; sources will connect into filter
+    if (p) f.connect(p).connect(g).connect(this.ctx.destination);
+    else f.connect(g).connect(this.ctx.destination);
     this.channelNodes.set(key, { filter: f, panner: p, gain: g });
   }
 
@@ -112,16 +96,103 @@ export class SfPlayer {
     if (!this.ctx || !inst) return;
     const t = this.ctx.currentTime + timeSec + 0.05; // slight buffer
     const ch = this.channelNodes.get(chKey);
-    // apply per-note velocity by temporarily scaling channel gain via inst options
-    const node = inst.play(midi, t, { duration: Math.max(0.08, dur), gain: Math.max(0, Math.min(1, vel)) });
-    this.scheduled.push(() => { try { (node as any).stop?.(); } catch { /* ignore */ } });
+    // Clamp to a safe GM melodic range to avoid missing sample zones in some packs
+    const safeMidi = Math.max(36, Math.min(96, midi | 0));
+    try {
+      const node = inst.play(safeMidi, t, { duration: Math.max(0.08, dur), gain: Math.max(0, Math.min(1, vel)) });
+      this.scheduled.push(() => { try { (node as any).stop?.(); } catch { /* ignore */ } });
+    } catch (_e) {
+      // Fallback: simple sine if instrument sample missing
+      try {
+        const osc = this.ctx.createOscillator();
+        const amp = this.ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.value = 440 * Math.pow(2, (safeMidi - 69) / 12);
+        amp.gain.setValueAtTime(0, t);
+        amp.gain.linearRampToValueAtTime(Math.min(1, vel), t + 0.005);
+        amp.gain.exponentialRampToValueAtTime(0.0001, t + Math.max(0.08, dur));
+        osc.connect(amp);
+        (ch?.filter ?? this.ctx.destination) && amp.connect(ch!.filter! || this.ctx.destination);
+        osc.start(t);
+        osc.stop(t + Math.max(0.1, dur));
+        this.scheduled.push(() => { try { osc.disconnect(); amp.disconnect(); } catch { /* ignore */ } });
+      } catch { /* ignore */ }
+    }
   }
 
   private scheduleDrum(inst: any, timeSec: number, code: number, vel: number, dur: number, chKey: string) {
-    if (!this.ctx || !inst) return;
-    const t = this.ctx.currentTime + timeSec + 0.05;
-    const node = inst.play(Math.max(0, Math.min(127, code)), t, { duration: Math.max(0.05, dur), gain: Math.max(0, Math.min(1, vel)) });
-    this.scheduled.push(() => { try { (node as any).stop?.(); } catch { /* ignore */ } });
+    if (!this.ctx) return;
+    const t = this.ctx.currentTime + timeSec + 0.02;
+    const ch = this.channelNodes.get(chKey);
+    if (!ch) return;
+    if (inst && inst.__drumSynth) {
+      // Kick: 35/36
+      if (code === 35 || code === 36) {
+        const osc = this.ctx.createOscillator();
+        const amp = this.ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(130, t);
+        osc.frequency.exponentialRampToValueAtTime(45, t + Math.max(0.05, dur * 0.5));
+        amp.gain.setValueAtTime(0, t);
+        amp.gain.linearRampToValueAtTime(Math.min(1, vel), t + 0.002);
+        amp.gain.exponentialRampToValueAtTime(0.0001, t + Math.max(0.12, dur * 0.9));
+        osc.connect(amp);
+        amp.connect(ch.filter!);
+        osc.start(t);
+        osc.stop(t + Math.max(0.15, dur));
+        this.scheduled.push(() => { try { osc.disconnect(); amp.disconnect(); } catch { } });
+        return;
+      }
+      // Snare: 38/40
+      if (code === 38 || code === 40) {
+        const src = this.ctx.createBufferSource();
+        src.buffer = this.getNoiseBuffer();
+        const bp = this.ctx.createBiquadFilter();
+        bp.type = 'bandpass';
+        bp.frequency.value = 1800;
+        const amp = this.ctx.createGain();
+        amp.gain.setValueAtTime(0, t);
+        amp.gain.linearRampToValueAtTime(Math.min(1, vel), t + 0.001);
+        amp.gain.exponentialRampToValueAtTime(0.0001, t + Math.max(0.08, dur));
+        src.connect(bp).connect(amp).connect(ch.filter!);
+        src.start(t);
+        src.stop(t + Math.max(0.12, dur));
+        this.scheduled.push(() => { try { src.disconnect(); bp.disconnect(); amp.disconnect(); } catch { } });
+        return;
+      }
+      // Closed/Opened HH, Ride, etc: highpassed noise
+      const src = this.ctx.createBufferSource();
+      src.buffer = this.getNoiseBuffer();
+      const hp = this.ctx.createBiquadFilter();
+      hp.type = 'highpass';
+      hp.frequency.value = 6000;
+      const amp = this.ctx.createGain();
+      amp.gain.setValueAtTime(0, t);
+      amp.gain.linearRampToValueAtTime(Math.min(1, vel * 0.7), t + 0.001);
+      const hatDur = code === 46 || code === 49 ? Math.max(0.2, dur) : Math.max(0.05, dur * 0.6);
+      amp.gain.exponentialRampToValueAtTime(0.0001, t + hatDur);
+      src.connect(hp).connect(amp).connect(ch.filter!);
+      src.start(t);
+      src.stop(t + hatDur + 0.02);
+      this.scheduled.push(() => { try { src.disconnect(); hp.disconnect(); amp.disconnect(); } catch { } });
+      return;
+    }
+    // Fallback: try instrument play if present
+    if (inst && typeof inst.play === 'function') {
+      const node = inst.play(Math.max(0, Math.min(127, code)), t, { duration: Math.max(0.05, dur), gain: Math.max(0, Math.min(1, vel)) });
+      this.scheduled.push(() => { try { (node as any).stop?.(); } catch { /* ignore */ } });
+    }
+  }
+
+  private getNoiseBuffer(): AudioBuffer {
+    if (this.noiseBuf && this.ctx) return this.noiseBuf;
+    const ctx = this.ctx!;
+    const bufferSize = ctx.sampleRate * 1.0;
+    const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+    const data = buffer.getChannelData(1 - 1);
+    for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
+    this.noiseBuf = buffer;
+    return buffer;
   }
 
   async play(out: EngineOutput, onEnd?: () => void) {
