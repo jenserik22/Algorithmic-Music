@@ -1,5 +1,6 @@
 import MidiWriter from 'midi-writer-js';
 import type { EngineOutput, NoteEvent } from '@/lib/music/engines/types';
+import { loadMapping, defaultMapping } from '@/lib/midi/mapping';
 
 interface MidiExportOptions {
   fileName?: string;
@@ -113,10 +114,27 @@ export class MidiExporter {
    */
   private static groupEventsByTrack(events: NoteEvent[]): Record<string, MidiTrackData> {
     const groups: Record<string, MidiTrackData> = {};
-    
+    const mapping = (() => { try { return loadMapping(); } catch { return defaultMapping(); } })();
+
+    if (mapping?.channels?.length) {
+      for (const ch of mapping.channels) {
+        const key = ch.id;
+        const source = ch.source;
+        const evs = events.filter((e) => (e.track || 'lead') === source);
+        if (!evs.length) continue;
+        groups[key] = {
+          trackName: ch.name || source,
+          channel: ch.isPercussion || ch.channel === 10 || source === 'drums' ? 10 : Math.max(1, Math.min(16, ch.channel || 1)),
+          instrument: ch.program ?? this.getInstrumentForTrack(source),
+          events: evs,
+        };
+      }
+      return groups;
+    }
+
+    // fallback to fixed mapping
     events.forEach(event => {
       const trackName = event.track || 'lead';
-      
       if (!groups[trackName]) {
         groups[trackName] = {
           trackName: trackName.charAt(0).toUpperCase() + trackName.slice(1),
@@ -125,10 +143,8 @@ export class MidiExporter {
           events: []
         };
       }
-      
       groups[trackName].events.push(event);
     });
-    
     return groups;
   }
 
@@ -138,14 +154,15 @@ export class MidiExporter {
   private static createMidiTrack(trackData: MidiTrackData, bpm: number, options: MidiExportOptions): MidiWriter.Track {
     const track = new MidiWriter.Track();
     
-    // Set track name
-    track.addEvent(new (MidiWriter as any).TrackNameEvent({ text: trackData.trackName }));
+    // Optionally write track name as a text meta event for compatibility
+    track.addEvent(new MidiWriter.TextEvent({ text: `[Track] ${trackData.trackName}` } as any));
     
     // Set instrument (program change) - skip for drums (channel 10)
     if (trackData.channel !== 10) {
       track.addEvent(new MidiWriter.ProgramChangeEvent({
-        instrument: trackData.instrument
-      }));
+        instrument: trackData.instrument,
+        channel: trackData.channel,
+      } as any));
     }
     
     // Sort events by time
@@ -194,6 +211,7 @@ export class MidiExporter {
         pitch: [pitch],
         duration: durStr,
         velocity,
+        channel: trackData.channel,
       };
       if (waitStr) {
         eventConfig.wait = waitStr;
@@ -304,7 +322,7 @@ export class MidiExporter {
    * Download MIDI file
    */
   private static downloadMidi(data: Uint8Array, fileName: string): void {
-    const blob = new Blob([data.buffer], { type: 'audio/midi' });
+    const blob = new Blob([data], { type: 'audio/midi' });
     const url = URL.createObjectURL(blob);
     
     const link = document.createElement('a');

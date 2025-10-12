@@ -2,6 +2,9 @@ import React from 'react';
 import type { EngineOutput } from '@/lib/music/engines/types';
 import { WebAudioPlayer } from '@/lib/audio/webAudioPlayer';
 import { TonePlayer } from '@/lib/audio/tonePlayer';
+import { SfPlayer } from '@/lib/audio/sfPlayer';
+import { loadMapping, saveMapping } from '@/lib/midi/mapping';
+import { ChannelManager } from '@/components/ChannelManager';
 import { PlayIcon, PauseIcon, StopIcon } from '@/components/icons';
 import { memoryManager } from '@/lib/utils/memoryManager';
 
@@ -11,12 +14,18 @@ export function PlaybackControls({ output, autoPlayToken, onPlaybackStateChange 
   onPlaybackStateChange?: (isPlaying: boolean) => void;
 }) {
   const [status, setStatus] = React.useState<'stopped'|'playing'|'paused'>('stopped');
-  const playerRef = React.useRef<WebAudioPlayer | TonePlayer | null>(null);
+  const [engine, setEngine] = React.useState<'tone'|'sf'>(() => loadMapping().engine);
+  const [showChMgr, setShowChMgr] = React.useState(false);
+  const playerRef = React.useRef<WebAudioPlayer | TonePlayer | SfPlayer | null>(null);
 
   React.useEffect(() => {
-    // prefer Tone when available; fallback to WebAudio
+    // instantiate based on selected engine
     try {
-      playerRef.current = new TonePlayer();
+      if (engine === 'sf') {
+        playerRef.current = new SfPlayer();
+      } else {
+        playerRef.current = new TonePlayer();
+      }
     } catch {
       playerRef.current = new WebAudioPlayer();
     }
@@ -35,7 +44,15 @@ export function PlaybackControls({ output, autoPlayToken, onPlaybackStateChange 
         }
       }
     };
-  }, []);
+  }, [engine]);
+
+  // Persist engine in mapping store
+  React.useEffect(() => {
+    const s = loadMapping();
+    if (s.engine !== engine) {
+      saveMapping({ ...s, engine });
+    }
+  }, [engine]);
 
   const onPlay = () => {
     if (!output || !playerRef.current) return;
@@ -48,9 +65,13 @@ export function PlaybackControls({ output, autoPlayToken, onPlaybackStateChange 
       }))
       .catch((error) => {
         console.warn('[PlaybackControls] Playback failed, trying fallback:', error);
-        // fallback to WebAudioPlayer
+        // fallback: if Tone failed and we were using Tone, try SoundFont; otherwise WebAudio
         try {
-          playerRef.current = new WebAudioPlayer();
+          if (engine === 'tone') {
+            playerRef.current = new SfPlayer();
+          } else {
+            playerRef.current = new WebAudioPlayer();
+          }
           playerRef.current.play(output, () => {
             setStatus('stopped');
             onPlaybackStateChange?.(false);
@@ -92,6 +113,23 @@ export function PlaybackControls({ output, autoPlayToken, onPlaybackStateChange 
           {status === 'stopped' && <StopIcon className="w-3 h-3" />}
           {status}
         </div>
+        <div className="ml-auto flex items-center gap-2">
+          <label className="text-xs opacity-75">Engine</label>
+          <select
+            value={engine}
+            onChange={(e) => setEngine(e.target.value as any)}
+            className="px-2 py-1 rounded border text-xs bg-white dark:bg-gray-900 dark:border-gray-700"
+          >
+            <option value="tone">Tone Synth</option>
+            <option value="sf">MIDI (SoundFont)</option>
+          </select>
+          <button
+            onClick={() => setShowChMgr(v => !v)}
+            className="px-2 py-1 text-xs rounded bg-indigo-600 text-white hover:bg-indigo-700"
+          >
+            Channels
+          </button>
+        </div>
       </div>
       
       <div className="flex gap-2">
@@ -120,6 +158,12 @@ export function PlaybackControls({ output, autoPlayToken, onPlaybackStateChange 
           Stop
         </button>
       </div>
+
+      {showChMgr && (
+        <div className="mt-2">
+          <ChannelManager />
+        </div>
+      )}
     </div>
   );
 }
