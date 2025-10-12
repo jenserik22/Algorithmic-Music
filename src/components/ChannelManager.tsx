@@ -1,5 +1,5 @@
 import React from 'react';
-import { GM_PROGRAMS, DRUM_KITS, defaultMapping, loadMapping, saveMapping, type MappingState, type ChannelConfig } from '@/lib/midi/mapping';
+import { GM_PROGRAMS, DRUM_KITS, defaultMapping, loadMapping, saveMapping, applyStylePreset, type MappingState, type ChannelConfig, type StylePresetId } from '@/lib/midi/mapping';
 
 export function ChannelManager() {
   const [state, setState] = React.useState<MappingState>(() => loadMapping());
@@ -60,6 +60,10 @@ export function ChannelManager() {
       }),
     });
   };
+  const applyPreset = (p: StylePresetId) => {
+    const next = applyStylePreset(state, p);
+    update(next);
+  };
 
   const reset = () => update(defaultMapping());
 
@@ -77,7 +81,18 @@ export function ChannelManager() {
             <option value="sf">MIDI (SoundFont)</option>
           </select>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 items-center">
+          <label className="text-sm">Preset</label>
+          <select
+            onChange={(e) => applyPreset(e.target.value as StylePresetId)}
+            defaultValue=""
+            className={`px-2 py-1 rounded border text-sm ${isDark ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-300'}`}
+          >
+            <option value="" disabled>Choose…</option>
+            <option value="edm">EDM</option>
+            <option value="cinematic">Cinematic</option>
+            <option value="lofi">Lo‑fi</option>
+          </select>
           <button onClick={addChannel} className="px-2 py-1 text-xs rounded bg-blue-600 text-white">Add Channel</button>
           <button onClick={reset} className={`px-2 py-1 text-xs rounded ${isDark ? 'bg-gray-700 text-gray-200' : 'bg-gray-200 text-gray-800'}`}>Reset</button>
         </div>

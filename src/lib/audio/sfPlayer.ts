@@ -133,7 +133,28 @@ export class SfPlayer {
     // Prepare instruments in parallel
     await Promise.all(mapping.channels.map((c) => this.loadInstrumentFor(c)));
 
-    const events = [...out.events].sort((a, b) => a.time - b.time);
+    // Velocity humanization with simple style-based accents
+    const bpm = out.meta?.bpm ?? 120;
+    const beatSec = 60 / bpm;
+    const style = (out.meta?.style || '').toLowerCase();
+    const variation = Math.min(1, Math.max(0, out.meta?.variation ?? 0.6));
+    function accentForBeat(b: number) {
+      const m = b % 4;
+      if (style === 'jazz') return m === 1 || m === 3 ? 1.1 : 1.0; // accent 2 and 4
+      if (style === 'edm') return m === 0 ? 1.12 : m === 2 ? 1.06 : 1.0; // 1 strong, 3 light
+      if (style === 'cinematic') return m === 0 ? 1.1 : m === 2 ? 1.05 : 1.02;
+      if (style === 'lofi') return m === 0 ? 1.06 : m === 2 ? 1.03 : 1.0;
+      return m === 0 ? 1.1 : m === 2 ? 1.05 : 1.0;
+    }
+    const events = [...out.events]
+      .map((e) => {
+        const beat = Math.floor(e.time / beatSec);
+        const accent = accentForBeat(beat);
+        const rand = 1 + (Math.random() * 2 - 1) * 0.15 * variation;
+        const v = Math.max(0, Math.min(1, (e.velocity ?? 0.8) * accent * rand));
+        return { ...e, velocity: v } as NoteEvent;
+      })
+      .sort((a, b) => a.time - b.time);
     const endTime = events.reduce((m, e) => Math.max(m, e.time + e.duration), 0);
     const startAt = 0; // schedule relative to now with buffer inside scheduleNote
 

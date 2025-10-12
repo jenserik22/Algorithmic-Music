@@ -86,9 +86,6 @@ export const DRUM_KITS: { id: DrumKitId; label: string }[] = [
   { id: 'electronic_kit', label: 'Electronic Kit' },
   { id: 'analog_kit', label: 'Analog Kit' },
   { id: 'jazz_kit', label: 'Jazz Kit' },
-  { id: 'brush_kit', label: 'Brush Kit' },
-  { id: 'orchestra_kit', label: 'Orchestra Kit' },
-  { id: 'sfx_kit', label: 'SFX Kit' },
 ];
 
 export function defaultMapping(): MappingState {
@@ -124,4 +121,37 @@ export function saveMapping(state: MappingState) {
 
 export function findSfName(program: number): string | undefined {
   return GM_PROGRAMS.find((i) => i.program === program)?.sf;
+}
+
+// ---- Style presets ----
+export type StylePresetId = 'edm' | 'cinematic' | 'lofi';
+
+export function applyStylePreset(state: MappingState, preset: StylePresetId): MappingState {
+  const base = { ...state };
+  const nextCh = base.channels.map((c) => ({ ...c }));
+  const bySource = (s: SourceTrack) => nextCh.find((x) => x.source === s);
+  const set = (s: SourceTrack, patch: Partial<ChannelConfig>) => {
+    const t = bySource(s);
+    if (t) Object.assign(t, patch);
+  };
+  if (preset === 'edm') {
+    set('lead', { program: 81, brightness: 0.9, pan: 0.1, transpose: 0 });
+    set('chords', { program: 89, brightness: 0.7, pan: -0.1 });
+    set('bass', { program: 39, brightness: 0.6, transpose: -12 });
+    set('fx', { program: 95, brightness: 0.95, pan: 0 });
+    set('drums', { drumKit: 'electronic_kit', isPercussion: true, channel: 10 });
+  } else if (preset === 'cinematic') {
+    set('lead', { program: 73, brightness: 0.7, pan: 0 }); // Flute
+    set('chords', { program: 49, brightness: 0.6, pan: -0.05 }); // Slow Strings
+    set('bass', { program: 33, brightness: 0.5, transpose: -12 });
+    set('fx', { program: 88, brightness: 0.6 }); // New Age Pad
+    set('drums', { drumKit: 'standard_kit', isPercussion: true, channel: 10 });
+  } else if (preset === 'lofi') {
+    set('lead', { program: 4, brightness: 0.6, pan: 0.05 }); // EP1
+    set('chords', { program: 5, brightness: 0.55, pan: -0.05 }); // EP2
+    set('bass', { program: 36, brightness: 0.5, transpose: -12 }); // Fretless
+    set('fx', { program: 90, brightness: 0.5 }); // Poly Synth Pad
+    set('drums', { drumKit: 'jazz_kit', isPercussion: true, channel: 10 });
+  }
+  return { ...base, channels: nextCh };
 }
