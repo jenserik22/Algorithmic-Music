@@ -34,7 +34,7 @@ export const SpectrumAnalyzer: React.FC<SpectrumAnalyzerProps> = ({
   useEffect(() => {
     if (!isPlaying) return;
     
-    let timeoutId: NodeJS.Timeout;
+    let timeoutId: ReturnType<typeof setTimeout> | null = null;
     
     const initializeAnalyzers = async () => {
       try {

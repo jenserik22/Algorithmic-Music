@@ -46,7 +46,8 @@ export function AudioExporter({ output, disabled = false, className = '' }: Audi
       
     } catch (error) {
       console.error('Export failed:', error);
-      alert(`Export failed: ${error.message}`);
+      const message = error instanceof Error ? error.message : String(error);
+      alert(`Export failed: ${message}`);
     } finally {
       setIsExporting(false);
     }
@@ -150,7 +151,8 @@ export function AudioExporter({ output, disabled = false, className = '' }: Audi
         }, duration, 2, sampleRate);
         
         // Render offline and convert to AudioBuffer
-        const buffer = await offlineContext;
+        const result = await offlineContext as any;
+        const buffer: AudioBuffer = typeof result?.get === 'function' ? result.get() : (result as AudioBuffer);
         resolve(buffer);
         
       } catch (error) {
@@ -240,39 +242,6 @@ export function AudioExporter({ output, disabled = false, className = '' }: Audi
 
   return (
     <div className={`space-y-4 ${className}`}>
-      {/* Format Selection */}
-      <div className="space-y-2">
-        <label className={`block text-sm font-medium ${
-          isDarkMode ? 'text-gray-300' : 'text-gray-700'
-        }`}>
-          Export Format
-        </label>
-        <div className="flex gap-2">
-          {(['wav'] as AudioFormat[]).map((format) => (
-            <button
-              key={format}
-              onClick={() => setExportFormat(format)}
-              className={`flex-1 px-3 py-2 rounded-lg text-sm font-medium transition-colors border ${
-                exportFormat === format
-                  ? 'bg-blue-600 text-white border-blue-600'
-                  : isDarkMode
-                  ? 'bg-gray-700 text-gray-300 border-gray-600 hover:bg-gray-600'
-                  : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
-              }`}
-            >
-              <FileIcon className="w-4 h-4 inline mr-1" />
-              {format.toUpperCase()}
-            </button>
-          ))}
-        </div>
-        <div className="text-xs text-gray-500">
-          Uncompressed, CD quality audio (larger file size)
-        </div>
-        <div className="text-xs text-blue-600 dark:text-blue-400">
-          Note: MP3 export temporarily disabled - WAV provides the highest quality
-        </div>
-      </div>
-
       {/* Export Button */}
       <button
         onClick={handleExport}
@@ -293,27 +262,68 @@ export function AudioExporter({ output, disabled = false, className = '' }: Audi
         ) : (
           <>
             <DownloadIcon className="w-5 h-5" />
-            Download {exportFormat.toUpperCase()}
+            Download WAV
           </>
         )}
       </button>
 
-      {/* Info */}
-      <div className={`text-xs p-3 rounded-lg border ${
-        isDarkMode ? 'bg-gray-800 border-gray-700 text-gray-400' : 'bg-gray-50 border-gray-200 text-gray-600'
-      }`}>
-        <div className="flex items-start gap-2">
-          <FileIcon className="w-4 h-4 mt-0.5 flex-shrink-0" />
-          <div>
-            <p className="font-medium mb-1">Export Quality:</p>
-            <ul className="space-y-1 text-xs">
-              <li>• WAV: 44.1kHz, 16-bit, stereo (CD quality)</li>
-              <li>• Preserves all audio detail with no compression</li>
-              <li>• Compatible with all audio software and devices</li>
-            </ul>
+      {/* Advanced options toggle */}
+      <div>
+        <button
+          type="button"
+          onClick={() => setShowOptions(v => !v)}
+          className={`text-sm underline ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}
+        >
+          {showOptions ? 'Hide advanced options' : 'Show advanced options'}
+        </button>
+      </div>
+
+      {showOptions && (
+        <div className="space-y-4">
+          {/* Format Selection (currently WAV only) */}
+          <div className="space-y-2">
+            <label className={`block text-sm font-medium ${
+              isDarkMode ? 'text-gray-300' : 'text-gray-700'
+            }`}>
+              Export Format
+            </label>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                className={`flex-1 px-3 py-2 rounded-lg text-sm font-medium transition-colors border ${
+                  'bg-blue-600 text-white border-blue-600'
+                }`}
+              >
+                <FileIcon className="w-4 h-4 inline mr-1" />
+                WAV
+              </button>
+            </div>
+            <div className="text-xs text-gray-500">
+              Uncompressed, CD quality audio (larger file size)
+            </div>
+            <div className="text-xs text-blue-600 dark:text-blue-400">
+              Note: MP3 export temporarily disabled - WAV provides the highest quality
+            </div>
+          </div>
+
+          {/* Info */}
+          <div className={`text-xs p-3 rounded-lg border ${
+            isDarkMode ? 'bg-gray-800 border-gray-700 text-gray-400' : 'bg-gray-50 border-gray-200 text-gray-600'
+          }`}>
+            <div className="flex items-start gap-2">
+              <FileIcon className="w-4 h-4 mt-0.5 flex-shrink-0" />
+              <div>
+                <p className="font-medium mb-1">Export Quality:</p>
+                <ul className="space-y-1 text-xs">
+                  <li>• WAV: 44.1kHz, 16-bit, stereo (CD quality)</li>
+                  <li>• Preserves all audio detail with no compression</li>
+                  <li>• Compatible with all audio software and devices</li>
+                </ul>
+              </div>
+            </div>
           </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }
