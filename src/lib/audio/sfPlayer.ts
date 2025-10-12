@@ -96,9 +96,28 @@ export class SfPlayer {
     if (!this.ctx || !inst) return;
     const t = this.ctx.currentTime + timeSec + 0.05; // slight buffer
     const ch = this.channelNodes.get(chKey);
-    // apply per-note velocity by temporarily scaling channel gain via inst options
-    const node = inst.play(midi, t, { duration: Math.max(0.08, dur), gain: Math.max(0, Math.min(1, vel)) });
-    this.scheduled.push(() => { try { (node as any).stop?.(); } catch { /* ignore */ } });
+    // Clamp to a safe GM melodic range to avoid missing sample zones in some packs
+    const safeMidi = Math.max(36, Math.min(96, midi | 0));
+    try {
+      const node = inst.play(safeMidi, t, { duration: Math.max(0.08, dur), gain: Math.max(0, Math.min(1, vel)) });
+      this.scheduled.push(() => { try { (node as any).stop?.(); } catch { /* ignore */ } });
+    } catch (_e) {
+      // Fallback: simple sine if instrument sample missing
+      try {
+        const osc = this.ctx.createOscillator();
+        const amp = this.ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.value = 440 * Math.pow(2, (safeMidi - 69) / 12);
+        amp.gain.setValueAtTime(0, t);
+        amp.gain.linearRampToValueAtTime(Math.min(1, vel), t + 0.005);
+        amp.gain.exponentialRampToValueAtTime(0.0001, t + Math.max(0.08, dur));
+        osc.connect(amp);
+        (ch?.filter ?? this.ctx.destination) && amp.connect(ch!.filter! || this.ctx.destination);
+        osc.start(t);
+        osc.stop(t + Math.max(0.1, dur));
+        this.scheduled.push(() => { try { osc.disconnect(); amp.disconnect(); } catch { /* ignore */ } });
+      } catch { /* ignore */ }
+    }
   }
 
   private scheduleDrum(inst: any, timeSec: number, code: number, vel: number, dur: number, chKey: string) {
