@@ -155,8 +155,28 @@ export class TonePlayer {
     this.clearSchedule();
     T.bpm.value = out.meta?.bpm ?? T.bpm.value;
 
-    // Sort all events by time to prevent timing conflicts
-    const sortedEvents = [...out.events].sort((a, b) => a.time - b.time);
+    // Velocity humanization with simple style-based accents
+    const bpm = out.meta?.bpm ?? (this.tone.Transport.bpm.value as number) ?? 120;
+    const beatSec = 60 / bpm;
+    const style = (out.meta?.style || '').toLowerCase();
+    const variation = Math.min(1, Math.max(0, out.meta?.variation ?? 0.6));
+    function accentForBeat(b: number) {
+      const m = b % 4;
+      if (style === 'jazz') return m === 1 || m === 3 ? 1.1 : 1.0;
+      if (style === 'edm') return m === 0 ? 1.12 : m === 2 ? 1.06 : 1.0;
+      if (style === 'cinematic') return m === 0 ? 1.1 : m === 2 ? 1.05 : 1.02;
+      if (style === 'lofi') return m === 0 ? 1.06 : m === 2 ? 1.03 : 1.0;
+      return m === 0 ? 1.1 : m === 2 ? 1.05 : 1.0;
+    }
+    const sortedEvents = [...out.events]
+      .map((e) => {
+        const beat = Math.floor(e.time / beatSec);
+        const accent = accentForBeat(beat);
+        const rand = 1 + (Math.random() * 2 - 1) * 0.15 * variation;
+        const v = Math.max(0, Math.min(1, (e.velocity ?? 0.8) * accent * rand));
+        return { ...e, velocity: v } as NoteEvent;
+      })
+      .sort((a, b) => a.time - b.time);
     
     // Ensure minimum time gap between events (prevent "Start time must be strictly greater" error)
     const MIN_TIME_GAP = 0.001; // 1ms

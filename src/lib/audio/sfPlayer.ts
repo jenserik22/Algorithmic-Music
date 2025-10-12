@@ -18,7 +18,7 @@ export class SfPlayer {
   private ctx: AudioContext | null = null;
   private status_: PlayerStatus = 'stopped';
   private instrumentCache = new Map<string, any>(); // key: channel id
-  private channelNodes = new Map<string, { panner: StereoPannerNode | null; gain: GainNode }>();
+  private channelNodes = new Map<string, { filter: BiquadFilterNode | null; panner: StereoPannerNode | null; gain: GainNode }>();
   private scheduled: Array<() => void> = [];
 
   status(): PlayerStatus { return this.status_; }
@@ -35,20 +35,58 @@ export class SfPlayer {
     if (this.instrumentCache.has(key)) return this.instrumentCache.get(key);
     const Soundfont = await loadSoundfont();
     if (cfg.isPercussion || cfg.channel === 10 || cfg.source === 'drums') {
-      // percussion kit name for FluidR3
-      const inst = await Soundfont.instrument(this.ctx!, 'standard_kit' as any, {
-        soundfont: 'FluidR3_GM',
-        nameToUrl: (name: string, sf: string) => `https://gleitz.github.io/midi-js-soundfonts/${sf}/${name}-mp3.js`,
-      }).catch((_e: any) => null);
+      // Use MusyngKite kits (these exist on the CDN with -mp3.js)
+      const kit = (cfg.drumKit as any) || 'standard_kit';
+      // Only include MusyngKite kits that exist on the CDN
+      const mkKits = ['standard_kit','room_kit','power_kit','electronic_kit','analog_kit','jazz_kit'];
+      let inst: any = null;
+      const tryNames = [kit, ...mkKits.filter((k) => k !== kit)];
+      for (const name of tryNames) {
+        inst = await Soundfont.instrument(this.ctx!, name, {
+          soundfont: 'MusyngKite',
+          nameToUrl: (n: string, sf: string) => `https://gleitz.github.io/midi-js-soundfonts/${sf}/${n}-mp3.js`,
+        }).catch(() => null);
+        if (inst) break;
+      }
+      if (!inst) {
+        // Last resort: use a melodic instrument so playback is not silent
+        inst = await Soundfont.instrument(this.ctx!, 'acoustic_grand_piano' as any, {
+          soundfont: 'FluidR3_GM',
+          nameToUrl: (n: string, sf: string) => `https://gleitz.github.io/midi-js-soundfonts/${sf}/${n}-mp3.js`,
+        }).catch(() => null);
+      }
       if (inst) this.setupChannelNodes(key, cfg, inst);
       this.instrumentCache.set(key, inst);
       return inst;
     }
     const sfName = findSfName(cfg.program) || 'acoustic_grand_piano';
-    const inst = await Soundfont.instrument(this.ctx!, sfName as any, {
+    // Try FluidR3 first, then MusyngKite for the same name, then a few fallbacks across packs
+    let inst = await Soundfont.instrument(this.ctx!, sfName as any, {
       soundfont: 'FluidR3_GM',
       nameToUrl: (name: string, sf: string) => `https://gleitz.github.io/midi-js-soundfonts/${sf}/${name}-mp3.js`,
     }).catch((_e: any) => null);
+    if (!inst) {
+      inst = await Soundfont.instrument(this.ctx!, sfName as any, {
+        soundfont: 'MusyngKite',
+        nameToUrl: (name: string, sf: string) => `https://gleitz.github.io/midi-js-soundfonts/${sf}/${name}-mp3.js`,
+      }).catch((_e: any) => null);
+    }
+    if (!inst) {
+      const fallbacks = [
+        ['FluidR3_GM','acoustic_grand_piano'],
+        ['MusyngKite','acoustic_grand_piano'],
+        ['FluidR3_GM','electric_piano_1'],
+        ['MusyngKite','pad_2_warm'],
+        ['FluidR3_GM','violin'],
+      ] as const;
+      for (const [pack, name] of fallbacks) {
+        inst = await Soundfont.instrument(this.ctx!, name as any, {
+          soundfont: pack,
+          nameToUrl: (n: string, sf: string) => `https://gleitz.github.io/midi-js-soundfonts/${sf}/${n}-mp3.js`,
+        }).catch(() => null);
+        if (inst) break;
+      }
+    }
     if (inst) this.setupChannelNodes(key, cfg, inst);
     this.instrumentCache.set(key, inst);
     return inst;
@@ -58,11 +96,16 @@ export class SfPlayer {
     if (!this.ctx) return;
     const g = this.ctx.createGain();
     g.gain.value = Math.max(0, Math.min(1, cfg.volume ?? 1));
+    const f = this.ctx.createBiquadFilter();
+    f.type = 'lowpass';
+    const bright = Math.max(0, Math.min(1, cfg.brightness ?? 0.85));
+    // map brightness 0..1 to ~500Hz..20000Hz
+    f.frequency.value = 500 + bright * 19500;
     const p = (this.ctx as any).createStereoPanner ? (this.ctx as any).createStereoPanner() : null;
     if (p) p.pan.value = Math.max(-1, Math.min(1, cfg.pan ?? 0));
-    if (p) inst.connect(p).connect(g).connect(this.ctx.destination);
-    else inst.connect(g).connect(this.ctx.destination);
-    this.channelNodes.set(key, { panner: p, gain: g });
+    if (p) inst.connect(f).connect(p).connect(g).connect(this.ctx.destination);
+    else inst.connect(f).connect(g).connect(this.ctx.destination);
+    this.channelNodes.set(key, { filter: f, panner: p, gain: g });
   }
 
   private scheduleNote(inst: any, timeSec: number, midi: number, dur: number, vel: number, chKey: string) {
@@ -90,7 +133,28 @@ export class SfPlayer {
     // Prepare instruments in parallel
     await Promise.all(mapping.channels.map((c) => this.loadInstrumentFor(c)));
 
-    const events = [...out.events].sort((a, b) => a.time - b.time);
+    // Velocity humanization with simple style-based accents
+    const bpm = out.meta?.bpm ?? 120;
+    const beatSec = 60 / bpm;
+    const style = (out.meta?.style || '').toLowerCase();
+    const variation = Math.min(1, Math.max(0, out.meta?.variation ?? 0.6));
+    function accentForBeat(b: number) {
+      const m = b % 4;
+      if (style === 'jazz') return m === 1 || m === 3 ? 1.1 : 1.0; // accent 2 and 4
+      if (style === 'edm') return m === 0 ? 1.12 : m === 2 ? 1.06 : 1.0; // 1 strong, 3 light
+      if (style === 'cinematic') return m === 0 ? 1.1 : m === 2 ? 1.05 : 1.02;
+      if (style === 'lofi') return m === 0 ? 1.06 : m === 2 ? 1.03 : 1.0;
+      return m === 0 ? 1.1 : m === 2 ? 1.05 : 1.0;
+    }
+    const events = [...out.events]
+      .map((e) => {
+        const beat = Math.floor(e.time / beatSec);
+        const accent = accentForBeat(beat);
+        const rand = 1 + (Math.random() * 2 - 1) * 0.15 * variation;
+        const v = Math.max(0, Math.min(1, (e.velocity ?? 0.8) * accent * rand));
+        return { ...e, velocity: v } as NoteEvent;
+      })
+      .sort((a, b) => a.time - b.time);
     const endTime = events.reduce((m, e) => Math.max(m, e.time + e.duration), 0);
     const startAt = 0; // schedule relative to now with buffer inside scheduleNote
 
@@ -135,6 +199,7 @@ export class SfPlayer {
     for (const [, nodes] of this.channelNodes) {
       try { nodes.panner?.disconnect(); } catch { /* ignore */ }
       try { nodes.gain.disconnect(); } catch { /* ignore */ }
+      try { nodes.filter?.disconnect(); } catch { /* ignore */ }
     }
     this.channelNodes.clear();
     this.status_ = 'stopped';
