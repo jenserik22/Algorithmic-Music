@@ -17,7 +17,8 @@ function midiToFreq(midi: number): number {
 export class SfPlayer {
   private ctx: AudioContext | null = null;
   private status_: PlayerStatus = 'stopped';
-  private instrumentCache = new Map<string, any>(); // key: ch-<n> or prog-<n>
+  private instrumentCache = new Map<string, any>(); // key: channel id
+  private channelNodes = new Map<string, { panner: StereoPannerNode | null; gain: GainNode }>();
   private scheduled: Array<() => void> = [];
 
   status(): PlayerStatus { return this.status_; }
@@ -30,15 +31,16 @@ export class SfPlayer {
   }
 
   private async loadInstrumentFor(cfg: ChannelConfig) {
-    const key = (cfg.isPercussion || cfg.channel === 10) ? 'perc' : `prog-${cfg.program}`;
+    const key = cfg.id; // dedicate instrument per channel to allow independent pan/vol
     if (this.instrumentCache.has(key)) return this.instrumentCache.get(key);
     const Soundfont = await loadSoundfont();
-    if (key === 'perc') {
+    if (cfg.isPercussion || cfg.channel === 10 || cfg.source === 'drums') {
       // percussion kit name for FluidR3
       const inst = await Soundfont.instrument(this.ctx!, 'standard_kit' as any, {
         soundfont: 'FluidR3_GM',
         nameToUrl: (name: string, sf: string) => `https://gleitz.github.io/midi-js-soundfonts/${sf}/${name}-mp3.js`,
       }).catch((_e: any) => null);
+      if (inst) this.setupChannelNodes(key, cfg, inst);
       this.instrumentCache.set(key, inst);
       return inst;
     }
@@ -47,59 +49,36 @@ export class SfPlayer {
       soundfont: 'FluidR3_GM',
       nameToUrl: (name: string, sf: string) => `https://gleitz.github.io/midi-js-soundfonts/${sf}/${name}-mp3.js`,
     }).catch((_e: any) => null);
+    if (inst) this.setupChannelNodes(key, cfg, inst);
     this.instrumentCache.set(key, inst);
     return inst;
   }
 
-  private scheduleNote(inst: any, timeSec: number, midi: number, dur: number, vel: number, pan = 0, gain = 1) {
-    if (!this.ctx || !inst) return;
-    const t = this.ctx.currentTime + timeSec + 0.05; // slight buffer
-    // build a small chain with gain + stereo panner
-    const gainNode = this.ctx.createGain();
-    gainNode.gain.value = Math.max(0, Math.min(1, gain)) * vel;
-    const panner = (this.ctx as any).createStereoPanner ? (this.ctx as any).createStereoPanner() : null;
-    if (panner) panner.pan.value = Math.max(-1, Math.min(1, pan));
-    const dest = panner ? panner : gainNode;
-    if (panner) panner.connect(gainNode);
-    gainNode.connect(this.ctx.destination);
-
-    const node = inst.play(midi, t, { duration: Math.max(0.05, dur) });
-    try {
-      (node as any).connect?.(dest);
-    } catch { /* ignore */ }
-    this.scheduled.push(() => {
-      try { (node as any).stop?.(); } catch { /* ignore */ }
-      try { gainNode.disconnect(); } catch { /* ignore */ }
-      try { panner?.disconnect(); } catch { /* ignore */ }
-    });
+  private setupChannelNodes(key: string, cfg: ChannelConfig, inst: any) {
+    if (!this.ctx) return;
+    const g = this.ctx.createGain();
+    g.gain.value = Math.max(0, Math.min(1, cfg.volume ?? 1));
+    const p = (this.ctx as any).createStereoPanner ? (this.ctx as any).createStereoPanner() : null;
+    if (p) p.pan.value = Math.max(-1, Math.min(1, cfg.pan ?? 0));
+    if (p) inst.connect(p).connect(g).connect(this.ctx.destination);
+    else inst.connect(g).connect(this.ctx.destination);
+    this.channelNodes.set(key, { panner: p, gain: g });
   }
 
-  private scheduleDrum(timeSec: number, code: number, vel: number, dur: number, pan = 0, gain = 1) {
-    if (!this.ctx) return;
-    // lightweight noise-based drum fallback
-    const t = this.ctx.currentTime + timeSec + 0.02;
-    const noise = this.ctx.createBufferSource();
-    const buffer = this.ctx.createBuffer(1, this.ctx.sampleRate * 0.25, this.ctx.sampleRate);
-    const data = buffer.getChannelData(0);
-    for (let i = 0; i < data.length; i++) data[i] = (Math.random() * 2 - 1) * (1 - i / data.length);
-    noise.buffer = buffer;
-    const gainNode = this.ctx.createGain();
-    const isKick = code === 36;
-    gainNode.gain.value = (isKick ? 0.9 : 0.4) * vel * gain;
-    const panner = (this.ctx as any).createStereoPanner ? (this.ctx as any).createStereoPanner() : null;
-    if (panner) panner.pan.value = Math.max(-1, Math.min(1, pan));
-    const filter = this.ctx.createBiquadFilter();
-    filter.type = isKick ? 'lowpass' : 'highpass';
-    filter.frequency.value = isKick ? 200 : 6000;
-    noise.connect(filter);
-    filter.connect(panner || gainNode);
-    if (panner) panner.connect(gainNode);
-    gainNode.connect(this.ctx.destination);
-    noise.start(t);
-    noise.stop(t + Math.max(0.02, Math.min(0.25, dur)));
-    this.scheduled.push(() => {
-      try { noise.disconnect(); filter.disconnect(); gainNode.disconnect(); panner?.disconnect(); } catch { /* */ }
-    });
+  private scheduleNote(inst: any, timeSec: number, midi: number, dur: number, vel: number, chKey: string) {
+    if (!this.ctx || !inst) return;
+    const t = this.ctx.currentTime + timeSec + 0.05; // slight buffer
+    const ch = this.channelNodes.get(chKey);
+    // apply per-note velocity by temporarily scaling channel gain via inst options
+    const node = inst.play(midi, t, { duration: Math.max(0.08, dur), gain: Math.max(0, Math.min(1, vel)) });
+    this.scheduled.push(() => { try { (node as any).stop?.(); } catch { /* ignore */ } });
+  }
+
+  private scheduleDrum(inst: any, timeSec: number, code: number, vel: number, dur: number, chKey: string) {
+    if (!this.ctx || !inst) return;
+    const t = this.ctx.currentTime + timeSec + 0.05;
+    const node = inst.play(Math.max(0, Math.min(127, code)), t, { duration: Math.max(0.05, dur), gain: Math.max(0, Math.min(1, vel)) });
+    this.scheduled.push(() => { try { (node as any).stop?.(); } catch { /* ignore */ } });
   }
 
   async play(out: EngineOutput, onEnd?: () => void) {
@@ -117,7 +96,7 @@ export class SfPlayer {
 
     // For each channel mapping, schedule the source track events
     for (const ch of mapping.channels) {
-      const inst = (ch.isPercussion || ch.channel === 10) ? null : await this.loadInstrumentFor(ch);
+      const inst = await this.loadInstrumentFor(ch);
       const evs = events.filter((e) => (e.track || 'lead') === ch.source);
       for (const ev of evs) {
         const midi = Math.max(0, Math.min(127, Math.round((ev.pitch || 0) + (ch.transpose || 0))));
@@ -125,9 +104,9 @@ export class SfPlayer {
         const vel = Math.max(0, Math.min(1, ev.velocity ?? 0.8));
         if (ch.isPercussion || ch.channel === 10 || ch.source === 'drums') {
           const code = ev.pitch | 0;
-          this.scheduleDrum(startAt + ev.time, code, vel, dur, ch.pan ?? 0, ch.volume ?? 1);
+          this.scheduleDrum(inst, startAt + ev.time, code, vel, dur, ch.id);
         } else {
-          this.scheduleNote(inst, startAt + ev.time, midiToFreq(midi), dur, vel, ch.pan ?? 0, ch.volume ?? 1);
+          this.scheduleNote(inst, startAt + ev.time, midi, dur, vel, ch.id);
         }
       }
     }
@@ -152,6 +131,12 @@ export class SfPlayer {
       try { fn(); } catch { /* ignore */ }
     }
     this.scheduled = [];
+    // do not close context, but disconnect channel nodes
+    for (const [, nodes] of this.channelNodes) {
+      try { nodes.panner?.disconnect(); } catch { /* ignore */ }
+      try { nodes.gain.disconnect(); } catch { /* ignore */ }
+    }
+    this.channelNodes.clear();
     this.status_ = 'stopped';
   }
 }
