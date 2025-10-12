@@ -29,7 +29,35 @@ export function ChannelManager() {
   const change = (id: string, patch: Partial<ChannelConfig>) => {
     update({
       ...state,
-      channels: state.channels.map((c) => (c.id === id ? { ...c, ...patch } : c)),
+      channels: state.channels.map((c) => {
+        if (c.id !== id) return c;
+        let next: ChannelConfig = { ...c, ...patch } as ChannelConfig;
+        // if source toggles to drums -> force percussion + channel 10
+        if (patch.source === 'drums') {
+          next.isPercussion = true;
+          next.channel = 10;
+          next.program = 0;
+        }
+        // if source toggles away from drums -> clear percussion flag
+        if (patch.source && patch.source !== 'drums') {
+          next.isPercussion = false;
+          if (next.channel === 10) {
+            // pick a sensible default channel per source
+            const defaults: Record<string, number> = { lead: 1, chords: 2, bass: 3, fx: 4 };
+            next.channel = defaults[patch.source] ?? 1;
+          }
+        }
+        // if drums checkbox flips
+        if (Object.prototype.hasOwnProperty.call(patch, 'isPercussion')) {
+          if (patch.isPercussion) {
+            next.channel = 10;
+            next.program = 0;
+          } else if (next.source !== 'drums' && next.channel === 10) {
+            next.channel = 1;
+          }
+        }
+        return next;
+      }),
     });
   };
 
@@ -86,7 +114,7 @@ export function ChannelManager() {
               <input type="checkbox" checked={!!c.isPercussion} onChange={(e) => change(c.id, { isPercussion: e.target.checked })} />
               Drums
             </label>
-            {c.isPercussion || c.channel === 10 || c.source === 'drums' ? (
+            {c.isPercussion || c.source === 'drums' ? (
               <select
                 value={c.drumKit || 'standard_kit'}
                 onChange={(e) => change(c.id, { drumKit: e.target.value as any, isPercussion: true, channel: 10 })}

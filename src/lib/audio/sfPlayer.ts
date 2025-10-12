@@ -37,7 +37,8 @@ export class SfPlayer {
     if (cfg.isPercussion || cfg.channel === 10 || cfg.source === 'drums') {
       // Use MusyngKite kits (these exist on the CDN with -mp3.js)
       const kit = (cfg.drumKit as any) || 'standard_kit';
-      const mkKits = ['standard_kit','room_kit','power_kit','electronic_kit','analog_kit','jazz_kit','brush_kit','orchestra_kit','sfx_kit'];
+      // Only include MusyngKite kits that exist on the CDN
+      const mkKits = ['standard_kit','room_kit','power_kit','electronic_kit','analog_kit','jazz_kit'];
       let inst: any = null;
       const tryNames = [kit, ...mkKits.filter((k) => k !== kit)];
       for (const name of tryNames) {
