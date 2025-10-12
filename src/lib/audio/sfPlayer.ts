@@ -21,6 +21,13 @@ export class SfPlayer {
   private channelNodes = new Map<string, { filter: BiquadFilterNode | null; panner: StereoPannerNode | null; gain: GainNode }>();
   private scheduled: Array<() => void> = [];
   private noiseBuf: AudioBuffer | null = null;
+  private masterComp: DynamicsCompressorNode | null = null;
+  private masterGain: GainNode | null = null;
+  private activeVoices = new Map<string, Array<() => void>>(); // per-channel voice stop handlers
+
+  // Scheduling/lookahead
+  private static readonly LOOKAHEAD_S = 0.2; // 200ms lookahead to reduce jitter
+  private static readonly MAX_POLYPHONY = 16; // per channel
 
   status(): PlayerStatus { return this.status_; }
 
@@ -28,6 +35,21 @@ export class SfPlayer {
     if (!this.ctx) this.ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
     if (this.ctx.state !== 'running') {
       try { await this.ctx.resume(); } catch { /* ignore */ }
+    }
+    // Ensure master bus
+    if (this.ctx && !this.masterComp) {
+      const g = this.ctx.createGain();
+      g.gain.value = 0.95; // small headroom
+      const c = this.ctx.createDynamicsCompressor();
+      // Soft limiter style
+      c.threshold.value = -24;
+      c.knee.value = 30;
+      c.ratio.value = 12;
+      c.attack.value = 0.003;
+      c.release.value = 0.25;
+      g.connect(c).connect(this.ctx.destination);
+      this.masterGain = g;
+      this.masterComp = c;
     }
   }
 
@@ -86,21 +108,38 @@ export class SfPlayer {
     f.frequency.value = 500 + bright * 19500;
     const p = (this.ctx as any).createStereoPanner ? (this.ctx as any).createStereoPanner() : null;
     if (p) p.pan.value = Math.max(-1, Math.min(1, cfg.pan ?? 0));
-    // connect chain to destination; sources will connect into filter
-    if (p) f.connect(p).connect(g).connect(this.ctx.destination);
-    else f.connect(g).connect(this.ctx.destination);
+    // connect chain to master bus; sources will connect into filter
+    const dest = this.masterGain ?? this.ctx.destination;
+    if (p) f.connect(p).connect(g).connect(dest);
+    else f.connect(g).connect(dest);
     this.channelNodes.set(key, { filter: f, panner: p, gain: g });
+    // If an instrument instance is provided and supports connect, route it through our channel filter
+    try {
+      if (inst && typeof inst.connect === 'function') {
+        inst.connect(f);
+      }
+    } catch { /* ignore */ }
   }
 
   private scheduleNote(inst: any, timeSec: number, midi: number, dur: number, vel: number, chKey: string) {
     if (!this.ctx || !inst) return;
-    const t = this.ctx.currentTime + timeSec + 0.05; // slight buffer
+    const t = this.ctx.currentTime + timeSec + SfPlayer.LOOKAHEAD_S; // increased buffer
     const ch = this.channelNodes.get(chKey);
     // Clamp to a safe GM melodic range to avoid missing sample zones in some packs
     const safeMidi = Math.max(36, Math.min(96, midi | 0));
+    // Voice limiting per channel
+    const voices = this.activeVoices.get(chKey) ?? [];
+    if (voices.length >= SfPlayer.MAX_POLYPHONY) {
+      const stopOld = voices.shift();
+      try { stopOld?.(); } catch { /* ignore */ }
+    }
     try {
-      const node = inst.play(safeMidi, t, { duration: Math.max(0.08, dur), gain: Math.max(0, Math.min(1, vel)) });
-      this.scheduled.push(() => { try { (node as any).stop?.(); } catch { /* ignore */ } });
+      const gateDur = Math.max(0.08, dur * 0.85); // shorter gate for clarity
+      const node = inst.play(safeMidi, t, { duration: gateDur, gain: Math.max(0, Math.min(1, vel)) });
+      const stopFn = () => { try { (node as any).stop?.(); } catch { /* ignore */ } };
+      this.scheduled.push(stopFn);
+      voices.push(stopFn);
+      this.activeVoices.set(chKey, voices);
     } catch (_e) {
       // Fallback: simple sine if instrument sample missing
       try {
@@ -112,17 +151,21 @@ export class SfPlayer {
         amp.gain.linearRampToValueAtTime(Math.min(1, vel), t + 0.005);
         amp.gain.exponentialRampToValueAtTime(0.0001, t + Math.max(0.08, dur));
         osc.connect(amp);
-        (ch?.filter ?? this.ctx.destination) && amp.connect(ch!.filter! || this.ctx.destination);
+        const dest = ch?.filter ?? this.masterGain ?? this.ctx.destination;
+        amp.connect(dest);
         osc.start(t);
         osc.stop(t + Math.max(0.1, dur));
-        this.scheduled.push(() => { try { osc.disconnect(); amp.disconnect(); } catch { /* ignore */ } });
+        const stopFn = () => { try { osc.disconnect(); amp.disconnect(); } catch { /* ignore */ } };
+        this.scheduled.push(stopFn);
+        voices.push(stopFn);
+        this.activeVoices.set(chKey, voices);
       } catch { /* ignore */ }
     }
   }
 
   private scheduleDrum(inst: any, timeSec: number, code: number, vel: number, dur: number, chKey: string) {
     if (!this.ctx) return;
-    const t = this.ctx.currentTime + timeSec + 0.02;
+    const t = this.ctx.currentTime + timeSec + Math.max(0.02, SfPlayer.LOOKAHEAD_S * 0.5);
     const ch = this.channelNodes.get(chKey);
     if (!ch) return;
     if (inst && inst.__drumSynth) {
@@ -204,6 +247,19 @@ export class SfPlayer {
     // Prepare instruments in parallel
     await Promise.all(mapping.channels.map((c) => this.loadInstrumentFor(c)));
 
+    // Warm-up/preload: trigger quiet, short notes to force download/decoding up-front
+    try {
+      const now = ctx.currentTime + 0.05;
+      for (const ch of mapping.channels) {
+        const inst = await this.loadInstrumentFor(ch);
+        if (!inst || ch.isPercussion || ch.channel === 10 || ch.source === 'drums') continue;
+        const testNotes = ch.source === 'bass' ? [36, 40, 43] : ch.source === 'chords' ? [52, 55, 59] : [60, 64, 67];
+        for (let i = 0; i < testNotes.length; i++) {
+          try { inst.play(testNotes[i], now + i * 0.03, { duration: 0.05, gain: 0.001 }); } catch { /* ignore */ }
+        }
+      }
+    } catch { /* ignore */ }
+
     // Velocity humanization with simple style-based accents
     const bpm = out.meta?.bpm ?? 120;
     const beatSec = 60 / bpm;
@@ -266,6 +322,7 @@ export class SfPlayer {
       try { fn(); } catch { /* ignore */ }
     }
     this.scheduled = [];
+    this.activeVoices.clear();
     // do not close context, but disconnect channel nodes
     for (const [, nodes] of this.channelNodes) {
       try { nodes.panner?.disconnect(); } catch { /* ignore */ }
