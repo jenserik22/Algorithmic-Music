@@ -35,26 +35,24 @@ export class SfPlayer {
     if (this.instrumentCache.has(key)) return this.instrumentCache.get(key);
     const Soundfont = await loadSoundfont();
     if (cfg.isPercussion || cfg.channel === 10 || cfg.source === 'drums') {
-      // Try multiple known FluidR3 kits to avoid 404s
-      const candidates = [
-        (cfg.drumKit as any) || 'room_kit',
-        'room_kit',
-        'power_kit',
-        'electronic_kit',
-        'analog_kit',
-        'jazz_kit',
-        'brush_kit',
-        'orchestra_kit',
-        'sfx_kit',
-        'standard_kit',
-      ];
+      // Use MusyngKite kits when a named kit is selected; otherwise use FluidR3 percussion
+      const kit = (cfg.drumKit as any) || null;
       let inst: any = null;
-      for (const name of candidates) {
-        inst = await Soundfont.instrument(this.ctx!, name, {
+      if (kit) {
+        const mkKits = ['room_kit','power_kit','electronic_kit','analog_kit','jazz_kit','brush_kit','orchestra_kit','sfx_kit','standard_kit'];
+        if (mkKits.includes(kit)) {
+          inst = await Soundfont.instrument(this.ctx!, kit, {
+            soundfont: 'MusyngKite',
+            nameToUrl: (n: string, sf: string) => `https://gleitz.github.io/midi-js-soundfonts/${sf}/${n}-mp3.js`,
+          }).catch(() => null);
+        }
+      }
+      if (!inst) {
+        // Fallback to generic percussion from FluidR3_GM (exists on CDN)
+        inst = await Soundfont.instrument(this.ctx!, 'percussion' as any, {
           soundfont: 'FluidR3_GM',
           nameToUrl: (n: string, sf: string) => `https://gleitz.github.io/midi-js-soundfonts/${sf}/${n}-mp3.js`,
         }).catch(() => null);
-        if (inst) break;
       }
       if (inst) this.setupChannelNodes(key, cfg, inst);
       this.instrumentCache.set(key, inst);
