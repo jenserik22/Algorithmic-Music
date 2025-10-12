@@ -35,23 +35,23 @@ export class SfPlayer {
     if (this.instrumentCache.has(key)) return this.instrumentCache.get(key);
     const Soundfont = await loadSoundfont();
     if (cfg.isPercussion || cfg.channel === 10 || cfg.source === 'drums') {
-      // Use MusyngKite kits (these exist on the CDN with -mp3.js)
-      const kit = (cfg.drumKit as any) || 'standard_kit';
-      // Only include MusyngKite kits that exist on the CDN
-      const mkKits = ['standard_kit','room_kit','power_kit','electronic_kit','analog_kit','jazz_kit'];
+      // Use the GM percussion instrument file; named kits are not available on this CDN
       let inst: any = null;
-      const tryNames = [kit, ...mkKits.filter((k) => k !== kit)];
-      for (const name of tryNames) {
-        inst = await Soundfont.instrument(this.ctx!, name, {
+      // Try FluidR3 first, then MusyngKite
+      inst = await Soundfont.instrument(this.ctx!, 'percussion' as any, {
+        soundfont: 'FluidR3_GM',
+        nameToUrl: (n: string, sf: string) => `https://gleitz.github.io/midi-js-soundfonts/${sf}/${n}-mp3.js`,
+      }).catch(() => null);
+      if (!inst) {
+        inst = await Soundfont.instrument(this.ctx!, 'percussion' as any, {
           soundfont: 'MusyngKite',
           nameToUrl: (n: string, sf: string) => `https://gleitz.github.io/midi-js-soundfonts/${sf}/${n}-mp3.js`,
         }).catch(() => null);
-        if (inst) break;
       }
       if (!inst) {
-        // Last resort: use a melodic instrument so playback is not silent
-        inst = await Soundfont.instrument(this.ctx!, 'acoustic_grand_piano' as any, {
-          soundfont: 'FluidR3_GM',
+        // Last resort: use a simple synth drum to avoid silence
+        inst = await Soundfont.instrument(this.ctx!, 'synth_drum' as any, {
+          soundfont: 'MusyngKite',
           nameToUrl: (n: string, sf: string) => `https://gleitz.github.io/midi-js-soundfonts/${sf}/${n}-mp3.js`,
         }).catch(() => null);
       }
