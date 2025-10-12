@@ -18,7 +18,7 @@ export class SfPlayer {
   private ctx: AudioContext | null = null;
   private status_: PlayerStatus = 'stopped';
   private instrumentCache = new Map<string, any>(); // key: channel id
-  private channelNodes = new Map<string, { panner: StereoPannerNode | null; gain: GainNode }>();
+  private channelNodes = new Map<string, { filter: BiquadFilterNode | null; panner: StereoPannerNode | null; gain: GainNode }>();
   private scheduled: Array<() => void> = [];
 
   status(): PlayerStatus { return this.status_; }
@@ -36,7 +36,8 @@ export class SfPlayer {
     const Soundfont = await loadSoundfont();
     if (cfg.isPercussion || cfg.channel === 10 || cfg.source === 'drums') {
       // percussion kit name for FluidR3
-      const inst = await Soundfont.instrument(this.ctx!, 'standard_kit' as any, {
+      const kit = (cfg.drumKit || 'standard_kit') as any;
+      const inst = await Soundfont.instrument(this.ctx!, kit, {
         soundfont: 'FluidR3_GM',
         nameToUrl: (name: string, sf: string) => `https://gleitz.github.io/midi-js-soundfonts/${sf}/${name}-mp3.js`,
       }).catch((_e: any) => null);
@@ -58,11 +59,16 @@ export class SfPlayer {
     if (!this.ctx) return;
     const g = this.ctx.createGain();
     g.gain.value = Math.max(0, Math.min(1, cfg.volume ?? 1));
+    const f = this.ctx.createBiquadFilter();
+    f.type = 'lowpass';
+    const bright = Math.max(0, Math.min(1, cfg.brightness ?? 0.85));
+    // map brightness 0..1 to ~500Hz..20000Hz
+    f.frequency.value = 500 + bright * 19500;
     const p = (this.ctx as any).createStereoPanner ? (this.ctx as any).createStereoPanner() : null;
     if (p) p.pan.value = Math.max(-1, Math.min(1, cfg.pan ?? 0));
-    if (p) inst.connect(p).connect(g).connect(this.ctx.destination);
-    else inst.connect(g).connect(this.ctx.destination);
-    this.channelNodes.set(key, { panner: p, gain: g });
+    if (p) inst.connect(f).connect(p).connect(g).connect(this.ctx.destination);
+    else inst.connect(f).connect(g).connect(this.ctx.destination);
+    this.channelNodes.set(key, { filter: f, panner: p, gain: g });
   }
 
   private scheduleNote(inst: any, timeSec: number, midi: number, dur: number, vel: number, chKey: string) {
@@ -135,6 +141,7 @@ export class SfPlayer {
     for (const [, nodes] of this.channelNodes) {
       try { nodes.panner?.disconnect(); } catch { /* ignore */ }
       try { nodes.gain.disconnect(); } catch { /* ignore */ }
+      try { nodes.filter?.disconnect(); } catch { /* ignore */ }
     }
     this.channelNodes.clear();
     this.status_ = 'stopped';

@@ -1,5 +1,5 @@
 import React from 'react';
-import { GM_PROGRAMS, defaultMapping, loadMapping, saveMapping, type MappingState, type ChannelConfig } from '@/lib/midi/mapping';
+import { GM_PROGRAMS, DRUM_KITS, defaultMapping, loadMapping, saveMapping, type MappingState, type ChannelConfig } from '@/lib/midi/mapping';
 
 export function ChannelManager() {
   const [state, setState] = React.useState<MappingState>(() => loadMapping());
@@ -86,16 +86,27 @@ export function ChannelManager() {
               <input type="checkbox" checked={!!c.isPercussion} onChange={(e) => change(c.id, { isPercussion: e.target.checked })} />
               Drums
             </label>
-            <select
-              value={c.program}
-              onChange={(e) => change(c.id, { program: Number(e.target.value) })}
-              disabled={c.isPercussion || c.channel === 10 || c.source === 'drums'}
-              className={`col-span-3 px-2 py-1 rounded border text-sm ${isDark ? 'bg-gray-900 border-gray-700' : 'bg-white border-gray-300'}`}
-            >
-              {GM_PROGRAMS.map((p) => (
-                <option key={p.program} value={p.program}>{p.program}: {p.label}</option>
-              ))}
-            </select>
+            {c.isPercussion || c.channel === 10 || c.source === 'drums' ? (
+              <select
+                value={c.drumKit || 'standard_kit'}
+                onChange={(e) => change(c.id, { drumKit: e.target.value as any, isPercussion: true, channel: 10 })}
+                className={`col-span-3 px-2 py-1 rounded border text-sm ${isDark ? 'bg-gray-900 border-gray-700' : 'bg-white border-gray-300'}`}
+              >
+                {DRUM_KITS.map((k) => (
+                  <option key={k.id} value={k.id}>{k.label}</option>
+                ))}
+              </select>
+            ) : (
+              <select
+                value={c.program}
+                onChange={(e) => change(c.id, { program: Number(e.target.value) })}
+                className={`col-span-3 px-2 py-1 rounded border text-sm ${isDark ? 'bg-gray-900 border-gray-700' : 'bg-white border-gray-300'}`}
+              >
+                {GM_PROGRAMS.map((p) => (
+                  <option key={p.program} value={p.program}>{p.program}: {p.label}</option>
+                ))}
+              </select>
+            )}
             <button onClick={() => remove(c.id)} className="col-span-1 px-2 py-1 text-xs rounded bg-red-600 text-white">Remove</button>
             <div className="col-span-12 grid grid-cols-12 gap-2">
               <label className="col-span-4 text-xs flex items-center gap-2">
@@ -109,6 +120,10 @@ export function ChannelManager() {
               <label className="col-span-4 text-xs flex items-center gap-2">
                 Transpose
                 <input type="range" min={-24} max={24} step={1} value={c.transpose ?? 0} onChange={(e) => change(c.id, { transpose: Number(e.target.value) })} className="w-full" />
+              </label>
+              <label className="col-span-12 text-xs flex items-center gap-2">
+                Brightness
+                <input type="range" min={0} max={1} step={0.01} value={c.brightness ?? 0.8} onChange={(e) => change(c.id, { brightness: Number(e.target.value) })} className="w-full" />
               </label>
             </div>
           </div>

@@ -10,6 +10,8 @@ export interface ChannelConfig {
   volume?: number; // 0..1
   pan?: number; // -1..1
   transpose?: number; // semitones
+  drumKit?: DrumKitId; // when drums
+  brightness?: number; // 0..1 -> mapped to lowpass cutoff
 }
 
 export interface MappingState {
@@ -66,13 +68,36 @@ export const GM_PROGRAMS: { program: number; label: string; sf: string }[] = [
   { program: 95, label: 'FX 8 (Sci-Fi)', sf: 'fx_8_scifi' },
 ];
 
+export type DrumKitId =
+  | 'standard_kit'
+  | 'room_kit'
+  | 'power_kit'
+  | 'electronic_kit'
+  | 'analog_kit'
+  | 'jazz_kit'
+  | 'brush_kit'
+  | 'orchestra_kit'
+  | 'sfx_kit';
+
+export const DRUM_KITS: { id: DrumKitId; label: string }[] = [
+  { id: 'standard_kit', label: 'Standard Kit' },
+  { id: 'room_kit', label: 'Room Kit' },
+  { id: 'power_kit', label: 'Power Kit' },
+  { id: 'electronic_kit', label: 'Electronic Kit' },
+  { id: 'analog_kit', label: 'Analog Kit' },
+  { id: 'jazz_kit', label: 'Jazz Kit' },
+  { id: 'brush_kit', label: 'Brush Kit' },
+  { id: 'orchestra_kit', label: 'Orchestra Kit' },
+  { id: 'sfx_kit', label: 'SFX Kit' },
+];
+
 export function defaultMapping(): MappingState {
   const channels: ChannelConfig[] = [
-    { id: 'lead', name: 'Lead', source: 'lead', channel: 1, program: 81, volume: 0.9, pan: 0, transpose: 0 },
-    { id: 'chords', name: 'Chords', source: 'chords', channel: 2, program: 89, volume: 0.8, pan: 0, transpose: 0 },
-    { id: 'bass', name: 'Bass', source: 'bass', channel: 3, program: 33, volume: 0.9, pan: 0, transpose: -12 },
-    { id: 'fx', name: 'FX', source: 'fx', channel: 4, program: 95, volume: 0.7, pan: 0, transpose: 0 },
-    { id: 'drums', name: 'Drums', source: 'drums', channel: 10, program: 0, isPercussion: true, volume: 1, pan: 0 },
+    { id: 'lead', name: 'Lead', source: 'lead', channel: 1, program: 81, volume: 0.9, pan: 0, transpose: 0, brightness: 0.8 },
+    { id: 'chords', name: 'Chords', source: 'chords', channel: 2, program: 89, volume: 0.8, pan: 0, transpose: 0, brightness: 0.6 },
+    { id: 'bass', name: 'Bass', source: 'bass', channel: 3, program: 33, volume: 0.9, pan: 0, transpose: -12, brightness: 0.5 },
+    { id: 'fx', name: 'FX', source: 'fx', channel: 4, program: 95, volume: 0.7, pan: 0, transpose: 0, brightness: 0.9 },
+    { id: 'drums', name: 'Drums', source: 'drums', channel: 10, program: 0, isPercussion: true, drumKit: 'standard_kit', volume: 1, pan: 0, brightness: 1 },
   ];
   return { engine: 'tone', channels };
 }
