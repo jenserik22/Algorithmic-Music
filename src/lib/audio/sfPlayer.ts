@@ -35,21 +35,47 @@ export class SfPlayer {
     if (this.instrumentCache.has(key)) return this.instrumentCache.get(key);
     const Soundfont = await loadSoundfont();
     if (cfg.isPercussion || cfg.channel === 10 || cfg.source === 'drums') {
-      // percussion kit name for FluidR3
-      const kit = (cfg.drumKit || 'standard_kit') as any;
-      const inst = await Soundfont.instrument(this.ctx!, kit, {
-        soundfont: 'FluidR3_GM',
-        nameToUrl: (name: string, sf: string) => `https://gleitz.github.io/midi-js-soundfonts/${sf}/${name}-mp3.js`,
-      }).catch((_e: any) => null);
+      // Try multiple known FluidR3 kits to avoid 404s
+      const candidates = [
+        (cfg.drumKit as any) || 'room_kit',
+        'room_kit',
+        'power_kit',
+        'electronic_kit',
+        'analog_kit',
+        'jazz_kit',
+        'brush_kit',
+        'orchestra_kit',
+        'sfx_kit',
+        'standard_kit',
+      ];
+      let inst: any = null;
+      for (const name of candidates) {
+        inst = await Soundfont.instrument(this.ctx!, name, {
+          soundfont: 'FluidR3_GM',
+          nameToUrl: (n: string, sf: string) => `https://gleitz.github.io/midi-js-soundfonts/${sf}/${n}-mp3.js`,
+        }).catch(() => null);
+        if (inst) break;
+      }
       if (inst) this.setupChannelNodes(key, cfg, inst);
       this.instrumentCache.set(key, inst);
       return inst;
     }
     const sfName = findSfName(cfg.program) || 'acoustic_grand_piano';
-    const inst = await Soundfont.instrument(this.ctx!, sfName as any, {
+    let inst = await Soundfont.instrument(this.ctx!, sfName as any, {
       soundfont: 'FluidR3_GM',
       nameToUrl: (name: string, sf: string) => `https://gleitz.github.io/midi-js-soundfonts/${sf}/${name}-mp3.js`,
     }).catch((_e: any) => null);
+    if (!inst) {
+      // fallback to a few common ones if a mapping is missing
+      const fallbacks = ['acoustic_grand_piano', 'electric_piano_1', 'pad_2_warm', 'violin'];
+      for (const name of fallbacks) {
+        inst = await Soundfont.instrument(this.ctx!, name as any, {
+          soundfont: 'FluidR3_GM',
+          nameToUrl: (n: string, sf: string) => `https://gleitz.github.io/midi-js-soundfonts/${sf}/${n}-mp3.js`,
+        }).catch(() => null);
+        if (inst) break;
+      }
+    }
     if (inst) this.setupChannelNodes(key, cfg, inst);
     this.instrumentCache.set(key, inst);
     return inst;

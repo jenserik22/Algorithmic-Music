@@ -97,7 +97,7 @@ export function defaultMapping(): MappingState {
     { id: 'chords', name: 'Chords', source: 'chords', channel: 2, program: 89, volume: 0.8, pan: 0, transpose: 0, brightness: 0.6 },
     { id: 'bass', name: 'Bass', source: 'bass', channel: 3, program: 33, volume: 0.9, pan: 0, transpose: -12, brightness: 0.5 },
     { id: 'fx', name: 'FX', source: 'fx', channel: 4, program: 95, volume: 0.7, pan: 0, transpose: 0, brightness: 0.9 },
-    { id: 'drums', name: 'Drums', source: 'drums', channel: 10, program: 0, isPercussion: true, drumKit: 'standard_kit', volume: 1, pan: 0, brightness: 1 },
+    { id: 'drums', name: 'Drums', source: 'drums', channel: 10, program: 0, isPercussion: true, drumKit: 'room_kit', volume: 1, pan: 0, brightness: 1 },
   ];
   return { engine: 'tone', channels };
 }
