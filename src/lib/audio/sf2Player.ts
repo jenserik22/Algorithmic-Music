@@ -16,6 +16,10 @@ export class Sf2Player {
 
   status(): PlayerStatus { return this.status_; }
 
+  // Expose context and output node for visualization
+  getAudioContext(): AudioContext | null { return this.ctx; }
+  getOutputNode(): AudioNode | null { return this.masterComp ?? this.masterGain ?? this.ctx?.destination ?? null; }
+
   private async ensureCtx() {
     if (!this.ctx) this.ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
     if (this.ctx.state !== 'running') {
