@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import type { EngineOutput, NoteEvent } from '@/lib/music/engines/types';
+import { loadMapping } from '@/lib/midi/mapping';
 
 export type PlayerStatus = 'stopped' | 'playing' | 'paused';
 
@@ -189,6 +190,39 @@ export class TonePlayer {
     const startAt = T.seconds + 0.1; // Slightly more buffer
     const endTime = sortedEvents.reduce((m, e) => Math.max(m, e.time + e.duration), 0);
     
+    // === Apply Channels mapping (presence + basic mix) ===
+    const mapping = loadMapping();
+    const bySource = mapping.channels.reduce<Record<string, Array<any>>>((acc, c) => {
+      (acc[c.source] ??= []).push(c);
+      return acc;
+    }, {});
+    const has = (s: string) => (bySource[s]?.length ?? 0) > 0;
+    const avg = (s: string, key: 'volume'|'pan'|'brightness'): number | undefined => {
+      const arr = bySource[s] ?? [];
+      if (!arr.length) return undefined;
+      let sum = 0, n = 0;
+      for (const c of arr) {
+        const v = (c as any)[key];
+        if (typeof v === 'number') { sum += v; n++; }
+      }
+      return n ? sum / n : undefined;
+    };
+    const clamp = (x: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, x));
+
+    // Per-source volumes/pan/brightness (best-effort mapping to Tone nodes)
+    const leadVol = avg('lead', 'volume');
+    if (typeof leadVol === 'number') this.nodes.leadGain.gain.value = clamp(leadVol, 0, 1);
+    const leadBright = avg('lead', 'brightness');
+    if (typeof leadBright === 'number') this.nodes.leadFilter.frequency.value = 500 + clamp(leadBright, 0, 1) * 19500;
+
+    const chordsVol = avg('chords', 'volume');
+    if (typeof chordsVol === 'number') this.nodes.chordsGain.gain.value = clamp(chordsVol, 0, 1);
+    const chordsPan = avg('chords', 'pan');
+    if (typeof chordsPan === 'number') this.nodes.chordsPan.pan.value = clamp(chordsPan, -1, 1);
+
+    const bassVol = avg('bass', 'volume');
+    if (typeof bassVol === 'number') this.nodes.bassGain.gain.value = clamp(bassVol, 0, 1);
+
     // Release all synths before scheduling new notes
     try {
       this.nodes.chords?.releaseAll();
@@ -212,11 +246,11 @@ export class TonePlayer {
     }
 
     // Use sorted events
-    const chordsEv = sortedEvents.filter(e => e.track === 'chords');
-    const leadEv = sortedEvents.filter(e => e.track === 'lead');
-    const bassEv = sortedEvents.filter(e => e.track === 'bass');
-    const drumEv = sortedEvents.filter(e => e.track === 'drums');
-    const fxEv = sortedEvents.filter(e => e.track === 'fx');
+    const chordsEv = has('chords') ? sortedEvents.filter(e => e.track === 'chords') : [];
+    const leadEv = has('lead') ? sortedEvents.filter(e => e.track === 'lead') : [];
+    const bassEv = has('bass') ? sortedEvents.filter(e => e.track === 'bass') : [];
+    const drumEv = has('drums') ? sortedEvents.filter(e => e.track === 'drums') : [];
+    const fxEv = has('fx') ? sortedEvents.filter(e => e.track === 'fx') : [];
 
     // Chords grouped per onset
     for (const group of this.groupChordNotes(chordsEv)) {
