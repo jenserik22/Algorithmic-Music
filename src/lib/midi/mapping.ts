@@ -128,54 +128,55 @@ export function findSfName(program: number): string | undefined {
 export type StylePresetId = 'edm' | 'cinematic' | 'lofi' | 'techno' | 'rock' | 'classic';
 
 export function applyStylePreset(state: MappingState, preset: StylePresetId): MappingState {
-  const base = { ...state };
+  // Rebuild a canonical 5-channel layout (Lead, Chords, Bass, FX, Drums)
+  // so style presets also define the number of channels.
+  const base = defaultMapping();
   const nextCh = base.channels.map((c) => ({ ...c }));
-  const bySource = (s: SourceTrack) => nextCh.find((x) => x.source === s);
-  const set = (s: SourceTrack, patch: Partial<ChannelConfig>) => {
-    const t = bySource(s);
-    if (t) Object.assign(t, patch);
-  };
+
+  const byId = (id: string) => nextCh.find((x) => x.id === id)!;
+
   if (preset === 'edm') {
-    set('lead', { program: 81, brightness: 0.9, pan: 0.1, transpose: 0 });
-    set('chords', { program: 89, brightness: 0.7, pan: -0.1 });
-    set('bass', { program: 39, brightness: 0.6, transpose: -12 });
-    set('fx', { program: 95, brightness: 0.95, pan: 0 });
-    set('drums', { drumKit: 'electronic_kit', isPercussion: true, channel: 10 });
+    Object.assign(byId('lead'), { program: 81, brightness: 0.9, pan: 0.1, transpose: 0 });
+    Object.assign(byId('chords'), { program: 89, brightness: 0.7, pan: -0.1 });
+    Object.assign(byId('bass'), { program: 39, brightness: 0.6, transpose: -12 });
+    Object.assign(byId('fx'), { program: 95, brightness: 0.95, pan: 0 });
+    Object.assign(byId('drums'), { drumKit: 'electronic_kit', isPercussion: true, channel: 10 });
   } else if (preset === 'cinematic') {
-    set('lead', { program: 73, brightness: 0.7, pan: 0 }); // Flute
-    set('chords', { program: 49, brightness: 0.6, pan: -0.05 }); // Slow Strings
-    set('bass', { program: 33, brightness: 0.5, transpose: -12 });
-    set('fx', { program: 88, brightness: 0.6 }); // New Age Pad
-    set('drums', { drumKit: 'standard_kit', isPercussion: true, channel: 10 });
+    Object.assign(byId('lead'), { program: 73, brightness: 0.7, pan: 0 }); // Flute
+    Object.assign(byId('chords'), { program: 49, brightness: 0.6, pan: -0.05 }); // Slow Strings
+    Object.assign(byId('bass'), { program: 33, brightness: 0.5, transpose: -12 });
+    Object.assign(byId('fx'), { program: 88, brightness: 0.6 }); // New Age Pad
+    Object.assign(byId('drums'), { drumKit: 'standard_kit', isPercussion: true, channel: 10 });
   } else if (preset === 'lofi') {
-    set('lead', { program: 4, brightness: 0.6, pan: 0.05 }); // EP1
-    set('chords', { program: 5, brightness: 0.55, pan: -0.05 }); // EP2
-    set('bass', { program: 36, brightness: 0.5, transpose: -12 }); // Fretless
-    set('fx', { program: 90, brightness: 0.5 }); // Poly Synth Pad
-    set('drums', { drumKit: 'jazz_kit', isPercussion: true, channel: 10 });
+    Object.assign(byId('lead'), { program: 4, brightness: 0.6, pan: 0.05 }); // EP1
+    Object.assign(byId('chords'), { program: 5, brightness: 0.55, pan: -0.05 }); // EP2
+    Object.assign(byId('bass'), { program: 36, brightness: 0.5, transpose: -12 }); // Fretless
+    Object.assign(byId('fx'), { program: 90, brightness: 0.5 }); // Poly Synth Pad
+    Object.assign(byId('drums'), { drumKit: 'jazz_kit', isPercussion: true, channel: 10 });
   } else if (preset === 'techno') {
     // Driving saw lead, warm pad chords, synth bass, electronic kit
-    set('lead', { program: 81, brightness: 1.0, pan: 0, transpose: 0 }); // Saw Lead
-    set('chords', { program: 90, brightness: 0.75, pan: -0.05 }); // Poly Synth Pad
-    set('bass', { program: 38, brightness: 0.7, transpose: -12 }); // Synth Bass 1
-    set('fx', { program: 95, brightness: 0.95, pan: 0.05 }); // Sci-Fi FX
-    set('drums', { drumKit: 'electronic_kit', isPercussion: true, channel: 10 });
+    Object.assign(byId('lead'), { program: 81, brightness: 1.0, pan: 0, transpose: 0 }); // Saw Lead
+    Object.assign(byId('chords'), { program: 90, brightness: 0.75, pan: -0.05 }); // Poly Synth Pad
+    Object.assign(byId('bass'), { program: 38, brightness: 0.7, transpose: -12 }); // Synth Bass 1
+    Object.assign(byId('fx'), { program: 95, brightness: 0.95, pan: 0.05 }); // Sci-Fi FX
+    Object.assign(byId('drums'), { drumKit: 'electronic_kit', isPercussion: true, channel: 10 });
   } else if (preset === 'rock') {
     // Distorted guitar lead/chords, picked bass, power kit
-    set('lead', { program: 30, brightness: 0.85, pan: 0.05 }); // Distortion Guitar
-    set('chords', { program: 27, brightness: 0.7, pan: -0.05 }); // Clean Guitar
-    set('bass', { program: 34, brightness: 0.6, transpose: -12 }); // Picked Bass
-    set('fx', { program: 49, brightness: 0.65 }); // Slow Strings for pads
-    set('drums', { drumKit: 'power_kit', isPercussion: true, channel: 10 });
+    Object.assign(byId('lead'), { program: 30, brightness: 0.85, pan: 0.05 }); // Distortion Guitar
+    Object.assign(byId('chords'), { program: 27, brightness: 0.7, pan: -0.05 }); // Clean Guitar
+    Object.assign(byId('bass'), { program: 34, brightness: 0.6, transpose: -12 }); // Picked Bass
+    Object.assign(byId('fx'), { program: 49, brightness: 0.65 }); // Slow Strings for pads
+    Object.assign(byId('drums'), { drumKit: 'power_kit', isPercussion: true, channel: 10 });
   } else if (preset === 'classic') {
     // Classical: flute lead, string ensemble, acoustic bass, standard kit (light)
-    set('lead', { program: 73, brightness: 0.65, pan: 0 }); // Flute
-    set('chords', { program: 48, brightness: 0.6, pan: -0.02 }); // Strings
-    set('bass', { program: 32, brightness: 0.5, transpose: -12 }); // Acoustic Bass
-    set('fx', { program: 60, brightness: 0.55 }); // French Horn as texture
-    set('drums', { drumKit: 'standard_kit', isPercussion: true, channel: 10 });
+    Object.assign(byId('lead'), { program: 73, brightness: 0.65, pan: 0 }); // Flute
+    Object.assign(byId('chords'), { program: 48, brightness: 0.6, pan: -0.02 }); // Strings
+    Object.assign(byId('bass'), { program: 32, brightness: 0.5, transpose: -12 }); // Acoustic Bass
+    Object.assign(byId('fx'), { program: 60, brightness: 0.55 }); // French Horn as texture
+    Object.assign(byId('drums'), { drumKit: 'standard_kit', isPercussion: true, channel: 10 });
   }
-  return { ...base, channels: nextCh };
+
+  return { ...state, channels: nextCh };
 }
 
 // ---- User presets (saved locally) ----
