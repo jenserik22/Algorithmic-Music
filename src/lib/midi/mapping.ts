@@ -20,6 +20,7 @@ export interface MappingState {
 }
 
 const LS_KEY = 'amusic.midi.mapping.v1';
+const LS_PRESETS_KEY = 'amusic.midi.userpresets.v1';
 
 export const GM_PROGRAMS: { program: number; label: string; sf: string }[] = [
   // Pianos
@@ -124,7 +125,7 @@ export function findSfName(program: number): string | undefined {
 }
 
 // ---- Style presets ----
-export type StylePresetId = 'edm' | 'cinematic' | 'lofi';
+export type StylePresetId = 'edm' | 'cinematic' | 'lofi' | 'techno' | 'rock' | 'classic';
 
 export function applyStylePreset(state: MappingState, preset: StylePresetId): MappingState {
   const base = { ...state };
@@ -152,6 +153,81 @@ export function applyStylePreset(state: MappingState, preset: StylePresetId): Ma
     set('bass', { program: 36, brightness: 0.5, transpose: -12 }); // Fretless
     set('fx', { program: 90, brightness: 0.5 }); // Poly Synth Pad
     set('drums', { drumKit: 'jazz_kit', isPercussion: true, channel: 10 });
+  } else if (preset === 'techno') {
+    // Driving saw lead, warm pad chords, synth bass, electronic kit
+    set('lead', { program: 81, brightness: 1.0, pan: 0, transpose: 0 }); // Saw Lead
+    set('chords', { program: 90, brightness: 0.75, pan: -0.05 }); // Poly Synth Pad
+    set('bass', { program: 38, brightness: 0.7, transpose: -12 }); // Synth Bass 1
+    set('fx', { program: 95, brightness: 0.95, pan: 0.05 }); // Sci-Fi FX
+    set('drums', { drumKit: 'electronic_kit', isPercussion: true, channel: 10 });
+  } else if (preset === 'rock') {
+    // Distorted guitar lead/chords, picked bass, power kit
+    set('lead', { program: 30, brightness: 0.85, pan: 0.05 }); // Distortion Guitar
+    set('chords', { program: 27, brightness: 0.7, pan: -0.05 }); // Clean Guitar
+    set('bass', { program: 34, brightness: 0.6, transpose: -12 }); // Picked Bass
+    set('fx', { program: 49, brightness: 0.65 }); // Slow Strings for pads
+    set('drums', { drumKit: 'power_kit', isPercussion: true, channel: 10 });
+  } else if (preset === 'classic') {
+    // Classical: flute lead, string ensemble, acoustic bass, standard kit (light)
+    set('lead', { program: 73, brightness: 0.65, pan: 0 }); // Flute
+    set('chords', { program: 48, brightness: 0.6, pan: -0.02 }); // Strings
+    set('bass', { program: 32, brightness: 0.5, transpose: -12 }); // Acoustic Bass
+    set('fx', { program: 60, brightness: 0.55 }); // French Horn as texture
+    set('drums', { drumKit: 'standard_kit', isPercussion: true, channel: 10 });
   }
   return { ...base, channels: nextCh };
+}
+
+// ---- User presets (saved locally) ----
+export interface UserPreset {
+  id: string; // unique id
+  name: string;
+  channels: ChannelConfig[];
+}
+
+export function loadUserPresets(): UserPreset[] {
+  try {
+    const raw = localStorage.getItem(LS_PRESETS_KEY);
+    if (!raw) return [];
+    const list = JSON.parse(raw) as UserPreset[];
+    if (!Array.isArray(list)) return [];
+    return list;
+  } catch {
+    return [];
+  }
+}
+
+export function saveUserPresets(list: UserPreset[]) {
+  try {
+    localStorage.setItem(LS_PRESETS_KEY, JSON.stringify(list));
+  } catch {
+    // ignore
+  }
+}
+
+export function saveCurrentAsPreset(state: MappingState, name: string): UserPreset {
+  const id = `preset_${Date.now().toString(36)}`;
+  const preset: UserPreset = {
+    id,
+    name: name.trim() || 'Untitled',
+    channels: state.channels.map((c) => ({ ...c })),
+  };
+  const list = loadUserPresets();
+  list.push(preset);
+  saveUserPresets(list);
+  return preset;
+}
+
+export function applyUserPreset(state: MappingState, presetId: string): MappingState {
+  const list = loadUserPresets();
+  const p = list.find((x) => x.id === presetId);
+  if (!p) return state;
+  return { ...state, channels: p.channels.map((c) => ({ ...c })) };
+}
+
+export function deleteUserPreset(presetId: string): UserPreset[] {
+  const list = loadUserPresets();
+  const next = list.filter((x) => x.id !== presetId);
+  saveUserPresets(next);
+  return next;
 }
