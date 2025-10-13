@@ -3,6 +3,7 @@ import type { EngineOutput } from '@/lib/music/engines/types';
 import { WebAudioPlayer } from '@/lib/audio/webAudioPlayer';
 import { TonePlayer } from '@/lib/audio/tonePlayer';
 import { SfPlayer } from '@/lib/audio/sfPlayer';
+import { AnalysisBus } from '@/lib/audio/analysisBus';
 import { loadMapping, saveMapping } from '@/lib/midi/mapping';
 import { ChannelManager } from '@/components/ChannelManager';
 import { PlayIcon, PauseIcon, StopIcon } from '@/components/icons';
@@ -31,6 +32,16 @@ export function PlaybackControls({ output, autoPlayToken, onPlaybackStateChange 
         } else {
           playerRef.current = new TonePlayer();
         }
+        // Register visualizer source
+        try {
+          if (engine === 'tone') {
+            AnalysisBus.clearNative();
+          } else if (engine === 'sf' || engine === 'sf2') {
+            const ctx: AudioContext | null = (playerRef.current as any)?.getAudioContext?.() ?? null;
+            const node: AudioNode | null = (playerRef.current as any)?.getOutputNode?.() ?? null;
+            if (ctx && node) AnalysisBus.registerNative(ctx, node);
+          }
+        } catch { /* ignore */ }
       } catch {
         playerRef.current = new WebAudioPlayer();
       }
@@ -46,6 +57,7 @@ export function PlaybackControls({ output, autoPlayToken, onPlaybackStateChange 
           console.warn('[PlaybackControls] Cleanup error:', error);
         } finally {
           playerRef.current = null;
+          try { AnalysisBus.clearNative(); } catch { /* ignore */ }
         }
       }
     };
@@ -87,6 +99,16 @@ export function PlaybackControls({ output, autoPlayToken, onPlaybackStateChange 
           onPlaybackStateChange?.(false);
         }
       });
+    // After starting playback, ensure AnalysisBus is wired for current engine
+    try {
+      if (engine === 'tone') {
+        AnalysisBus.clearNative();
+      } else if (engine === 'sf' || engine === 'sf2') {
+        const ctx: AudioContext | null = (playerRef.current as any)?.getAudioContext?.() ?? null;
+        const node: AudioNode | null = (playerRef.current as any)?.getOutputNode?.() ?? null;
+        if (ctx && node) AnalysisBus.registerNative(ctx, node);
+      }
+    } catch { /* ignore */ }
   };
   const onPause = () => { 
     playerRef.current?.pause?.(); 

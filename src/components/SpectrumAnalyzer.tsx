@@ -1,5 +1,6 @@
 import React, { useRef, useEffect, useState, useCallback } from 'react';
 import * as Tone from 'tone';
+import { AnalysisBus } from '@/lib/audio/analysisBus';
 
 interface SpectrumAnalyzerProps {
   isPlaying?: boolean;
@@ -20,6 +21,7 @@ export const SpectrumAnalyzer: React.FC<SpectrumAnalyzerProps> = ({
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const fftAnalyzerRef = useRef<Tone.Analyser | null>(null);
   const waveformAnalyzerRef = useRef<Tone.Analyser | null>(null);
+  const nativeAnalyzersRef = useRef<{ ctx: AudioContext; fft: AnalyserNode; waveform: AnalyserNode } | null>(null);
   const animationFrameRef = useRef<number | null>(null);
   
   const [mode, setMode] = useState<VisualizationMode>('bars');
@@ -30,7 +32,7 @@ export const SpectrumAnalyzer: React.FC<SpectrumAnalyzerProps> = ({
   // Detect dark mode
   const isDarkMode = document.documentElement.classList.contains('dark');
 
-  // Initialize Web Audio analyzers ONLY when playing starts
+  // Initialize analyzers ONLY when playing starts
   useEffect(() => {
     if (!isPlaying) return;
     
@@ -38,32 +40,33 @@ export const SpectrumAnalyzer: React.FC<SpectrumAnalyzerProps> = ({
     
     const initializeAnalyzers = async () => {
       try {
-        // Ensure AudioContext is running first
-        if (Tone.getContext().state !== 'running') {
-          await Tone.start();
+        // Prefer native analyzers if a non-Tone engine registered
+        const native = AnalysisBus.getNative();
+        nativeAnalyzersRef.current = native;
+        if (!native) {
+          // Ensure Tone context is running first
+          if (Tone.getContext().state !== 'running') {
+            await Tone.start();
+          }
+          // Clean up existing analyzers
+          if (fftAnalyzerRef.current) {
+            fftAnalyzerRef.current.dispose();
+          }
+          if (waveformAnalyzerRef.current) {
+            waveformAnalyzerRef.current.dispose();
+          }
+          // Create FFT analyzer for bars and circular modes
+          fftAnalyzerRef.current = new Tone.Analyser('fft', 512);
+          fftAnalyzerRef.current.smoothing = smoothing;
+          // Create waveform analyzer for waveform mode
+          waveformAnalyzerRef.current = new Tone.Analyser('waveform', 512);
+          waveformAnalyzerRef.current.smoothing = 0.2; // Some smoothing for cleaner waveform
+          // Better connection method - connect TO the analyzers FROM master
+          Tone.getDestination().connect(fftAnalyzerRef.current);
+          Tone.getDestination().connect(waveformAnalyzerRef.current);
         }
         
-        // Clean up existing analyzers
-        if (fftAnalyzerRef.current) {
-          fftAnalyzerRef.current.dispose();
-        }
-        if (waveformAnalyzerRef.current) {
-          waveformAnalyzerRef.current.dispose();
-        }
-        
-        // Create FFT analyzer for bars and circular modes
-        fftAnalyzerRef.current = new Tone.Analyser('fft', 512);
-        fftAnalyzerRef.current.smoothing = smoothing;
-        
-        // Create waveform analyzer for waveform mode  
-        waveformAnalyzerRef.current = new Tone.Analyser('waveform', 512);
-        waveformAnalyzerRef.current.smoothing = 0.2; // Some smoothing for cleaner waveform
-        
-        // Better connection method - connect TO the analyzers FROM master
-        Tone.getDestination().connect(fftAnalyzerRef.current);
-        Tone.getDestination().connect(waveformAnalyzerRef.current);
-        
-        console.log('[SpectrumAnalyzer] Analyzers initialized');
+        console.log('[SpectrumAnalyzer] Analyzers initialized (native:', !!nativeAnalyzersRef.current, ')');
       } catch (error) {
         console.warn('[SpectrumAnalyzer] Failed to initialize:', error);
       }
@@ -287,33 +290,46 @@ export const SpectrumAnalyzer: React.FC<SpectrumAnalyzerProps> = ({
       const ctx = canvas.getContext('2d');
       if (!ctx) return;
       
-      // Choose the right analyzer for the current mode
-      const currentAnalyzer = mode === 'waveform' ? waveformAnalyzerRef.current : fftAnalyzerRef.current;
-      
-      if (!currentAnalyzer) {
-        // If analyzer isn't ready, show empty visualization
-        const colors = getColorScheme();
-        ctx.fillStyle = colors.background;
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        
-        if (isPlaying) {
-          animationFrameRef.current = requestAnimationFrame(animate);
+      const native = nativeAnalyzersRef.current;
+      if (native) {
+        // Use native analyzers from non-Tone engines
+        if (mode === 'waveform') {
+          const arr = new Float32Array(native.waveform.fftSize);
+          native.waveform.getFloatTimeDomainData(arr);
+          // Normalize to roughly -1..1 if needed
+          for (let i = 0; i < arr.length; i++) {
+            if (arr[i] > -0.1 && arr[i] < 1.1) arr[i] = (arr[i] - 0.5) * 2;
+          }
+          drawWaveform(canvas, ctx, arr);
+        } else {
+          const bins = native.fft.frequencyBinCount;
+          const arr = new Float32Array(bins);
+          native.fft.getFloatFrequencyData(arr); // dB values
+          drawBarSpectrum(canvas, ctx, arr);
+          if (mode === 'circular') drawCircularSpectrum(canvas, ctx, arr);
         }
-        return;
-      }
-      
-      const data = currentAnalyzer.getValue() as Float32Array;
-      
-      switch (mode) {
-        case 'bars':
-          drawBarSpectrum(canvas, ctx, data);
-          break;
-        case 'waveform':
-          drawWaveform(canvas, ctx, data);
-          break;
-        case 'circular':
-          drawCircularSpectrum(canvas, ctx, data);
-          break;
+      } else {
+        // Fallback to Tone analyzers
+        const currentAnalyzer = mode === 'waveform' ? waveformAnalyzerRef.current : fftAnalyzerRef.current;
+        if (!currentAnalyzer) {
+          const colors = getColorScheme();
+          ctx.fillStyle = colors.background;
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+          if (isPlaying) animationFrameRef.current = requestAnimationFrame(animate);
+          return;
+        }
+        const data = currentAnalyzer.getValue() as Float32Array;
+        switch (mode) {
+          case 'bars':
+            drawBarSpectrum(canvas, ctx, data);
+            break;
+          case 'waveform':
+            drawWaveform(canvas, ctx, data);
+            break;
+          case 'circular':
+            drawCircularSpectrum(canvas, ctx, data);
+            break;
+        }
       }
       
       if (isPlaying) {
