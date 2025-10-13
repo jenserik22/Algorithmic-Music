@@ -1,8 +1,26 @@
 import React from 'react';
-import { GM_PROGRAMS, DRUM_KITS, defaultMapping, loadMapping, saveMapping, applyStylePreset, type MappingState, type ChannelConfig, type StylePresetId } from '@/lib/midi/mapping';
+import {
+  GM_PROGRAMS,
+  DRUM_KITS,
+  defaultMapping,
+  loadMapping,
+  saveMapping,
+  applyStylePreset,
+  loadUserPresets,
+  saveCurrentAsPreset,
+  applyUserPreset,
+  deleteUserPreset,
+  type MappingState,
+  type ChannelConfig,
+  type StylePresetId,
+  type UserPreset,
+} from '@/lib/midi/mapping';
 
 export function ChannelManager() {
   const [state, setState] = React.useState<MappingState>(() => loadMapping());
+  const [userPresets, setUserPresets] = React.useState<UserPreset[]>(() => loadUserPresets());
+  const [newPresetName, setNewPresetName] = React.useState<string>('');
+  const [selectedUserPresetId, setSelectedUserPresetId] = React.useState<string>('');
   const isDark = document.documentElement.classList.contains('dark');
 
   const update = (next: MappingState) => {
@@ -65,13 +83,29 @@ export function ChannelManager() {
     update(next);
   };
 
+  const savePreset = () => {
+    const p = saveCurrentAsPreset(state, newPresetName);
+    setUserPresets((prev) => [...prev, p]);
+    setNewPresetName('');
+  };
+
+  const loadPreset = (id: string) => {
+    const next = applyUserPreset(state, id);
+    update(next);
+  };
+
+  const removePreset = (id: string) => {
+    const nextList = deleteUserPreset(id);
+    setUserPresets(nextList);
+  };
+
   const reset = () => update(defaultMapping());
 
   return (
     <div className={`space-y-3 ${isDark ? 'text-gray-200' : 'text-gray-800'}`}>
       <div className="flex items-center justify-between">
         <div />
-        <div className="flex gap-2 items-center">
+        <div className="flex gap-2 items-center flex-wrap justify-end">
           <label className="text-sm">Preset</label>
           <select
             onChange={(e) => applyPreset(e.target.value as StylePresetId)}
@@ -82,7 +116,47 @@ export function ChannelManager() {
             <option value="edm">EDM</option>
             <option value="cinematic">Cinematic</option>
             <option value="lofi">Lo‑fi</option>
+            <option value="techno">Techno</option>
+            <option value="rock">Rock</option>
+            <option value="classic">Classic</option>
           </select>
+          <div className="flex items-center gap-2">
+            <input
+              value={newPresetName}
+              onChange={(e) => setNewPresetName(e.target.value)}
+              placeholder="My preset name"
+              className={`px-2 py-1 rounded border text-sm ${isDark ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-300'}`}
+            />
+            <button onClick={savePreset} className="px-2 py-1 text-xs rounded bg-green-600 text-white">Save Preset</button>
+          </div>
+          {userPresets.length > 0 && (
+            <div className="flex items-center gap-2">
+              <label className="text-sm">My Presets</label>
+              <select
+                value={selectedUserPresetId}
+                onChange={(e) => setSelectedUserPresetId(e.target.value)}
+                className={`px-2 py-1 rounded border text-sm ${isDark ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-300'}`}
+              >
+                <option value="">Select…</option>
+                {userPresets.map((p) => (
+                  <option key={p.id} value={p.id}>{p.name}</option>
+                ))}
+              </select>
+              <button
+                onClick={() => selectedUserPresetId && loadPreset(selectedUserPresetId)}
+                disabled={!selectedUserPresetId}
+                className={`px-2 py-1 text-xs rounded ${isDark ? 'bg-blue-700 text-white' : 'bg-blue-600 text-white'} disabled:opacity-50`}
+              >Load</button>
+              <button
+                onClick={() => {
+                  if (!selectedUserPresetId) return;
+                  removePreset(selectedUserPresetId);
+                  setSelectedUserPresetId('');
+                }}
+                className={`px-2 py-1 text-xs rounded ${isDark ? 'bg-gray-700 text-gray-200' : 'bg-gray-200 text-gray-800'}`}
+              >Delete</button>
+            </div>
+          )}
           <button onClick={addChannel} className="px-2 py-1 text-xs rounded bg-blue-600 text-white">Add Channel</button>
           <button onClick={reset} className={`px-2 py-1 text-xs rounded ${isDark ? 'bg-gray-700 text-gray-200' : 'bg-gray-200 text-gray-800'}`}>Reset</button>
         </div>
