@@ -2,6 +2,10 @@
 import type { EngineOutput, NoteEvent } from '@/lib/music/engines/types';
 import { loadMapping, type ChannelConfig } from '@/lib/midi/mapping';
 import { WorkletSynthesizer } from 'spessasynth_lib';
+// Vite: import processor file as URL so AudioWorklet can load it
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore
+import spessaWorkletUrl from 'spessasynth_lib/dist/spessasynth_processor.min.js?url';
 
 export type PlayerStatus = 'stopped' | 'playing' | 'paused';
 
@@ -83,9 +87,19 @@ export class Sf2Player {
     await this.ensureCtx();
     if (this.synth) return;
     const ctx = this.ctx!;
+    // Ensure the AudioWorklet processor is registered before creating the synth
+    try {
+      // Some browsers require the context to be resumed before addModule
+      if (ctx.state !== 'running') { try { await ctx.resume(); } catch { /* ignore */ } }
+      await ctx.audioWorklet.addModule(spessaWorkletUrl);
+    } catch (err) {
+      console.warn('[Sf2Player] Failed to load spessasynth worklet module:', err);
+      // Re-throw so the caller fallback can trigger
+      throw err;
+    }
     this.setupChannelNodes();
     // Create synth and connect its individual outputs to our channel chains
-    this.synth = new WorkletSynthesizer(ctx, { oneOutput: false, initializeChorusProcessor: false, initializeReverbProcessor: true, enableEventSystem: false });
+    this.synth = new WorkletSynthesizer(ctx, { oneOutput: false, initializeChorusProcessor: false, initializeReverbProcessor: false, enableEventSystem: false });
     await this.synth.isReady;
     const inputs: AudioNode[] = [];
     for (let i = 0; i < 16; i++) inputs.push(this.channelNodes[i]!.filter);
@@ -106,6 +120,14 @@ export class Sf2Player {
     const ctx = this.ctx!;
     const synth = this.synth!;
     this.stop();
+
+    // Recreate channel node graph if it was cleared by stop()
+    if (!this.channelNodes[0]) {
+      this.setupChannelNodes();
+      const inputs: AudioNode[] = [];
+      for (let i = 0; i < 16; i++) inputs.push(this.channelNodes[i]!.filter);
+      try { this.synth!.connectIndividualOutputs(inputs); } catch { /* ignore */ }
+    }
 
     const mapping = loadMapping();
 

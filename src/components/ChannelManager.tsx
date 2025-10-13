@@ -70,17 +70,7 @@ export function ChannelManager() {
   return (
     <div className={`space-y-3 ${isDark ? 'text-gray-200' : 'text-gray-800'}`}>
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <label className="text-sm">Engine</label>
-          <select
-            value={state.engine}
-            onChange={(e) => update({ ...state, engine: e.target.value as any })}
-            className={`px-2 py-1 rounded border text-sm ${isDark ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-300'}`}
-          >
-            <option value="tone">Tone Synth</option>
-            <option value="sf">MIDI (SoundFont)</option>
-          </select>
-        </div>
+        <div />
         <div className="flex gap-2 items-center">
           <label className="text-sm">Preset</label>
           <select
