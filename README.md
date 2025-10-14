@@ -1,10 +1,18 @@
 # 🎵 Algorithmic Music Generator
 
-A sophisticated web-based algorithmic music composition platform featuring 10 unique generative algorithms, real-time audio synthesis, professional exports, and a modern dark-mode interface.
+A web-based algorithmic composition platform featuring 10 generative engines, multiple playback backends (Tone, SoundFont, SF2/WASM), real-time visualization, channel mapping with presets, and professional exports.
 
 **Built with:** React + TypeScript + Vite + Tone.js + Tailwind CSS
 
 ---
+
+## 🔄 Important updates (2025-10)
+- New playback engines: SoundFont (SF) and SF2 (WASM spessasynth with AudioWorklet)
+- Visualizer now works with SF/SF2 via a shared AnalysisBus (native AnalyserNode hookup)
+- Channel Manager: canonical 5-channel layout (Lead, Chords, Bass, FX, Drums), per-channel mix (volume, pan, brightness, transpose)
+- Presets: built-ins (Techno, Rock, Classic, plus EDM/Cinematic/Lo‑fi) and user-defined presets (save/load/delete via localStorage)
+- Tone engine aligned to Channels mapping: only schedules present sources; applies per-source mix
+
 
 ## ✨ Features
 
