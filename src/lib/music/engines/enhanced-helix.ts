@@ -286,12 +286,69 @@ export const EnhancedHelixEngine: Engine = {
     const roll = (p: number) => rand() < p;
     
     // Enhanced humanization
-    const humanizeTime = (t: number) => Math.max(0, t + (rand() - 0.5) * 0.02 * variation);
-    const humanizeVelocity = (v: number) => Math.max(0.1, Math.min(1, v + (rand() - 0.5) * 0.2 * variation));
+    const extraTimeHumanize = Math.max(0, Math.min(1, params.humanizeTime ?? 0));
+    const extraVelHumanize = Math.max(0, Math.min(1, params.humanizeVel ?? 0));
+    const humanizeTime = (t: number) => {
+      // Preserve baseline when humanizeTime is undefined (same amplitude as before)
+      const base = (rand() - 0.5) * 0.02 * variation;
+      const extra = extraTimeHumanize > 0 ? (rand() - 0.5) * 0.02 * extraTimeHumanize : 0;
+      return Math.max(0, t + base + extra);
+    };
+    const humanizeVelocity = (v: number) => {
+      const base = (rand() - 0.5) * 0.2 * variation;
+      const extra = extraVelHumanize > 0 ? (rand() - 0.5) * 0.2 * extraVelHumanize : 0;
+      return Math.max(0.1, Math.min(1, v + base + extra));
+    };
     const applySwing = (time: number, swing: number) => {
       const beatPos = (time % beat) / (beat / 4); // Position within beat (0-4 sixteenths)
       const isOffbeat = Math.floor(beatPos) % 2 === 1;
       return isOffbeat ? time + swing * sixteenth * 0.3 : time;
+    };
+
+    // Groove templates (default neutral when not provided)
+    const grooveTemplate = params.grooveTemplate ?? 'straight';
+    const grooveOffset = (pos16: number, track: NoteEvent['track']): number => {
+      if (!params.grooveTemplate) return 0; // keep baseline if unset
+      const r = Math.max(0, Math.min(1, extraTimeHumanize || 1));
+      switch (grooveTemplate) {
+        case 'shuffle':
+          // Delay odd 16ths
+          return (pos16 % 2 === 1 ? 0.35 * r : 0) * sixteenth;
+        case 'mpc62':
+          // Late 8th offbeats, slight late 16th pickups
+          if (pos16 % 4 === 2) return 0.24 * r * sixteenth;
+          if (pos16 % 4 === 3) return 0.08 * r * sixteenth;
+          return 0;
+        case 'funk':
+          // Slightly early hats/snare on 2 and 4; others slightly late
+          if (track === 'drums') {
+            if (pos16 % 8 === 4) return -0.08 * r * sixteenth; // beat 2 & 4
+            if (pos16 % 2 === 1) return 0.06 * r * sixteenth;  // late off 16ths
+          }
+          return 0;
+        case 'straight':
+        default:
+          return 0;
+      }
+    };
+    // Phase 1 is considered active only when new humanization features are explicitly used
+    const isPhase1Active = Boolean(
+      params.grooveTemplate ||
+      params.humanizeTime ||
+      params.humanizeVel ||
+      params.leadChordToneBias ||
+      params.accentMapIntensity ||
+      params.bassAnticipation
+    );
+    const finalizeTime = (t: number, pos16: number, swing: number, track: NoteEvent['track']): number => {
+      // Baseline (Phase 0):
+      // - lead/drums: humanizeTime + swing
+      // - chords/bass/fx: humanizeTime only (no swing)
+      // Phase 1 (when active): add groove offsets before swing for lead/drums
+      const base = humanizeTime(t);
+      const withGroove = isPhase1Active ? base + grooveOffset(pos16, track) : base;
+      const needsSwing = track === 'lead' || track === 'drums';
+      return needsSwing ? applySwing(withGroove, swing) : withGroove;
     };
 
     const events: NoteEvent[] = [];
@@ -325,25 +382,25 @@ export const EnhancedHelixEngine: Engine = {
       // Generate events for this section based on included instruments
       if (section.instruments.includes('lead')) {
         generateLeadLine(events, currentTime, sectionDuration, section, config, leadMotif, {
-          rand, roll, humanizeTime, humanizeVelocity, applySwing, scalePitch, beat, sixteenth, choose
+          rand, roll, humanizeTime, humanizeVelocity, applySwing, scalePitch, beat, sixteenth, choose, finalizeTime, params
         });
       }
       
       if (section.instruments.includes('chords')) {
         generateChordProgression(events, currentTime, sectionDuration, section, config, {
-          rand, roll, humanizeTime, humanizeVelocity, scalePitch, beat, rootC4, scale, choose
+          rand, roll, humanizeTime, humanizeVelocity, scalePitch, beat, rootC4, scale, choose, finalizeTime, params
         });
       }
       
       if (section.instruments.includes('bass')) {
         generateBassLine(events, currentTime, sectionDuration, section, config, {
-          rand, roll, humanizeTime, humanizeVelocity, scalePitch, beat, sixteenth, choose
+          rand, roll, humanizeTime, humanizeVelocity, scalePitch, beat, sixteenth, choose, finalizeTime, params
         });
       }
       
       if (section.instruments.includes('drums')) {
         generateDrumPattern(events, currentTime, sectionDuration, section, config, {
-          rand, roll, humanizeTime, humanizeVelocity, applySwing, beat, sixteenth
+          rand, roll, humanizeTime, humanizeVelocity, applySwing, beat, sixteenth, choose, finalizeTime, params
         });
       }
       
@@ -403,7 +460,14 @@ export const EnhancedHelixEngine: Engine = {
         variation: params.variation,
         swing: config.rhythmPattern.swing,
         lfos: makeEnhancedLfos(params),
-        versionTag: 'v2-sortfix',
+        versionTag: (
+          params.grooveTemplate ||
+          params.humanizeTime ||
+          params.humanizeVel ||
+          params.leadChordToneBias ||
+          params.accentMapIntensity ||
+          params.bassAnticipation
+        ) ? 'v2-phase1' : 'v2-sortfix',
       },
     };
     try {
@@ -440,7 +504,7 @@ function generateLeadLine(
   motif: number[],
   utils: any
 ) {
-  const { rand, roll, humanizeTime, humanizeVelocity, applySwing, scalePitch, beat, sixteenth, choose } = utils;
+  const { rand, roll, humanizeTime, humanizeVelocity, applySwing, scalePitch, beat, sixteenth, choose, finalizeTime, params } = utils;
   const noteCount = Math.floor(duration / sixteenth);
 
   // Call and response structure
@@ -465,8 +529,10 @@ function generateLeadLine(
     
     // Density-based note triggering with musical phrasing
     const phrasePosition = (i % 16) / 16; // Position in 4/4 bar
-    const isDownbeat = i % 16 === 0;
+    const pos16 = i % 16;
+    const isDownbeat = pos16 === 0;
     const isOffbeat = i % 8 === 4;
+    const isStrongBeat = pos16 === 0 || pos16 === 8; // beats 1 and 3
     
     let triggerProbability = section.density * section.energy;
     if (isDownbeat) triggerProbability *= 1.5;
@@ -480,12 +546,23 @@ function generateLeadLine(
         degree = (degree + contour(i) + 7) % 7;
       }
 
-      // Harmonic cohesion
-      if (isDownbeat && roll(0.5)) {
-        const barPosition = Math.floor(i / 16);
-        const progressionIndex = Math.floor(barPosition / 2) % config.chordProgression.length;
-        const chordDef = config.chordProgression[progressionIndex];
+      // Harmonic cohesion and chord-tone targeting
+      const barPosition = Math.floor(i / 16);
+      const progressionIndex = Math.floor(barPosition / 2) % config.chordProgression.length;
+      const chordDef = config.chordProgression[progressionIndex];
+      // Phase 0 default: snap to chord root on downbeats with 50% chance.
+      // Preserve baseline by default; allow disabling only if explicitly set to false.
+      if ((params?.enableLeadDownbeatChordRoot ?? true) && isDownbeat && roll(0.5)) {
         degree = chordDef.degree;
+      }
+      const chordBias = Math.max(0, Math.min(1, params?.leadChordToneBias ?? 0));
+      if (chordBias > 0 && isStrongBeat && roll(chordBias)) {
+        const chordToneDegrees = [chordDef.degree, (chordDef.degree + 2) % 7, (chordDef.degree + 4) % 7];
+        degree = choose(chordToneDegrees);
+      } else if (chordBias > 0 && !isStrongBeat && roll(chordBias * 0.3)) {
+        // Passing/neighbor tones near chord
+        degree = (chordDef.degree + choose([-1, 1])) % 7;
+        if (degree < 0) degree += 7;
       }
 
       const octave = 1 + Math.floor(rand() * 2); // Vary octave
@@ -496,7 +573,7 @@ function generateLeadLine(
       const noteDuration = choose(durationChoices);
       
       const velocity = humanizeVelocity(0.6 + section.energy * 0.3);
-      const finalTime = applySwing(humanizeTime(time), config.rhythmPattern.swing);
+      const finalTime = finalizeTime(time, pos16, config.rhythmPattern.swing, 'lead');
       
       events.push({
         time: finalTime,
@@ -524,7 +601,7 @@ function generateChordProgression(
   config: EnhancedSongConfig,
   utils: any
 ) {
-  const { rand, roll, humanizeTime, humanizeVelocity, scalePitch, beat, rootC4, scale, choose } = utils;
+  const { rand, roll, humanizeTime, humanizeVelocity, scalePitch, beat, rootC4, scale, choose, finalizeTime, params } = utils;
   const chordChanges = Math.floor(duration / beat); // One chord per beat potentially
   
   for (let i = 0; i < chordChanges; i += 2) { // Change chords every 2 beats
@@ -534,8 +611,8 @@ function generateChordProgression(
     const progressionIndex = Math.floor((i / 2) % config.chordProgression.length);
     let chordDef = config.chordProgression[progressionIndex];
 
-    // Probabilistically apply chord substitution
-    if (roll(0.15) && CHORD_SUBSTITUTIONS[chordDef.degree]) {
+    // Probabilistically apply chord substitution (Phase 0 default enabled)
+    if ((params?.enableChordSubstitutions ?? true) && roll(0.15) && CHORD_SUBSTITUTIONS[chordDef.degree]) {
       const substitutions = CHORD_SUBSTITUTIONS[chordDef.degree];
       chordDef = choose(substitutions);
     }
@@ -559,7 +636,8 @@ function generateChordProgression(
         const noteDuration = beat * (rhythmPattern.length === 1 ? 2 : 1);
         
         events.push({
-          time: humanizeTime(chordTime),
+          // Baseline: chords do not get swing
+          time: finalizeTime(chordTime, Math.floor((chordTime / (beat / 4)) % 16), config.rhythmPattern.swing, 'chords'),
           pitch: clampedPitch,
           duration: noteDuration,
           velocity,
@@ -578,7 +656,7 @@ function generateBassLine(
   config: EnhancedSongConfig,
   utils: any
 ) {
-  const { rand, roll, humanizeTime, humanizeVelocity, scalePitch, beat, sixteenth, choose } = utils;
+  const { rand, roll, humanizeTime, humanizeVelocity, scalePitch, beat, sixteenth, choose, finalizeTime, params } = utils;
   const noteCount = Math.floor(duration / sixteenth);
   
   // Bass follows chord progression root notes
@@ -594,8 +672,8 @@ function generateBassLine(
     if (isKick) triggerProbability += 0.4;
     if (isImportantBeat) triggerProbability += 0.3;
 
-    // Rhythmic interplay
-    if (roll(0.1)) {
+    // Rhythmic interplay (Phase 0 default enabled)
+    if ((params?.enableBassLeadInterplay ?? true) && roll(0.1)) {
         const leadEvent = events.find(e => e.track === 'lead' && Math.abs(e.time - time) < sixteenth / 2);
         if (leadEvent) {
             triggerProbability = 1;
@@ -635,7 +713,8 @@ function generateBassLine(
       const noteDuration = sixteenth * (roll(0.3) ? 4 : 2); // Vary note lengths
       
       events.push({
-        time: humanizeTime(time),
+        // Baseline: bass does not get swing
+        time: finalizeTime(time, beatPosition, config.rhythmPattern.swing, 'bass'),
         pitch,
         duration: noteDuration,
         velocity,
@@ -652,10 +731,29 @@ function generateBassLine(
           const passingNoteDegree = rootDegree + Math.sign(degreeDiff);
           const passingNotePitch = clampPitch(scalePitch(passingNoteDegree, -1), config.register.bass[0], config.register.bass[1]);
           events.push({
-            time: humanizeTime(time + sixteenth * 0.75),
+            // Baseline: bass does not get swing
+            time: finalizeTime(time + sixteenth * 0.75, (beatPosition + 0.75) % 16, config.rhythmPattern.swing, 'bass'),
             pitch: passingNotePitch,
             duration: sixteenth * 0.25,
             velocity: humanizeVelocity(0.5 + section.energy * 0.2),
+            track: 'bass',
+          });
+        }
+      }
+
+      // Optional anticipation on & of 4 into next bar
+      const anticip = Math.max(0, Math.min(1, params?.bassAnticipation ?? 0));
+      if (anticip > 0 && beatPosition === 15 && roll(anticip)) {
+        const nextRootDegree = config.chordProgression[Math.floor((barPosition + 1) / 2) % config.chordProgression.length].degree;
+        const anticipPitch = clampPitch(scalePitch(nextRootDegree, -1), config.register.bass[0], config.register.bass[1]);
+        const anticipTime = time - sixteenth * 0.5;
+        if (anticipTime >= startTime) {
+          events.push({
+            // Baseline: bass does not get swing
+            time: finalizeTime(anticipTime, 15, config.rhythmPattern.swing, 'bass'),
+            pitch: anticipPitch,
+            duration: sixteenth * 0.5,
+            velocity: humanizeVelocity(0.55 + section.energy * 0.2),
             track: 'bass',
           });
         }
@@ -672,7 +770,7 @@ function generateDrumPattern(
   config: EnhancedSongConfig,
   utils: any
 ) {
-  const { rand, roll, humanizeTime, humanizeVelocity, applySwing, beat, sixteenth, choose } = utils;
+  const { rand, roll, humanizeTime, humanizeVelocity, applySwing, beat, sixteenth, choose, finalizeTime, params } = utils;
   const pattern = config.rhythmPattern;
   const bars = Math.floor(duration / (4 * beat));
 
@@ -697,7 +795,7 @@ function generateDrumPattern(
         const velocity = humanizeVelocity(0.5 + (pos / 16) * 0.3); // Build velocity
         
         events.push({
-          time: applySwing(humanizeTime(time), pattern.swing),
+          time: finalizeTime(time, pos, pattern.swing, 'drums'),
           pitch,
           duration: sixteenth * 0.8,
           velocity,
@@ -712,7 +810,7 @@ function generateDrumPattern(
         // Probabilistic kick
         if (pattern.kick.includes(i) && roll(0.9)) {
           events.push({
-            time: humanizeTime(time),
+            time: finalizeTime(time, i, pattern.swing, 'drums'),
             pitch: 36, // Kick
             duration: sixteenth * 2,
             velocity: humanizeVelocity(0.8 + section.energy * 0.15),
@@ -723,7 +821,7 @@ function generateDrumPattern(
         // Probabilistic snare
         if (pattern.snare.includes(i) && roll(0.9)) {
           events.push({
-            time: applySwing(humanizeTime(time), pattern.swing),
+            time: finalizeTime(time, i, pattern.swing, 'drums'),
             pitch: 38, // Snare
             duration: sixteenth * 1.5,
             velocity: humanizeVelocity(0.7 + section.energy * 0.2),
@@ -734,11 +832,18 @@ function generateDrumPattern(
         // Probabilistic hi-hats
         if (pattern.hats.includes(i) && roll(0.8)) {
           const isAccent = i % 4 === 0;
+          let velBase = (isAccent ? 0.6 : 0.4) + section.energy * 0.1;
+          const accent = Math.max(0, Math.min(1, params?.accentMapIntensity ?? 0));
+          if (accent > 0) {
+            // Simple accent map: boost 0,4,8,12; lighten 2,6,10,14
+            if ([0,4,8,12].includes(i)) velBase += 0.15 * accent;
+            if ([2,6,10,14].includes(i)) velBase -= 0.08 * accent;
+          }
           events.push({
-            time: applySwing(humanizeTime(time), pattern.swing),
+            time: finalizeTime(time, i, pattern.swing, 'drums'),
             pitch: 42, // Hi-hat
             duration: sixteenth * 0.5,
-            velocity: humanizeVelocity((isAccent ? 0.6 : 0.4) + section.energy * 0.1),
+            velocity: humanizeVelocity(velBase),
             track: 'drums',
           });
         }
@@ -746,7 +851,7 @@ function generateDrumPattern(
         // Probabilistic ghost notes
         if (pattern.ghostNotes.includes(i) && roll(section.energy * 0.5)) {
           events.push({
-            time: applySwing(humanizeTime(time), pattern.swing),
+            time: finalizeTime(time, i, pattern.swing, 'drums'),
             pitch: 38, // Snare
             duration: sixteenth * 0.3,
             velocity: humanizeVelocity(0.2 + section.energy * 0.1),

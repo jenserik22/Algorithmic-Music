@@ -15,6 +15,17 @@ export interface GenerationParams {
   complexityLevel?: Complexity;
   motion?: number; // 0..1 LFO depth
   brightness?: number; // 0..1 tonal brightness macro
+  // Phase 1 optional flags (default neutral)
+  grooveTemplate?: 'straight' | 'shuffle' | 'mpc62' | 'funk';
+  humanizeTime?: number; // 0..1 additional correlated timing humanization
+  humanizeVel?: number; // 0..1 additional velocity humanization
+  leadChordToneBias?: number; // 0..1 probability bias for lead to pick chord tones on strong beats
+  accentMapIntensity?: number; // 0..1 drum accent/ghost map intensity
+  bassAnticipation?: number; // 0..1 likelihood of & of 4 anticipations
+  // Phase 1 gating switches to preserve baseline determinism when flags are off
+  enableChordSubstitutions?: boolean; // gate harmonic substitutions in chords
+  enableBassLeadInterplay?: boolean;  // gate bass reacting to nearby lead notes
+  enableLeadDownbeatChordRoot?: boolean; // gate lead snapping to chord root on downbeats
 }
 
 export interface NoteEvent {
@@ -34,6 +45,7 @@ export interface EngineOutput {
     style?: string;
     variation?: number;
     lfos?: LfoSpec[];
+    versionTag?: string;
   };
 }
 

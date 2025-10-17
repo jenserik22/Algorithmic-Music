@@ -43,6 +43,10 @@ Log
 - Enforced duration clamp to never exceed requested total duration; added engine versionTag `v2-sortfix`
 - All unit tests pass; UI tests have pre-existing failures and are unchanged
 
-## [2025‑10‑17] PHASE 1 START (pending)
-- Implement quick wins guarded by flags
-- Update snapshots and metrics
+## [2025‑10‑17] PHASE 1 START (in progress)
+- Added optional flags to GenerationParams: grooveTemplate, humanizeTime/Vel, leadChordToneBias, accentMapIntensity, bassAnticipation (default neutral)
+- Implemented lead chord‑tone targeting on strong beats (flagged)
+- Implemented groove templates + correlated microtiming per track (flagged)
+- Implemented drum accent map for hats (flagged)
+- Added Phase 1 unit test: chord‑tone rate improves when bias=1
+- Baselines unaffected (flags off)
