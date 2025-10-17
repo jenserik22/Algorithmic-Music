@@ -50,3 +50,6 @@ Log
 - Implemented drum accent map for hats (flagged)
 - Added Phase 1 unit test: chord‑tone rate improves when bias=1
 - Baselines unaffected (flags off)
+ - Added flags: chordVoiceLeadingBias, leadMaxLeapSemitones, spaceAllocatorMinGapSecs (flagged)
+ - Implemented: chord inversion selection biased for minimal movement; lead leap limiting via octave folding; per‑track space allocator (min gap)
+ - Extended Phase 1 tests: voice‑leading does not regress (≤ tol), lead leaps constrained, per‑track overlaps reduced when enabled

@@ -22,6 +22,10 @@ export interface GenerationParams {
   leadChordToneBias?: number; // 0..1 probability bias for lead to pick chord tones on strong beats
   accentMapIntensity?: number; // 0..1 drum accent/ghost map intensity
   bassAnticipation?: number; // 0..1 likelihood of & of 4 anticipations
+  // Phase 1 voice-leading and spacing
+  chordVoiceLeadingBias?: number; // 0..1 prefer chord inversions with minimal movement
+  leadMaxLeapSemitones?: number; // limit melodic leaps via octave folding (e.g., 7, 9, 12)
+  spaceAllocatorMinGapSecs?: number; // per-track minimum gap to avoid overlaps
   // Phase 1 gating switches to preserve baseline determinism when flags are off
   enableChordSubstitutions?: boolean; // gate harmonic substitutions in chords
   enableBassLeadInterplay?: boolean;  // gate bass reacting to nearby lead notes

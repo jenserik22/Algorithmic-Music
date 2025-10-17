@@ -338,7 +338,10 @@ export const EnhancedHelixEngine: Engine = {
       params.humanizeVel ||
       params.leadChordToneBias ||
       params.accentMapIntensity ||
-      params.bassAnticipation
+      params.bassAnticipation ||
+      params.chordVoiceLeadingBias ||
+      params.leadMaxLeapSemitones ||
+      params.spaceAllocatorMinGapSecs
     );
     const finalizeTime = (t: number, pos16: number, swing: number, track: NoteEvent['track']): number => {
       // Baseline (Phase 0):
@@ -442,6 +445,43 @@ export const EnhancedHelixEngine: Engine = {
       }
     }
 
+    // Optional Phase 1: space allocator (per-track minimal gap / non-overlap)
+    const minGap = Math.max(0, params.spaceAllocatorMinGapSecs ?? 0);
+    if (minGap > 0) {
+      const byTrack = new Map<string, NoteEvent[]>();
+      for (const e of events) {
+        const t = e.track ?? 'unknown';
+        if (!byTrack.has(t)) byTrack.set(t, []);
+        byTrack.get(t)!.push(e);
+      }
+      for (const [t, arr] of byTrack) {
+        arr.sort((a, b) => a.time - b.time);
+        let curEnd = -Infinity;
+        for (const e of arr) {
+          if (e.time < curEnd + minGap) {
+            const shift = (curEnd + minGap) - e.time;
+            e.time += shift;
+          }
+          curEnd = e.time + (e.duration ?? 0);
+        }
+      }
+      // Re-sort after adjustments and enforce non-decreasing times
+      events.sort((a, b) => {
+        const dt = a.time - b.time;
+        if (dt !== 0) return dt;
+        const dp = (a.pitch ?? 0) - (b.pitch ?? 0);
+        if (dp !== 0) return dp;
+        const ta = a.track ?? '';
+        const tb = b.track ?? '';
+        return ta.localeCompare(tb);
+      });
+      for (let i = 1; i < events.length; i++) {
+        if (events[i].time < events[i - 1].time) {
+          events[i].time = events[i - 1].time;
+        }
+      }
+    }
+
     // Clamp durations to not exceed requested total duration
     const totalSecs = params.durationSecs;
     for (const e of events) {
@@ -466,7 +506,10 @@ export const EnhancedHelixEngine: Engine = {
           params.humanizeVel ||
           params.leadChordToneBias ||
           params.accentMapIntensity ||
-          params.bassAnticipation
+          params.bassAnticipation ||
+          params.chordVoiceLeadingBias ||
+          params.leadMaxLeapSemitones ||
+          params.spaceAllocatorMinGapSecs
         ) ? 'v2-phase1' : 'v2-sortfix',
       },
     };
@@ -506,6 +549,7 @@ function generateLeadLine(
 ) {
   const { rand, roll, humanizeTime, humanizeVelocity, applySwing, scalePitch, beat, sixteenth, choose, finalizeTime, params } = utils;
   const noteCount = Math.floor(duration / sixteenth);
+  let lastLeadPitch: number | undefined;
 
   // Call and response structure
   const call = motif.slice(0, motif.length / 2);
@@ -566,7 +610,21 @@ function generateLeadLine(
       }
 
       const octave = 1 + Math.floor(rand() * 2); // Vary octave
-      const pitch = clampPitch(scalePitch(degree, octave), config.register.lead[0], config.register.lead[1]);
+      let pitch = clampPitch(scalePitch(degree, octave), config.register.lead[0], config.register.lead[1]);
+      // Optional Phase 1: limit melodic leaps via octave folding
+      const maxLeap = Math.max(0, params?.leadMaxLeapSemitones ?? 0);
+      if (maxLeap > 0 && lastLeadPitch != null) {
+        // Fold by octaves towards previous pitch until within maxLeap or register bounds
+        let tries = 0;
+        while (Math.abs(pitch - lastLeadPitch) > maxLeap && tries < 4) {
+          if (pitch > lastLeadPitch) pitch -= 12; else pitch += 12;
+          // Keep within register; if out of bounds, break
+          if (pitch < config.register.lead[0] || pitch > config.register.lead[1]) break;
+          tries++;
+        }
+        // Final clamp just in case
+        pitch = clampPitch(pitch, config.register.lead[0], config.register.lead[1]);
+      }
       
       // Musical note durations
       const durationChoices = [sixteenth, sixteenth * 2, sixteenth * 3, sixteenth * 4];
@@ -575,13 +633,15 @@ function generateLeadLine(
       const velocity = humanizeVelocity(0.6 + section.energy * 0.3);
       const finalTime = finalizeTime(time, pos16, config.rhythmPattern.swing, 'lead');
       
-      events.push({
+      const ev = {
         time: finalTime,
         pitch,
         duration: noteDuration,
         velocity,
-        track: 'lead',
-      });
+        track: 'lead' as const,
+      };
+      events.push(ev);
+      lastLeadPitch = ev.pitch;
     }
   }
 }
@@ -603,6 +663,7 @@ function generateChordProgression(
 ) {
   const { rand, roll, humanizeTime, humanizeVelocity, scalePitch, beat, rootC4, scale, choose, finalizeTime, params } = utils;
   const chordChanges = Math.floor(duration / beat); // One chord per beat potentially
+  let lastChordPitches: number[] | undefined;
   
   for (let i = 0; i < chordChanges; i += 2) { // Change chords every 2 beats
     const time = startTime + i * beat;
@@ -619,9 +680,35 @@ function generateChordProgression(
     
     const chordRoot = rootC4 + scale[chordDef.degree];
     
-    // Randomly choose an inversion
-    const inversion = roll(0.2) ? choose([0, 1, 2]) : 0;
-    const chordNotes = getChordNotes(chordRoot, chordDef.quality, inversion);
+    // Choose inversion; optionally bias for minimal movement from previous chord
+    const vlBias = Math.max(0, Math.min(1, params?.chordVoiceLeadingBias ?? 0));
+    let inversion = roll(0.2) ? choose([0, 1, 2]) : 0;
+    let chordNotes = getChordNotes(chordRoot, chordDef.quality, inversion);
+    if (vlBias > 0 && lastChordPitches && lastChordPitches.length > 0) {
+      const candidates = [0, 1, 2].map(inv => {
+        const notes = getChordNotes(chordRoot, chordDef.quality, inv).map(n => clampPitch(n, config.register.chords[0], config.register.chords[1]));
+        // Compute greedy nearest movement cost
+        const prev = lastChordPitches.slice().sort((a, b) => a - b);
+        const cur = notes.slice().sort((a, b) => a - b);
+        const used = new Set<number>();
+        let cost = 0;
+        for (const p of prev) {
+          let bestIdx = -1; let bestDist = Infinity;
+          for (let j = 0; j < cur.length; j++) {
+            if (used.has(j)) continue;
+            const d = Math.abs(cur[j] - p);
+            if (d < bestDist) { bestDist = d; bestIdx = j; }
+          }
+          if (bestIdx >= 0) { used.add(bestIdx); cost += bestDist; }
+        }
+        const voices = Math.min(prev.length, cur.length) || 1;
+        return { inv, notes, cost: cost / voices };
+      });
+      candidates.sort((a, b) => a.cost - b.cost);
+      const chosen = candidates[0];
+      inversion = chosen.inv;
+      chordNotes = chosen.notes;
+    }
     
     // Add some chord rhythm variation
     const rhythmPattern = roll(0.3) ? [0, beat] : [0]; // Sometimes split chord
@@ -644,6 +731,8 @@ function generateChordProgression(
           track: 'chords',
         });
       }
+      // Remember last chord block at this start time
+      lastChordPitches = chordNotes.map(n => clampPitch(n, config.register.chords[0], config.register.chords[1]));
     }
   }
 }
