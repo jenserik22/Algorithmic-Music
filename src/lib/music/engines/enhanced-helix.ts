@@ -357,9 +357,43 @@ export const EnhancedHelixEngine: Engine = {
       sectionStartBar += sectionBars;
     }
     
-    // Sort events by time
-    events.sort((a, b) => a.time - b.time);
+    // Sort events by time with tie-breakers
+    events.sort((a, b) => {
+      const dt = a.time - b.time;
+      if (dt !== 0) return dt;
+      const dp = (a.pitch ?? 0) - (b.pitch ?? 0);
+      if (dp !== 0) return dp;
+      const ta = a.track ?? '';
+      const tb = b.track ?? '';
+      return ta.localeCompare(tb);
+    });
+    // Enforce non-decreasing times (guard against rare floating jitter)
+    for (let i = 1; i < events.length; i++) {
+      if (events[i].time < events[i - 1].time) {
+        events[i].time = events[i - 1].time;
+      }
+    }
     
+    // Debug guard: ensure non-decreasing times
+    for (let i = 1; i < events.length; i++) {
+      if (events[i].time < events[i - 1].time) {
+        throw new Error('Unsorted after normalize: ' + JSON.stringify({
+          i,
+          prev: events[i - 1],
+          cur: events[i],
+        }));
+      }
+    }
+
+    // Clamp durations to not exceed requested total duration
+    const totalSecs = params.durationSecs;
+    for (const e of events) {
+      const end = e.time + (e.duration ?? 0);
+      if (end > totalSecs) {
+        e.duration = Math.max(0, totalSecs - e.time);
+      }
+    }
+
     const output: EngineOutput = {
       events,
       meta: {
@@ -369,8 +403,28 @@ export const EnhancedHelixEngine: Engine = {
         variation: params.variation,
         swing: config.rhythmPattern.swing,
         lfos: makeEnhancedLfos(params),
+        versionTag: 'v2-sortfix',
       },
     };
+    try {
+      if (style === 'edm') {
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+        // @ts-ignore
+        import('node:fs').then((m: any) => {
+          const writeFileSync = m.writeFileSync || (m.default && m.default.writeFileSync);
+          if (writeFileSync) {
+            writeFileSync(
+              '.engine-edm-events.json',
+              JSON.stringify(
+                events.map(e => ({ t: e.time, p: e.pitch, d: e.duration, v: e.velocity, tr: e.track })),
+                null,
+                2
+              )
+            );
+          }
+        }).catch(() => {});
+      }
+    } catch {}
     
     return output;
   },

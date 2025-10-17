@@ -1,0 +1,329 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`EnhancedHelixEngine baseline (flags off) > generates valid events — cinematic 1`] = `
+{
+  "backbeat": 0,
+  "chordRate": 0,
+  "collisions": 111,
+  "first10": [
+    {
+      "d": 3.84,
+      "p": 88,
+      "t": 0.478,
+      "tr": "fx",
+      "v": 0.32,
+    },
+    {
+      "d": 1.2,
+      "p": 67,
+      "t": 4.8,
+      "tr": "chords",
+      "v": 0.43,
+    },
+    {
+      "d": 1.2,
+      "p": 63,
+      "t": 4.801,
+      "tr": "chords",
+      "v": 0.48,
+    },
+    {
+      "d": 1.2,
+      "p": 60,
+      "t": 4.803,
+      "tr": "chords",
+      "v": 0.47,
+    },
+    {
+      "d": 1.2,
+      "p": 58,
+      "t": 4.803,
+      "tr": "chords",
+      "v": 0.47,
+    },
+    {
+      "d": 0.3,
+      "p": 75,
+      "t": 5.247,
+      "tr": "lead",
+      "v": 0.71,
+    },
+    {
+      "d": 0.6,
+      "p": 60,
+      "t": 5.996,
+      "tr": "chords",
+      "v": 0.48,
+    },
+    {
+      "d": 0.6,
+      "p": 64,
+      "t": 5.998,
+      "tr": "chords",
+      "v": 0.44,
+    },
+    {
+      "d": 0.6,
+      "p": 57,
+      "t": 5.998,
+      "tr": "chords",
+      "v": 0.48,
+    },
+    {
+      "d": 0.6,
+      "p": 65,
+      "t": 6.004,
+      "tr": "chords",
+      "v": 0.48,
+    },
+  ],
+  "n": 309,
+  "vlCost": 4.28,
+}
+`;
+
+exports[`EnhancedHelixEngine baseline (flags off) > generates valid events — edm 1`] = `
+{
+  "backbeat": 0,
+  "chordRate": 0,
+  "collisions": 85,
+  "first10": [
+    {
+      "d": 0.968,
+      "p": 65,
+      "t": 0,
+      "tr": "chords",
+      "v": 0.47,
+    },
+    {
+      "d": 0.968,
+      "p": 68,
+      "t": 0,
+      "tr": "chords",
+      "v": 0.41,
+    },
+    {
+      "d": 0.968,
+      "p": 72,
+      "t": 0,
+      "tr": "chords",
+      "v": 0.43,
+    },
+    {
+      "d": 0.484,
+      "p": 62,
+      "t": 0.967,
+      "tr": "chords",
+      "v": 0.4,
+    },
+    {
+      "d": 0.484,
+      "p": 71,
+      "t": 0.968,
+      "tr": "chords",
+      "v": 0.4,
+    },
+    {
+      "d": 0.484,
+      "p": 67,
+      "t": 0.969,
+      "tr": "chords",
+      "v": 0.4,
+    },
+    {
+      "d": 0.484,
+      "p": 62,
+      "t": 1.448,
+      "tr": "chords",
+      "v": 0.45,
+    },
+    {
+      "d": 0.484,
+      "p": 67,
+      "t": 1.451,
+      "tr": "chords",
+      "v": 0.47,
+    },
+    {
+      "d": 0.484,
+      "p": 71,
+      "t": 1.455,
+      "tr": "chords",
+      "v": 0.46,
+    },
+    {
+      "d": 0.242,
+      "p": 45,
+      "t": 1.932,
+      "tr": "bass",
+      "v": 0.81,
+    },
+  ],
+  "n": 245,
+  "vlCost": 4.52,
+}
+`;
+
+exports[`EnhancedHelixEngine baseline (flags off) > generates valid events — jazz 1`] = `
+{
+  "backbeat": 0,
+  "chordRate": 0.063,
+  "collisions": 184,
+  "first10": [
+    {
+      "d": 0.857,
+      "p": 71,
+      "t": 0,
+      "tr": "chords",
+      "v": 0.49,
+    },
+    {
+      "d": 0.214,
+      "p": 36,
+      "t": 0,
+      "tr": "drums",
+      "v": 0.88,
+    },
+    {
+      "d": 0.857,
+      "p": 74,
+      "t": 0.001,
+      "tr": "chords",
+      "v": 0.47,
+    },
+    {
+      "d": 0.054,
+      "p": 50,
+      "t": 0.003,
+      "tr": "bass",
+      "v": 0.67,
+    },
+    {
+      "d": 0.857,
+      "p": 66,
+      "t": 0.004,
+      "tr": "chords",
+      "v": 0.5,
+    },
+    {
+      "d": 0.054,
+      "p": 47,
+      "t": 0.051,
+      "tr": "bass",
+      "v": 0.66,
+    },
+    {
+      "d": 0.054,
+      "p": 43,
+      "t": 0.107,
+      "tr": "bass",
+      "v": 0.73,
+    },
+    {
+      "d": 0.054,
+      "p": 42,
+      "t": 0.123,
+      "tr": "drums",
+      "v": 0.45,
+    },
+    {
+      "d": 0.161,
+      "p": 38,
+      "t": 0.218,
+      "tr": "drums",
+      "v": 0.83,
+    },
+    {
+      "d": 0.054,
+      "p": 42,
+      "t": 0.319,
+      "tr": "drums",
+      "v": 0.48,
+    },
+  ],
+  "n": 599,
+  "vlCost": 4.87,
+}
+`;
+
+exports[`EnhancedHelixEngine baseline (flags off) > generates valid events — lofi 1`] = `
+{
+  "backbeat": 0,
+  "chordRate": 0.2,
+  "collisions": 168,
+  "first10": [
+    {
+      "d": 1.429,
+      "p": 60,
+      "t": 0,
+      "tr": "chords",
+      "v": 0.45,
+    },
+    {
+      "d": 1.429,
+      "p": 71,
+      "t": 0,
+      "tr": "chords",
+      "v": 0.45,
+    },
+    {
+      "d": 1.429,
+      "p": 67,
+      "t": 0,
+      "tr": "chords",
+      "v": 0.4,
+    },
+    {
+      "d": 1.429,
+      "p": 64,
+      "t": 0.003,
+      "tr": "chords",
+      "v": 0.42,
+    },
+    {
+      "d": 1.429,
+      "p": 64,
+      "t": 1.425,
+      "tr": "chords",
+      "v": 0.44,
+    },
+    {
+      "d": 1.429,
+      "p": 69,
+      "t": 1.427,
+      "tr": "chords",
+      "v": 0.48,
+    },
+    {
+      "d": 1.429,
+      "p": 67,
+      "t": 1.429,
+      "tr": "chords",
+      "v": 0.4,
+    },
+    {
+      "d": 1.429,
+      "p": 72,
+      "t": 1.431,
+      "tr": "chords",
+      "v": 0.42,
+    },
+    {
+      "d": 1.429,
+      "p": 67,
+      "t": 2.853,
+      "tr": "chords",
+      "v": 0.52,
+    },
+    {
+      "d": 1.429,
+      "p": 71,
+      "t": 2.855,
+      "tr": "chords",
+      "v": 0.46,
+    },
+  ],
+  "n": 479,
+  "vlCost": 4.2,
+}
+`;
