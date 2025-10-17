@@ -91,6 +91,7 @@ export function GeneratorUI({ onGenerate }: { onGenerate: (x: { algorithm: Algor
       seed: seed + Math.floor(Math.random() * 1000), // randomize seed each time
       bpm, key: keySig, timeSignature, durationSecs, density, 
       style, variation, fillRate, complexityLevel, motion, brightness,
+      simpleMode: mode === 'simple' ? true : undefined,
       // Enhanced Helix Phase 1 flags (only used by that engine)
       grooveTemplate: grooveTemplate ?? undefined,
       humanizeTime: humanizeTimeAmt || undefined,
@@ -122,6 +123,7 @@ export function GeneratorUI({ onGenerate }: { onGenerate: (x: { algorithm: Algor
     const baseParams: GenerationParams = { 
       seed, bpm, key: keySig, timeSignature, durationSecs, density, 
       style, variation, fillRate, complexityLevel, motion, brightness,
+      simpleMode: mode === 'simple' ? true : undefined,
       grooveTemplate: grooveTemplate ?? undefined,
       humanizeTime: humanizeTimeAmt || undefined,
       humanizeVel: humanizeVelAmt || undefined,

@@ -40,7 +40,7 @@ export function Visualizer() {
       {/* Current Mode Display */}
       <div className="text-center">
         <span className="text-xs text-gray-500 dark:text-gray-400">
-          Current mode: {mode}
+          Current mode: <span aria-label="visualizer-mode">{mode}</span>
         </span>
       </div>
 

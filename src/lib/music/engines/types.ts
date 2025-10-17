@@ -9,6 +9,9 @@ export interface GenerationParams {
   density: number; // 0..1
   // Optional musical controls (backward compatible)
   style?: 'edm' | 'cinematic' | 'lofi' | 'jazz';
+  // Simple/Advanced mode (UI convenience). When true, engine applies anchored patterns,
+  // motif memory, arrangement constraints, and safety gates automatically.
+  simpleMode?: boolean;
   variation?: number; // 0..1 amount of randomness/humanization
   fillRate?: number; // 0..1 likelihood of drum fills per 4/8 bars
   // Helix-style macros (optional)

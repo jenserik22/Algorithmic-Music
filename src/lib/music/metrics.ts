@@ -67,6 +67,11 @@ export function chordToneHitRateStrongBeats(out: EngineOutput, bpm: number): num
       if (isTone) hits += 1;
     }
   }
+  // Debug: surface counts to help diagnose failures in CI
+  try {
+    // eslint-disable-next-line no-console
+    console.debug('[chordToneHitRateStrongBeats]', { total, hits, rate: total === 0 ? 0 : hits / total, leadCount: lead.length, chordBlocks: chordsMap.size });
+  } catch {}
   return total === 0 ? 0 : hits / total;
 }
 

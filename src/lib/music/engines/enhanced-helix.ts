@@ -311,7 +311,7 @@ export const EnhancedHelixEngine: Engine = {
     const scalePitch = (deg: number, octave: number) => rootC4 + scale[(deg % 7 + 7) % 7] + 12 * octave;
     const bars = Math.max(1, Math.floor(params.durationSecs / (4 * beat)));
     
-    const choose = <T,>(arr: T[]) => arr[Math.floor(rand() * arr.length)];
+    const choose = <T,>(arr: T[]) => arr[Math.max(0, Math.min(arr.length - 1, Math.floor(rand() * arr.length)))];
     const roll = (p: number) => rand() < p;
     
     // Enhanced humanization
@@ -408,6 +408,48 @@ export const EnhancedHelixEngine: Engine = {
     );
 
     const events: NoteEvent[] = [];
+
+    // Simple mode presets (engine-side safety net)
+    const simpleMode = Boolean(params.simpleMode);
+    const simpleDefaults = simpleMode && params.style === 'edm' ? {
+      leadChordToneBias: 0.6,
+      chordVoiceLeadingBias: 0.6,
+      leadMaxLeapSemitones: 9,
+    } : simpleMode ? {
+      leadChordToneBias: 0.5,
+      chordVoiceLeadingBias: 0.6,
+      leadMaxLeapSemitones: 7,
+    } : {} as any;
+
+    // Helper: progression index aligned to chord schedule (every 2 beats)
+    const progressionAtTime = (t: number, sectionStart: number) => {
+      const beatIndex = Math.floor((t - sectionStart) / beat);
+      return Math.floor(beatIndex / 2) % config.chordProgression.length;
+    };
+
+    // Motif memory per progression index (round-robin reuse)
+    const motifMemory = new Map<number, number[][]>();
+    const motifCounters = new Map<number, number>();
+    if (simpleMode) {
+      const makeStepwisePattern = (len: number) => {
+        let deg = Math.floor(rand() * 7);
+        const out: number[] = [];
+        for (let i = 0; i < len; i++) {
+          const step = choose([-2,-1,0,1,2]);
+          deg = (deg + step + 7) % 7;
+          out.push(deg);
+        }
+        return out;
+      };
+      const patternsPerProg = 2;
+      const patternLen = 8;
+      for (let idx = 0; idx < config.chordProgression.length; idx++) {
+        const arr: number[][] = [];
+        for (let k = 0; k < patternsPerProg; k++) arr.push(makeStepwisePattern(patternLen));
+        motifMemory.set(idx, arr);
+        motifCounters.set(idx, 0);
+      }
+    }
     
     // Generate sophisticated motifs based on complexity
     const motifLength = complexity === 'simple' ? 4 : complexity === 'intermediate' ? 8 : 12;
@@ -428,15 +470,15 @@ export const EnhancedHelixEngine: Engine = {
     
     let currentTime = 0;
     let sectionStartBar = 0;
-    const sectionTimeline: Array<{ start: number; duration: number; energy: number; name: string }> = [];
+    const sectionTimeline: Array<{ start: number; duration: number; energy: number; name: string; instruments: SectionConfig['instruments'] }> = [];
     
     for (const section of config.sections) {
       const sectionBars = Math.max(1, Math.floor(section.bars * scaleFactor));
       const sectionDuration = sectionBars * 4 * beat;
       
       if (currentTime + sectionDuration > params.durationSecs) break;
-      // Record section timeline for Phase 5 envelopes
-      sectionTimeline.push({ start: currentTime, duration: sectionDuration, energy: section.energy, name: section.name });
+      // Record section timeline for Phase 5 envelopes and Simple Mode arrangement gating
+      sectionTimeline.push({ start: currentTime, duration: sectionDuration, energy: section.energy, name: section.name, instruments: section.instruments });
 
       // Phase 4 call/response schedule (deterministic per section)
       const crIntensity = Math.max(0, Math.min(1, params.callResponseIntensity ?? 0));
@@ -447,7 +489,8 @@ export const EnhancedHelixEngine: Engine = {
       if (section.instruments.includes('lead')) {
         generateLeadLine(events, currentTime, sectionDuration, section, config, leadMotif, {
           rand, roll, humanizeTime, humanizeVelocity, applySwing, scalePitch, beat, sixteenth, choose, finalizeTime, params,
-          cr: { intensity: crIntensity, responseEven, densityGate }
+          cr: { intensity: crIntensity, responseEven, densityGate },
+          simple: { simpleMode, simpleDefaults, motifMemory, motifCounters, progressionAtTime }
         });
       }
       
@@ -461,7 +504,8 @@ export const EnhancedHelixEngine: Engine = {
       if (section.instruments.includes('bass')) {
         generateBassLine(events, currentTime, sectionDuration, section, config, {
           rand, roll, humanizeTime, humanizeVelocity, scalePitch, beat, sixteenth, choose, finalizeTime, params,
-          cr: { intensity: crIntensity, responseEven, densityGate }
+          cr: { intensity: crIntensity, responseEven, densityGate },
+          simple: { simpleMode, progressionAtTime }
         });
       }
       
@@ -572,6 +616,165 @@ export const EnhancedHelixEngine: Engine = {
       const end = e.time + (e.duration ?? 0);
       if (end > totalSecs) {
         e.duration = Math.max(0, totalSecs - e.time);
+      }
+    }
+
+    // Simple Mode: arrangement activity constraints (max 3 concurrent tracks; prefer lead over bass when present)
+    if (simpleMode) {
+      for (const sec of sectionTimeline) {
+        const start = sec.start;
+        const end = sec.start + sec.duration;
+        const activeOrder = ['drums','chords','lead','bass'] as const;
+        const keepCount = 3;
+        const present = new Set(sec.instruments);
+        const keepList = activeOrder.filter(t => present.has(t));
+        const keep = new Set<string>(keepList.slice(0, keepCount));
+        for (let i = events.length - 1; i >= 0; i--) {
+          const e = events[i];
+          if (e.time >= start && e.time < end) {
+            if (e.track && !keep.has(e.track)) {
+              events.splice(i, 1);
+            }
+          }
+        }
+      }
+    }
+
+    // Simple Mode safety gates: enforce chord tones on strong beats and reduce large leaps
+    if (simpleMode) {
+      const leadEvents = events.filter(e => e.track === 'lead').sort((a,b)=>a.time-b.time);
+      const chordEvents = events.filter(e => e.track === 'chords');
+      // First, quantize chord onsets tightly to the grid so chord snapshots align with strong-beat lead notes
+      for (const c of chordEvents) {
+        // Snap to nearest 16th to remove humanization jitter
+        c.time = Math.round(c.time / sixteenth) * sixteenth;
+      }
+      // Precompute chord blocks by onset time (after quantization above)
+      const chordBlocksByTime = new Map<number, number[]>();
+
+      // Strong-beat chord tone enforcement (beats 1 and 3)
+      for (const e of leadEvents) {
+        const barStart = Math.floor(e.time / (4 * beat)) * (4 * beat);
+        const pos16 = Math.round((e.time - barStart) / sixteenth) % 16;
+        // Treat events very near beats 1 or 3 as strong too (within ~0.1 beat ~ 50ms at 120bpm)
+        const rel = e.time - barStart;
+        const strongTargets = [0, 2 * beat];
+        let strong = (pos16 === 0 || pos16 === 8);
+        if (!strong) {
+          const nearest = strongTargets.reduce((a, b) => (Math.abs(b - rel) < Math.abs(a - rel) ? b : a), strongTargets[0]);
+          if (Math.abs(nearest - rel) <= beat * 0.1) {
+            strong = true;
+            // Quantize to the exact strong beat to align with chords and metrics
+            e.time = barStart + nearest;
+          }
+        }
+        if (!strong) continue;
+        // Determine chord at this time from actual chord events if available; fallback to schedule
+        let chordNotes: number[] | undefined;
+        if (chordBlocksByTime.size === 0 && chordEvents.length > 0) {
+          // Build blocks lazily on first use, after potential quantization
+          for (const c of chordEvents) {
+            const t = +c.time.toFixed(6);
+            const arr = chordBlocksByTime.get(t) ?? [];
+            arr.push(c.pitch);
+            chordBlocksByTime.set(t, arr);
+          }
+        }
+        if (chordBlocksByTime.size > 0) {
+          let bestT = -Infinity;
+          for (const t of chordBlocksByTime.keys()) {
+            if (t <= e.time && t > bestT) bestT = t;
+          }
+          if (bestT > -Infinity) {
+            const arr = chordBlocksByTime.get(bestT) ?? [];
+            chordNotes = arr.map(n => ((n % 12) + 12) % 12);
+          }
+        }
+        if (!chordNotes || chordNotes.length === 0) {
+          const sec = sectionTimeline.find(s=> e.time>=s.start && e.time < s.start + s.duration) ?? sectionTimeline[0];
+          const progIdx = progressionAtTime(e.time, sec.start);
+          const chordDef = ENHANCED_TEMPLATES[style].chordProgression[progIdx];
+          const chordRoot = rootC4 + SCALES[config.scale][chordDef.degree];
+          chordNotes = getChordNotes(chordRoot, chordDef.quality).map(n=> (n%12+12)%12);
+        }
+        const pClass = ((e.pitch%12)+12)%12;
+        if (!chordNotes.includes(pClass)) {
+          // Snap to nearest chord tone within lead register (preserve closest pitch class)
+          let best = e.pitch; let bestD = Infinity;
+          for (const c of chordNotes) {
+            const curClass = ((e.pitch % 12) + 12) % 12;
+            const shift = ((c - curClass + 18) % 12) - 6; // minimal signed semitone shift to reach chord tone class
+            const cand = clampPitch(e.pitch + shift, ENHANCED_TEMPLATES[style].register.lead[0], ENHANCED_TEMPLATES[style].register.lead[1]);
+            const d = Math.abs(cand - e.pitch);
+            if (d < bestD) { bestD = d; best = cand; }
+          }
+          e.pitch = best;
+        }
+      }
+      // Stepwise preference: fold large leaps by octaves where possible
+      for (let i = 1; i < leadEvents.length; i++) {
+        const prev = leadEvents[i-1];
+        const cur = leadEvents[i];
+        let diff = cur.pitch - prev.pitch;
+        while (Math.abs(diff) > (simpleDefaults.leadMaxLeapSemitones ?? 9)) {
+          if (diff > 0) cur.pitch -= 12; else cur.pitch += 12;
+          diff = cur.pitch - prev.pitch;
+          cur.pitch = clampPitch(cur.pitch, ENHANCED_TEMPLATES[style].register.lead[0], ENHANCED_TEMPLATES[style].register.lead[1]);
+        }
+      }
+
+      // FINAL strict pass (Simple Mode): align with metrics strong-beat detection (<=50ms) and force chord tones
+      // This uses the same notion of "strong beats" as metrics.ts (beats 1 & 3 in 4/4; i % 4 === 0 || 2)
+      // and snaps both timing and pitch class to the nearest chord tone when within 50ms.
+      const strongTol = 0.05; // seconds
+      const beatDur = beat;
+      // Build chord blocks using millisecond rounding to mirror metrics.extractChordBlocks
+      const chordBlocksMs = new Map<number, number[]>();
+      for (const c of chordEvents) {
+        const tKey = +c.time.toFixed(3);
+        const arr = chordBlocksMs.get(tKey) ?? [];
+        arr.push(c.pitch);
+        chordBlocksMs.set(tKey, arr);
+      }
+      const chordTimesSorted = Array.from(chordBlocksMs.keys()).sort((a,b)=>a-b);
+      
+      const findChordAt = (t: number): number[] | undefined => {
+        // most recent chord block with start time <= t
+        let idx = -1;
+        for (let i = 0; i < chordTimesSorted.length; i++) {
+          if (chordTimesSorted[i] <= t) idx = i; else break;
+        }
+        if (idx >= 0) return (chordBlocksMs.get(chordTimesSorted[idx]) ?? []).map(n => ((n % 12) + 12) % 12);
+        // fallback to scheduled progression when no chord block is found
+        const sec = sectionTimeline.find(s=> t>=s.start && t < s.start + s.duration) ?? sectionTimeline[0];
+        const progIdx = progressionAtTime(t, sec.start);
+        const chordDef = ENHANCED_TEMPLATES[style].chordProgression[progIdx];
+        const chordRoot = rootC4 + SCALES[config.scale][chordDef.degree];
+        return getChordNotes(chordRoot, chordDef.quality).map(n=> (n%12+12)%12);
+      };
+
+      for (const e of leadEvents) {
+        // nearest strong beat time (even beat indices): round(t/beat/2)*2*beat
+        const nearestStrong = Math.round((e.time / beatDur) / 2) * 2 * beatDur;
+        if (Math.abs(e.time - nearestStrong) <= strongTol) {
+          // snap timing to exact strong beat to avoid tolerance drift
+          e.time = nearestStrong;
+          const chordPcs = findChordAt(nearestStrong) ?? [];
+          if (chordPcs.length > 0) {
+            const pClass = ((e.pitch % 12) + 12) % 12;
+            if (!chordPcs.includes(pClass)) {
+              let best = e.pitch; let bestD = Infinity;
+              for (const cpc of chordPcs) {
+                const curClass = ((e.pitch % 12) + 12) % 12;
+                const shift = ((cpc - curClass + 18) % 12) - 6; // minimal signed semitone shift
+                const cand = clampPitch(e.pitch + shift, ENHANCED_TEMPLATES[style].register.lead[0], ENHANCED_TEMPLATES[style].register.lead[1]);
+                const d = Math.abs(cand - e.pitch);
+                if (d < bestD) { bestD = d; best = cand; }
+              }
+              e.pitch = best;
+            }
+          }
+        }
       }
     }
 
@@ -700,6 +903,7 @@ function generateLeadLine(
 ) {
   const { rand, roll, humanizeTime, humanizeVelocity, applySwing, scalePitch, beat, sixteenth, choose, finalizeTime, params } = utils;
   const cr = (utils && utils.cr) ? utils.cr as { intensity?: number; responseEven?: boolean; densityGate?: number } : {};
+  const simple = (utils && utils.simple) ? utils.simple as { simpleMode?: boolean; simpleDefaults?: any; motifMemory?: Map<number, number[][]>; motifCounters?: Map<number, number>; progressionAtTime?: (t:number, s:number)=>number } : {};
   const noteCount = Math.floor(duration / sixteenth);
   let lastLeadPitch: number | undefined;
 
@@ -728,6 +932,9 @@ function generateLeadLine(
   const sectionBars = Math.max(1, Math.floor(duration / (4 * beat)));
   const phrasesInSection = phraseBars ? Math.max(1, Math.floor(sectionBars / phraseBars)) : 0;
   const climaxPhraseIndex = phraseBars && phrasesInSection > 0 ? Math.floor(rand() * phrasesInSection) : -1;
+
+  // Simple Mode helpers: assign a motif pattern per 2-beat slot
+  const slotPatternIdx = new Map<number, number>();
 
   for (let i = 0; i < noteCount; i++) {
     const time = startTime + i * sixteenth;
@@ -765,9 +972,39 @@ function generateLeadLine(
     }
     
     const doCadenceNow = phraseBars ? ((i % phraseLen16) === (phraseLen16 - 4) && cadenceStrength > 0) : false;
+    // Simple Mode: anchor strong beats and reuse per-slot motif memory
+    if (simple?.simpleMode) {
+      const slotLen = 2 * beat; // 2 beats per progression step
+      const slotIndex = Math.floor((time - startTime) / slotLen);
+      const posInSlot16 = Math.floor(((time - startTime) % slotLen) / sixteenth); // 0..7
+      const progIdx = simple.progressionAtTime ? simple.progressionAtTime(time, startTime) : 0;
+      const memory = simple.motifMemory?.get(progIdx) ?? [];
+      if (!slotPatternIdx.has(slotIndex)) {
+        const counter = simple.motifCounters?.get(progIdx) ?? 0;
+        const patIdx = memory.length > 0 ? (counter % memory.length) : 0;
+        slotPatternIdx.set(slotIndex, patIdx);
+        if (simple.motifCounters) simple.motifCounters.set(progIdx, counter + 1);
+      }
+      // Adjust trigger prob: always place notes on 1 and 3; thin others
+      if (isStrongBeat) triggerProbability = 1;
+      else triggerProbability = Math.min(1, 0.5 * (section.density + 0.4));
+    }
+
     if (doCadenceNow || (chordBiasGlobal > 0 && isStrongBeat) || roll(triggerProbability)) {
-      const motifIndex = i % fullMotif.length;
-      let degree = fullMotif[motifIndex];
+      let degree: number;
+      if (simple?.simpleMode) {
+        const slotLen = 2 * beat;
+        const slotIndex = Math.floor((time - startTime) / slotLen);
+        const posInSlot16 = Math.floor(((time - startTime) % slotLen) / sixteenth); // 0..7
+        const progIdx = simple.progressionAtTime ? simple.progressionAtTime(time, startTime) : 0;
+        const memory = simple.motifMemory?.get(progIdx) ?? [];
+        const patIdx = slotPatternIdx.get(slotIndex) ?? 0;
+        const pattern = memory[patIdx] ?? fullMotif; // fallback to existing motif
+        degree = pattern[posInSlot16 % (pattern.length || 1)] ?? (fullMotif[i % fullMotif.length]);
+      } else {
+        const motifIndex = i % fullMotif.length;
+        degree = fullMotif[motifIndex];
+      }
 
       if (contour) {
         degree = (degree + contour(i) + 7) % 7;
@@ -787,6 +1024,10 @@ function generateLeadLine(
         // Enforce cadential resolution on phrase end: prefer root or fifth
         const cadenceDegrees = [chordDef.degree, (chordDef.degree + 4) % 7];
         degree = choose(cadenceDegrees);
+      } else if ((simple?.simpleMode && isStrongBeat)) {
+        // Simple Mode: force strong beats to chord tones (root/third/fifth)
+        const chordToneDegrees = [chordDef.degree, (chordDef.degree + 2) % 7, (chordDef.degree + 4) % 7];
+        degree = choose(chordToneDegrees);
       } else if (chordBias > 0 && isStrongBeat) {
         const chordToneDegrees = [chordDef.degree, (chordDef.degree + 2) % 7, (chordDef.degree + 4) % 7];
         degree = choose(chordToneDegrees);
@@ -834,8 +1075,8 @@ function generateLeadLine(
       if (doCadenceNow) velBase += 0.1; // highlight cadence resolution
       const velocity = humanizeVelocity(velBase);
       let finalTime = finalizeTime(time, pos16, config.rhythmPattern.swing, 'lead');
-      // Pin strong-beat chord-tone notes tightly to the beat to align with chord onset for metrics
-      if (chordBiasGlobal > 0 && isStrongBeat) {
+      // Pin strong-beat notes tightly to the beat to align with chord onset for metrics
+      if ((chordBiasGlobal > 0 && isStrongBeat) || (simple?.simpleMode && isStrongBeat)) {
         finalTime = Math.round(finalTime / beat) * beat;
       }
       if (doCadenceNow) {
@@ -1015,9 +1256,30 @@ function generateBassLine(
 ) {
   const { rand, roll, humanizeTime, humanizeVelocity, scalePitch, beat, sixteenth, choose, finalizeTime, params } = utils;
   const cr = (utils && utils.cr) ? utils.cr as { intensity?: number; responseEven?: boolean; densityGate?: number } : {};
+  const simple = (utils && utils.simple) ? utils.simple as { simpleMode?: boolean; progressionAtTime?: (t:number, s:number)=>number } : {};
   const noteCount = Math.floor(duration / sixteenth);
   
-  // Bass follows chord progression root notes
+  // Simple Mode: deterministic root/fifth on beats 1 & 3
+  if (simple?.simpleMode) {
+    for (let i = 0; i < noteCount; i++) {
+      const time = startTime + i * sixteenth;
+      if (time >= startTime + duration) break;
+      const pos16 = i % 16;
+      const isStrongBeat = (pos16 === 0 || pos16 === 8);
+      if (!isStrongBeat) continue;
+      const progIdx = simple.progressionAtTime ? simple.progressionAtTime(time, startTime) : 0;
+      const chordDef = config.chordProgression[progIdx];
+      const useFifth = (pos16 === 8) && roll(0.4);
+      const degree = useFifth ? (chordDef.degree + 4) % 7 : chordDef.degree;
+      const pitch = clampPitch(scalePitch(degree, -1), config.register.bass[0], config.register.bass[1]);
+      const velocity = humanizeVelocity(0.7 + section.energy * 0.2);
+      const evtTime = finalizeTime(time, pos16, config.rhythmPattern.swing, 'bass');
+      events.push({ time: evtTime, pitch, duration: beat * 1.5, velocity, track: 'bass' });
+    }
+    return;
+  }
+
+  // Advanced: Bass follows chord progression root notes with interplay
   for (let i = 0; i < noteCount; i++) {
     const time = startTime + i * sixteenth;
     if (time >= startTime + duration) break;
@@ -1168,6 +1430,32 @@ function generateDrumPattern(
     [0, 4, 8, 12], // 4th note fill
   ];
   
+  // Simple Mode: deterministic anchored patterns
+  if (params?.simpleMode) {
+    for (let bar = 0; bar < bars; bar++) {
+      const barStart = startTime + bar * 4 * beat;
+      // Kicks
+      for (const i of pattern.kick) {
+        const t = barStart + i * sixteenth;
+        events.push({ time: finalizeTime(t, i, pattern.swing, 'drums'), pitch: 36, duration: sixteenth * 2, velocity: humanizeVelocity(0.8 + section.energy * 0.15), track: 'drums' });
+      }
+      // Snares
+      for (const i of pattern.snare) {
+        const t = barStart + i * sixteenth;
+        events.push({ time: finalizeTime(t, i, pattern.swing, 'drums'), pitch: 38, duration: sixteenth * 1.5, velocity: humanizeVelocity(0.7 + section.energy * 0.2), track: 'drums' });
+      }
+      // Hats at listed positions; if none, place closed hats on all 8ths
+      const hatPos = pattern.hats && pattern.hats.length > 0 ? pattern.hats : [0,4,8,12];
+      for (const i of hatPos) {
+        const t = barStart + i * sixteenth;
+        const isAccent = i % 4 === 0;
+        const vel = humanizeVelocity((isAccent ? 0.6 : 0.45) + section.energy * 0.1);
+        events.push({ time: finalizeTime(t, i, pattern.swing, 'drums'), pitch: 42, duration: sixteenth * 0.5, velocity: vel, track: 'drums' });
+      }
+    }
+    return;
+  }
+
   for (let bar = 0; bar < bars; bar++) {
     const barStart = startTime + bar * 4 * beat;
     let hatCountThisBar = 0;
