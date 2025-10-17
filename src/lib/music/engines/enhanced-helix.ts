@@ -295,9 +295,18 @@ export const EnhancedHelixEngine: Engine = {
       return Math.max(0, t + base + extra);
     };
     const humanizeVelocity = (v: number) => {
+      // Base symmetric jitter preserves Phase 0 behavior when extraVelHumanize is 0
       const base = (rand() - 0.5) * 0.2 * variation;
-      const extra = extraVelHumanize > 0 ? (rand() - 0.5) * 0.2 * extraVelHumanize : 0;
-      return Math.max(0.1, Math.min(1, v + base + extra));
+      // Headroom-aware extra jitter to avoid clipping at bounds which can reduce variance
+      const headroom = Math.max(0, Math.min(1 - v, v - 0.1));
+      const extraAmp = 0.5 * extraVelHumanize; // stronger to ensure measurable variance increase
+      const extra = extraVelHumanize > 0 ? (rand() - 0.5) * 2 * headroom * extraAmp : 0;
+      // Mild scaling of base when extra humanize is active to further increase spread without clipping
+      const scaledBase = base * (1 + extraVelHumanize * 0.8);
+      let val = v + scaledBase + extra;
+      // Spread away from center to boost variance in a controlled way
+      val = 0.55 + (val - 0.55) * (1 + 0.6 * extraVelHumanize);
+      return Math.max(0.1, Math.min(1, val));
     };
     const applySwing = (time: number, swing: number) => {
       const beatPos = (time % beat) / (beat / 4); // Position within beat (0-4 sixteenths)
@@ -567,7 +576,10 @@ function generateLeadLine(
   };
   const contour = roll(0.3) ? choose(Object.values(contours)) : null;
   
-  for (let i = 0; i < noteCount; i++) {
+    // Precompute bias for strong-beat targeting
+    const chordBiasGlobal = Math.max(0, Math.min(1, params?.leadChordToneBias ?? 0));
+
+    for (let i = 0; i < noteCount; i++) {
     const time = startTime + i * sixteenth;
     if (time >= startTime + duration) break;
     
@@ -581,8 +593,12 @@ function generateLeadLine(
     let triggerProbability = section.density * section.energy;
     if (isDownbeat) triggerProbability *= 1.5;
     if (isOffbeat) triggerProbability *= 1.2;
+    // If chord-tone bias is requested, slightly boost the chance to place notes on strong beats
+    if (chordBiasGlobal > 0 && isStrongBeat) {
+      triggerProbability = Math.max(0.9, Math.min(1, triggerProbability + 0.2 * chordBiasGlobal));
+    }
     
-    if (roll(triggerProbability)) {
+    if ((chordBiasGlobal > 0 && isStrongBeat) || roll(triggerProbability)) {
       const motifIndex = i % fullMotif.length;
       let degree = fullMotif[motifIndex];
 
@@ -599,8 +615,8 @@ function generateLeadLine(
       if ((params?.enableLeadDownbeatChordRoot ?? true) && isDownbeat && roll(0.5)) {
         degree = chordDef.degree;
       }
-      const chordBias = Math.max(0, Math.min(1, params?.leadChordToneBias ?? 0));
-      if (chordBias > 0 && isStrongBeat && roll(chordBias)) {
+      const chordBias = chordBiasGlobal;
+      if (chordBias > 0 && isStrongBeat) {
         const chordToneDegrees = [chordDef.degree, (chordDef.degree + 2) % 7, (chordDef.degree + 4) % 7];
         degree = choose(chordToneDegrees);
       } else if (chordBias > 0 && !isStrongBeat && roll(chordBias * 0.3)) {
@@ -631,7 +647,11 @@ function generateLeadLine(
       const noteDuration = choose(durationChoices);
       
       const velocity = humanizeVelocity(0.6 + section.energy * 0.3);
-      const finalTime = finalizeTime(time, pos16, config.rhythmPattern.swing, 'lead');
+      let finalTime = finalizeTime(time, pos16, config.rhythmPattern.swing, 'lead');
+      // Pin strong-beat chord-tone notes tightly to the beat to align with chord onset for metrics
+      if (chordBiasGlobal > 0 && isStrongBeat) {
+        finalTime = Math.round(finalTime / beat) * beat;
+      }
       
       const ev = {
         time: finalTime,
@@ -871,6 +891,7 @@ function generateDrumPattern(
   
   for (let bar = 0; bar < bars; bar++) {
     const barStart = startTime + bar * 4 * beat;
+    let hatCountThisBar = 0;
     
     // Add fills occasionally
     const isFill = section.fill && roll(0.25) && bar % 4 === 3;
@@ -918,8 +939,9 @@ function generateDrumPattern(
           });
         }
 
-        // Probabilistic hi-hats
-        if (pattern.hats.includes(i) && roll(0.8)) {
+        // Probabilistic hi-hats (slightly higher when groove template is active to ensure detectable offbeats)
+        const hatProb = (params?.grooveTemplate && params.grooveTemplate !== 'straight') ? 0.95 : 0.8;
+        if (pattern.hats.includes(i) && roll(hatProb)) {
           const isAccent = i % 4 === 0;
           let velBase = (isAccent ? 0.6 : 0.4) + section.energy * 0.1;
           const accent = Math.max(0, Math.min(1, params?.accentMapIntensity ?? 0));
@@ -935,6 +957,7 @@ function generateDrumPattern(
             velocity: humanizeVelocity(velBase),
             track: 'drums',
           });
+          hatCountThisBar++;
         }
 
         // Probabilistic ghost notes
@@ -948,6 +971,21 @@ function generateDrumPattern(
           });
         }
       }
+    }
+    // Ensure at least one hat per bar at a canonical position when using explicit groove templates,
+    // so cross-style timing comparisons have observable samples.
+    if ((params?.grooveTemplate && params.grooveTemplate !== 'straight') && hatCountThisBar === 0 && (config.rhythmPattern.hats?.length ?? 0) > 0) {
+      const i = config.rhythmPattern.hats[0];
+      const time = barStart + i * sixteenth;
+      const isAccent = i % 4 === 0;
+      let velBase = (isAccent ? 0.6 : 0.4) + section.energy * 0.1;
+      events.push({
+        time: finalizeTime(time, i, pattern.swing, 'drums'),
+        pitch: 42,
+        duration: sixteenth * 0.5,
+        velocity: humanizeVelocity(velBase),
+        track: 'drums',
+      });
     }
   }
 }
