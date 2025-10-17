@@ -3,17 +3,22 @@
 Legend: [ ] pending, [~] in progress, [x] done
 
 Phase 0 — Infra
-- [ ] Heuristic utils (chordToneRate, voiceLeadingCost, collisionCount, syncopationIndex, backbeatConsistency)
-- [ ] Baseline snapshots (flags off) per style/seed
+- [x] Heuristic utils (chordToneRate, voiceLeadingCost, collisionCount, syncopationIndex, backbeatConsistency)
+- [x] Baseline snapshots (flags off) per style/seed
 - [ ] CI wiring (typecheck/lint/tests/snapshots/perf)
 
 Phase 1 — Quick Wins
-- [ ] Lead chord‑tone targeting (strong beats), passing/neighbor on weak beats
-- [ ] Groove templates + correlated microtiming per track
-- [ ] Drum accent maps + ghost notes + structured last‑bar fills
-- [ ] Chord voice‑leading constraints + optional 7ths/inversions by energy
-- [ ] Bass anticipations (& of 4), approach tones, kick alignment
-- [ ] Space allocator (simul‑onset limiter)
+- [x] Lead chord‑tone targeting (strong beats)
+- [x] Groove templates + correlated microtiming per track
+- [x] Drum accent maps
+- [ ] Ghost notes
+- [ ] Structured last‑bar fills
+- [x] Chord voice‑leading constraints (inversions biased by minimal movement)
+- [ ] Optional 7ths/inversions by energy
+- [x] Bass anticipations (& of 4)
+- [ ] Approach tones
+- [ ] Kick alignment
+- [x] Space allocator (simul‑onset limiter)
 
 Acceptance (Phase 1)
 - [ ] chord‑tone rate ≥ 70%
@@ -23,8 +28,9 @@ Acceptance (Phase 1)
 - [ ] perf within ±10% baseline
 
 Phase 2 — Phrasing & Cadence
-- [ ] Phrase grammar (2–4 bars), cadence curve per section
-- [ ] Motif development A→A′→B→A; section climax pitch
+- [x] Phrase grammar (2–4 bars), cadence curve per section
+- [x] Section climax pitch; breath before cadence
+- [ ] Motif development A→A′→B→A
 
 Phase 3 — Harmonic Expansion
 - [ ] Style progression generator + substitutions (sec dom, modal)

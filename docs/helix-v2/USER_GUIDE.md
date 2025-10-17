@@ -1,0 +1,83 @@
+# Enhanced Helix — User Guide (Phase 1–2 Settings)
+
+This guide explains the new Enhanced Helix settings and provides recommended values to get musical, human‑sounding results quickly. All settings are optional: leaving them unset preserves the original baseline.
+
+## Where to find the settings
+- Advanced mode → Algorithm: "Enhanced Helix"
+- Humanization Presets (EDM / Cinematic / Lo‑Fi / Jazz)
+- Individual controls under "Enhanced Helix" section
+
+## Settings (what they do and when to use)
+
+- Groove Template (straight | shuffle | mpc62 | funk)
+  - Applies style‑specific micro‑timing feel across tracks.
+  - Use when you want swing/feel beyond simple random jitter.
+
+- Humanize Time (0..1)
+  - Adds correlated timing variation per track. Higher = looser, more "live" feel.
+  - Start 0.10–0.25. Keep lower for tight EDM; higher for Lo‑Fi/Jazz.
+
+- Humanize Velocity (0..1)
+  - Varies note intensity dynamically. Higher values emphasize accents and de‑quantize feel.
+  - Start 0.15–0.35. Back off if dynamics feel erratic.
+
+- Lead Chord‑Tone Bias (0..1)
+  - Pushes lead notes on strong beats toward chord tones (root/3rd/5th). Weak beats remain more free.
+  - Use 0.35–0.60 for clearer harmony; 0 for more exploratory lines.
+
+- Drum Accent Intensity (0..1)
+  - Shapes hats/backbeat with repeating accent maps; combines nicely with groove templates.
+  - 0.20–0.40 is subtle and musical.
+
+- Bass Anticipation (0..1)
+  - Chance that bass hits the "& of 4" to lead into the next bar.
+  - 0.20–0.35 adds energy without over‑syncopation.
+
+- Chord Voice‑Leading Bias (0..1)
+  - Chooses chord inversions that minimize movement between changes.
+  - 0.30–0.80 depending on how smooth you want the harmony to move.
+
+- Lead Max Leap (semitones: 0|7|9|12)
+  - Limits large melodic jumps by octave‑folding.
+  - 7 or 9 keeps lines more singable; 0 disables limiting.
+
+- Space Allocator – Min Gap (secs 0..0.05)
+  - Ensures a minimum gap between notes per track to reduce overlaps/clipping.
+  - 0.010–0.020 is a good starting point.
+
+- Phrasing (short | medium | long)
+  - Shapes phrase boundaries (currently: short=2 bars, medium/long=4 bars).
+  - Use "short" for energetic styles; "long" for cinematic builds.
+
+- Cadence Strength (0..1)
+  - Encourages cadential target notes (root/5th) at phrase ends; adds a tiny "breath" before cadence.
+  - 0.5–0.9 yields clear musical closures without being too predictable.
+
+## Quick recipes (good‑sounding starting points)
+
+- EDM:
+  - Groove: mpc62; Time 0.12; Vel 0.20; Lead Chord‑Tone 0.40; Accent 0.35; Bass Ant 0.30; Voice‑Lead 0.30; Max Leap 9; Min Gap 0.015
+  - Phrasing short; Cadence 0.7
+
+- Cinematic:
+  - Groove: straight; Time 0.12; Vel 0.15; Lead Chord‑Tone 0.50; Accent 0.10; Bass Ant 0.20; Voice‑Lead 0.70; Max Leap 7; Min Gap 0.020
+  - Phrasing long; Cadence 0.9
+
+- Lo‑Fi:
+  - Groove: shuffle; Time 0.25; Vel 0.30; Lead Chord‑Tone 0.35; Accent 0.40; Bass Ant 0.25; Voice‑Lead 0.40; Max Leap 7; Min Gap 0.020
+  - Phrasing short; Cadence 0.6
+
+- Jazz:
+  - Groove: shuffle; Time 0.15; Vel 0.20; Lead Chord‑Tone 0.50; Accent 0.20; Bass Ant 0.35; Voice‑Lead 0.80; Max Leap 9; Min Gap 0.015
+  - Phrasing medium; Cadence 0.5
+
+## Tips for better results
+- Start from a preset, then tweak one control at a time.
+- Keep Humanize Time moderate if you also use strong groove templates.
+- Increase Lead Chord‑Tone Bias for clearer harmony; reduce for more exploratory melodies.
+- Use Phrasing + Cadence to add musical sentences and closure.
+- Keep Min Gap > 0 to avoid overlaps when density is high.
+
+## Notes
+- All features are optional and backward‑compatible. With all values off/empty, Enhanced Helix matches the previous baseline.
+- When phrasing/cadence are used, the engine version tag shows `v2-phase2`.
