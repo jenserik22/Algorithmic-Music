@@ -69,7 +69,29 @@ The `EnhancedHelixEngine` is a huge improvement, but it still has some areas tha
 
 ### Recommendations for Improvement:
 
-Here are some concrete suggestions for improving the `EnhancedHelixEngine` (as improving the `HelixEngine` would essentially mean turning it into the `EnhancedHelixEngine`):
+## Implemented Improvements
+
+Based on the recommendations above, the following improvements have been implemented in the `EnhancedHelixEngine`:
+
+1.  **Dynamic Chord Progressions:**
+    *   **Chord Substitutions:** The `generateChordProgression` function now has a 15% chance of substituting a chord with a harmonically related one, making the progressions less predictable.
+    *   **Varied Chord Voicings:** There is now a 20% chance for a random chord inversion to be chosen, adding variety to the harmonic texture.
+
+2.  **More Melodic Basslines:**
+    *   **Arpeggios:** The `generateBassLine` function now has a 15% chance of playing an arpeggio of the current chord, creating more melodic interest.
+    *   **Passing Tones:** Passing tones are now added between chord changes to create a smoother, more connected bassline.
+
+3.  **More Dynamic Drum Patterns:**
+    *   **Probabilistic Patterns:** The drum patterns are now generated probabilistically, creating more variation and a more human-like feel.
+    *   **Structured Fills:** The drum fill generation has been enhanced with a selection of predefined fill patterns, making the fills more structured and interesting.
+
+4.  **More Musical Melodies:**
+    *   **Melodic Contour:** The `generateLeadLine` function now has a 30% chance of following a predefined contour (rising, falling, or arch-shaped), giving the melodies a clearer sense of direction.
+    *   **Call and Response:** The melody generation now uses a call-and-response structure, creating more engaging and conversational melodies.
+
+5.  **Improved Inter-Track Communication:**
+    *   **Rhythmic Interplay:** There is a 10% chance for the bassline and lead melody to rhythmically align, creating a sense of unison.
+    *   **Harmonic Cohesion:** The melody is now biased towards landing on chord tones on strong beats, ensuring that it is harmonically supported by the chords.
 
 1.  **More Dynamic Chord Progressions:**
     *   **Introduce Chord Substitutions:** In the `generateChordProgression` function, add a chance to substitute a chord with a related chord (e.g., a `vi` chord can sometimes be substituted with a `iii` chord).
