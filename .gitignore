@@ -46,3 +46,5 @@ tmp/
 supabase/.branches
 supabase/.temp
 supabase/.cache
+
+.engine-edm-events.json
