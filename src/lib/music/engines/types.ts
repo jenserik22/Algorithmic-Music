@@ -30,6 +30,13 @@ export interface GenerationParams {
   enableChordSubstitutions?: boolean; // gate harmonic substitutions in chords
   enableBassLeadInterplay?: boolean;  // gate bass reacting to nearby lead notes
   enableLeadDownbeatChordRoot?: boolean; // gate lead snapping to chord root on downbeats
+  // Phase 2 phrasing & cadence (default neutral)
+  phrasing?: 'short' | 'medium' | 'long'; // phrase length target (bars)
+  cadenceStrength?: number; // 0..1 strength of cadential resolution at phrase ends
+  // Phase 3 harmonic expansion (default neutral)
+  harmonicComplexity?: number; // 0..1 probability/strength for reharmonization (substitutions)
+  harmonicRhythmVariance?: number; // 0..1 variation in chord change timing (split/hold)
+  pedalToneStrength?: number; // 0..1 likelihood/intensity of low pedal tones in low-energy/break sections
 }
 
 export interface NoteEvent {

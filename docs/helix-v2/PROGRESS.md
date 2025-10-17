@@ -79,3 +79,15 @@ Log
 - Docs: updated FLAGS.md with Phase 2 flags and preset add‑ons
 - UI: Added phrasing dropdown and cadence strength slider to Enhanced Helix controls; preset buttons updated
 - Status: All unit tests pass except pre‑existing `appA11y.test.tsx` (Tone env)
+
+## [2025‑10‑17] PHASE 3 COMPLETE
+- Flags: added `harmonicRhythmVariance`, `harmonicComplexity`, `pedalToneStrength` (all optional; default neutral)
+- Engine:
+  - Chord rhythm variation within 2‑beat cells (split, anticipations, late accents) gated by `harmonicRhythmVariance`
+  - Expanded substitutions: diatonic + light modal interchange + secondary dominant targeting next chord when `harmonicComplexity` > 0
+  - Pedal tones: sustained low bass during low‑energy/break/ambient sections; deterministic when strength=1
+- Version tag escalates to `v2-phase3` when any Phase 3 flag is used
+- Tests: `enhancedHelix.phase3.test.ts` verifies chord onset variety increase, pedal presence, and version tag
+- UI: Added Harmony controls (rhythm variance, complexity, pedal strength) and preset add‑ons
+- Docs: Updated FLAGS.md with Phase 3; CHECKLIST ticked Phase 3 items
+- Status: All unit tests pass except pre‑existing `appA11y.test.tsx`

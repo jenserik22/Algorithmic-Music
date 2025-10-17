@@ -60,6 +60,11 @@ export function GeneratorUI({ onGenerate }: { onGenerate: (x: { algorithm: Algor
   const [phrasing, setPhrasing] = useState<GenerationParams['phrasing'] | undefined>(undefined);
   const [cadenceStrength, setCadenceStrength] = useState<number>(0);
 
+  // Phase 3 harmony (Enhanced Helix only)
+  const [harmonicComplexity, setHarmonicComplexity] = useState<number>(0);
+  const [harmonicRhythmVariance, setHarmonicRhythmVariance] = useState<number>(0);
+  const [pedalToneStrength, setPedalToneStrength] = useState<number>(0);
+
   // sync state when preset changes
   React.useEffect(() => {
     setBpm(base.bpm);
@@ -86,6 +91,9 @@ export function GeneratorUI({ onGenerate }: { onGenerate: (x: { algorithm: Algor
       spaceAllocatorMinGapSecs: spaceAllocatorMinGapSecs || undefined,
       phrasing: phrasing ?? undefined,
       cadenceStrength: cadenceStrength || undefined,
+      harmonicComplexity: harmonicComplexity || undefined,
+      harmonicRhythmVariance: harmonicRhythmVariance || undefined,
+      pedalToneStrength: pedalToneStrength || undefined,
     };
     onGenerate({ algorithm, params });
   };
@@ -105,6 +113,9 @@ export function GeneratorUI({ onGenerate }: { onGenerate: (x: { algorithm: Algor
       spaceAllocatorMinGapSecs: spaceAllocatorMinGapSecs || undefined,
       phrasing: phrasing ?? undefined,
       cadenceStrength: cadenceStrength || undefined,
+      harmonicComplexity: harmonicComplexity || undefined,
+      harmonicRhythmVariance: harmonicRhythmVariance || undefined,
+      pedalToneStrength: pedalToneStrength || undefined,
     };
     const jittered = { ...baseParams, seed: baseParams.seed + Math.floor(Math.random() * 1000) };
     onGenerate({ algorithm, params: jittered });
@@ -357,16 +368,16 @@ export function GeneratorUI({ onGenerate }: { onGenerate: (x: { algorithm: Algor
                 <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200">Humanization Presets</h3>
                 <div className="flex gap-2 flex-wrap">
                   <button type="button" className="px-3 py-1 text-xs rounded bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600"
-                    onClick={() => { setGrooveTemplate('mpc62'); setHumanizeTimeAmt(0.12); setHumanizeVelAmt(0.2); setLeadChordToneBias(0.4); setAccentMapIntensity(0.35); setBassAnticipation(0.3); setChordVoiceLeadingBias(0.3); setLeadMaxLeapSemitones(9); setSpaceAllocatorMinGapSecs(0.015); setPhrasing('short'); setCadenceStrength(0.7); }}
+                    onClick={() => { setGrooveTemplate('mpc62'); setHumanizeTimeAmt(0.12); setHumanizeVelAmt(0.2); setLeadChordToneBias(0.4); setAccentMapIntensity(0.35); setBassAnticipation(0.3); setChordVoiceLeadingBias(0.3); setLeadMaxLeapSemitones(9); setSpaceAllocatorMinGapSecs(0.015); setPhrasing('short'); setCadenceStrength(0.7); setHarmonicRhythmVariance(0.5); setHarmonicComplexity(0.3); setPedalToneStrength(0.2); }}
                   >EDM</button>
                   <button type="button" className="px-3 py-1 text-xs rounded bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600"
-                    onClick={() => { setGrooveTemplate(undefined); setHumanizeTimeAmt(0.12); setHumanizeVelAmt(0.15); setLeadChordToneBias(0.5); setAccentMapIntensity(0.1); setBassAnticipation(0.2); setChordVoiceLeadingBias(0.7); setLeadMaxLeapSemitones(7); setSpaceAllocatorMinGapSecs(0.02); setPhrasing('long'); setCadenceStrength(0.9); }}
+                    onClick={() => { setGrooveTemplate(undefined); setHumanizeTimeAmt(0.12); setHumanizeVelAmt(0.15); setLeadChordToneBias(0.5); setAccentMapIntensity(0.1); setBassAnticipation(0.2); setChordVoiceLeadingBias(0.7); setLeadMaxLeapSemitones(7); setSpaceAllocatorMinGapSecs(0.02); setPhrasing('long'); setCadenceStrength(0.9); setHarmonicRhythmVariance(0.3); setHarmonicComplexity(0.2); setPedalToneStrength(0.5); }}
                   >Cinematic</button>
                   <button type="button" className="px-3 py-1 text-xs rounded bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600"
-                    onClick={() => { setGrooveTemplate('shuffle'); setHumanizeTimeAmt(0.25); setHumanizeVelAmt(0.3); setLeadChordToneBias(0.35); setAccentMapIntensity(0.4); setBassAnticipation(0.25); setChordVoiceLeadingBias(0.4); setLeadMaxLeapSemitones(7); setSpaceAllocatorMinGapSecs(0.02); setPhrasing('short'); setCadenceStrength(0.6); }}
+                    onClick={() => { setGrooveTemplate('shuffle'); setHumanizeTimeAmt(0.25); setHumanizeVelAmt(0.3); setLeadChordToneBias(0.35); setAccentMapIntensity(0.4); setBassAnticipation(0.25); setChordVoiceLeadingBias(0.4); setLeadMaxLeapSemitones(7); setSpaceAllocatorMinGapSecs(0.02); setPhrasing('short'); setCadenceStrength(0.6); setHarmonicRhythmVariance(0.4); setHarmonicComplexity(0.25); setPedalToneStrength(0.3); }}
                   >Lo‑Fi</button>
                   <button type="button" className="px-3 py-1 text-xs rounded bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600"
-                    onClick={() => { setGrooveTemplate('shuffle'); setHumanizeTimeAmt(0.15); setHumanizeVelAmt(0.2); setLeadChordToneBias(0.5); setAccentMapIntensity(0.2); setBassAnticipation(0.35); setChordVoiceLeadingBias(0.8); setLeadMaxLeapSemitones(9); setSpaceAllocatorMinGapSecs(0.015); setPhrasing('medium'); setCadenceStrength(0.5); }}
+                    onClick={() => { setGrooveTemplate('shuffle'); setHumanizeTimeAmt(0.15); setHumanizeVelAmt(0.2); setLeadChordToneBias(0.5); setAccentMapIntensity(0.2); setBassAnticipation(0.35); setChordVoiceLeadingBias(0.8); setLeadMaxLeapSemitones(9); setSpaceAllocatorMinGapSecs(0.015); setPhrasing('medium'); setCadenceStrength(0.5); setHarmonicRhythmVariance(0.35); setHarmonicComplexity(0.4); setPedalToneStrength(0.2); }}
                   >Jazz</button>
                 </div>
               </div>
@@ -436,6 +447,23 @@ export function GeneratorUI({ onGenerate }: { onGenerate: (x: { algorithm: Algor
                 <div className="space-y-2">
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300" htmlFor="cadenceSlider">Cadence Strength: {cadenceStrength.toFixed(2)}</label>
                   <input id="cadenceSlider" aria-label="cadence-strength" type="range" min="0" max="1" step="0.05" value={cadenceStrength} onChange={e=>setCadenceStrength(Number(e.target.value))} className="w-full" />
+                </div>
+
+                {/* Phase 3: harmonic expansion */}
+                <div className="col-span-2 pt-2">
+                  <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200">Harmony</h3>
+                </div>
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Harmonic Rhythm Variance: {harmonicRhythmVariance.toFixed(2)}</label>
+                  <input type="range" min="0" max="1" step="0.05" value={harmonicRhythmVariance} onChange={e=>setHarmonicRhythmVariance(Number(e.target.value))} className="w-full" />
+                </div>
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Harmonic Complexity (subs): {harmonicComplexity.toFixed(2)}</label>
+                  <input type="range" min="0" max="1" step="0.05" value={harmonicComplexity} onChange={e=>setHarmonicComplexity(Number(e.target.value))} className="w-full" />
+                </div>
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Pedal Tone Strength: {pedalToneStrength.toFixed(2)}</label>
+                  <input type="range" min="0" max="1" step="0.05" value={pedalToneStrength} onChange={e=>setPedalToneStrength(Number(e.target.value))} className="w-full" />
                 </div>
               </div>
             </div>

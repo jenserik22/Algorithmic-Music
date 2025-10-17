@@ -363,6 +363,15 @@ export const EnhancedHelixEngine: Engine = {
       return needsSwing ? applySwing(withGroove, swing) : withGroove;
     };
 
+    // Phase 2 activation (phrasing & cadence)
+    const isPhase2Active = Boolean(params.phrasing || (params.cadenceStrength && params.cadenceStrength > 0));
+    // Phase 3 activation (harmonic expansion)
+    const isPhase3Active = Boolean(
+      (params.harmonicComplexity && params.harmonicComplexity > 0) ||
+      (params.harmonicRhythmVariance && params.harmonicRhythmVariance > 0) ||
+      (params.pedalToneStrength && params.pedalToneStrength > 0)
+    );
+
     const events: NoteEvent[] = [];
     
     // Generate sophisticated motifs based on complexity
@@ -420,6 +429,26 @@ export const EnhancedHelixEngine: Engine = {
         generateFXEvents(events, currentTime, sectionDuration, section, config, {
           rand, roll, humanizeTime, humanizeVelocity, beat
         });
+      }
+
+      // Phase 3: optional pedal tones in low-energy/break sections
+      const pedal = Math.max(0, Math.min(1, params.pedalToneStrength ?? 0));
+      const lowEnergyOrBreak = section.name.toLowerCase().includes('break') || section.energy <= 0.35 || section.name.toLowerCase().includes('ambient');
+      if (pedal > 0 && lowEnergyOrBreak) {
+        // chance scaled by pedal setting and low energy
+        const p = 0.4 * pedal + (section.energy < 0.3 ? 0.2 : 0);
+        if (pedal >= 0.99 || roll(Math.min(0.9, p))) {
+          const pedalPitch = clampPitch(rootC4 + scale[0] - 24, config.register.bass[0], config.register.bass[1]);
+          const pedalTime = finalizeTime(currentTime, 0, config.rhythmPattern.swing, 'bass');
+          const pedalVel = humanizeVelocity(0.35 + section.energy * 0.15);
+          events.push({
+            time: pedalTime,
+            pitch: pedalPitch,
+            duration: sectionDuration,
+            velocity: pedalVel,
+            track: 'bass',
+          });
+        }
       }
       
       currentTime += sectionDuration;
@@ -510,16 +539,20 @@ export const EnhancedHelixEngine: Engine = {
         swing: config.rhythmPattern.swing,
         lfos: makeEnhancedLfos(params),
         versionTag: (
-          params.grooveTemplate ||
-          params.humanizeTime ||
-          params.humanizeVel ||
-          params.leadChordToneBias ||
-          params.accentMapIntensity ||
-          params.bassAnticipation ||
-          params.chordVoiceLeadingBias ||
-          params.leadMaxLeapSemitones ||
-          params.spaceAllocatorMinGapSecs
-        ) ? 'v2-phase1' : 'v2-sortfix',
+          isPhase3Active ? 'v2-phase3' : (
+            (params.phrasing || params.cadenceStrength) ? 'v2-phase2' : (
+              params.grooveTemplate ||
+              params.humanizeTime ||
+              params.humanizeVel ||
+              params.leadChordToneBias ||
+              params.accentMapIntensity ||
+              params.bassAnticipation ||
+              params.chordVoiceLeadingBias ||
+              params.leadMaxLeapSemitones ||
+              params.spaceAllocatorMinGapSecs
+            ) ? 'v2-phase1' : 'v2-sortfix'
+          )
+        ),
       },
     };
     try {
@@ -576,10 +609,17 @@ function generateLeadLine(
   };
   const contour = roll(0.3) ? choose(Object.values(contours)) : null;
   
-    // Precompute bias for strong-beat targeting
-    const chordBiasGlobal = Math.max(0, Math.min(1, params?.leadChordToneBias ?? 0));
+  // Precompute bias for strong-beat targeting
+  const chordBiasGlobal = Math.max(0, Math.min(1, params?.leadChordToneBias ?? 0));
+  // Phase 2: phrasing & cadence settings
+  const cadenceStrength = Math.max(0, Math.min(1, params?.cadenceStrength ?? 0));
+  const phraseBars = params?.phrasing ? (params.phrasing === 'short' ? 2 : 4) : (cadenceStrength > 0 ? 4 : undefined);
+  const phraseLen16 = phraseBars ? phraseBars * 16 : 0;
+  const sectionBars = Math.max(1, Math.floor(duration / (4 * beat)));
+  const phrasesInSection = phraseBars ? Math.max(1, Math.floor(sectionBars / phraseBars)) : 0;
+  const climaxPhraseIndex = phraseBars && phrasesInSection > 0 ? Math.floor(rand() * phrasesInSection) : -1;
 
-    for (let i = 0; i < noteCount; i++) {
+  for (let i = 0; i < noteCount; i++) {
     const time = startTime + i * sixteenth;
     if (time >= startTime + duration) break;
     
@@ -593,12 +633,21 @@ function generateLeadLine(
     let triggerProbability = section.density * section.energy;
     if (isDownbeat) triggerProbability *= 1.5;
     if (isOffbeat) triggerProbability *= 1.2;
+    // Phase 2: create a small breath before cadence by thinning just before last beat of the phrase
+    if (phraseBars) {
+      const idxInPhrase = i % phraseLen16;
+      const inPreCadence = idxInPhrase >= phraseLen16 - 8 && idxInPhrase < phraseLen16 - 4;
+      if (inPreCadence && cadenceStrength > 0) {
+        triggerProbability *= (1 - 0.6 * cadenceStrength);
+      }
+    }
     // If chord-tone bias is requested, slightly boost the chance to place notes on strong beats
     if (chordBiasGlobal > 0 && isStrongBeat) {
       triggerProbability = Math.max(0.9, Math.min(1, triggerProbability + 0.2 * chordBiasGlobal));
     }
     
-    if ((chordBiasGlobal > 0 && isStrongBeat) || roll(triggerProbability)) {
+    const doCadenceNow = phraseBars ? ((i % phraseLen16) === (phraseLen16 - 4) && cadenceStrength > 0) : false;
+    if (doCadenceNow || (chordBiasGlobal > 0 && isStrongBeat) || roll(triggerProbability)) {
       const motifIndex = i % fullMotif.length;
       let degree = fullMotif[motifIndex];
 
@@ -616,7 +665,11 @@ function generateLeadLine(
         degree = chordDef.degree;
       }
       const chordBias = chordBiasGlobal;
-      if (chordBias > 0 && isStrongBeat) {
+      if (doCadenceNow) {
+        // Enforce cadential resolution on phrase end: prefer root or fifth
+        const cadenceDegrees = [chordDef.degree, (chordDef.degree + 4) % 7];
+        degree = choose(cadenceDegrees);
+      } else if (chordBias > 0 && isStrongBeat) {
         const chordToneDegrees = [chordDef.degree, (chordDef.degree + 2) % 7, (chordDef.degree + 4) % 7];
         degree = choose(chordToneDegrees);
       } else if (chordBias > 0 && !isStrongBeat && roll(chordBias * 0.3)) {
@@ -641,15 +694,33 @@ function generateLeadLine(
         // Final clamp just in case
         pitch = clampPitch(pitch, config.register.lead[0], config.register.lead[1]);
       }
+      // Phase 2: motif climax — select one phrase per section to emphasize by register/velocity
+      if (phraseBars) {
+        const curPhrase = Math.floor((i) / phraseLen16);
+        const isClimaxPhrase = curPhrase === climaxPhraseIndex;
+        if (isClimaxPhrase && roll(0.8)) {
+          pitch = clampPitch(pitch + 12, config.register.lead[0], config.register.lead[1]);
+        }
+      }
       
       // Musical note durations
       const durationChoices = [sixteenth, sixteenth * 2, sixteenth * 3, sixteenth * 4];
       const noteDuration = choose(durationChoices);
       
-      const velocity = humanizeVelocity(0.6 + section.energy * 0.3);
+      let velBase = 0.6 + section.energy * 0.3;
+      if (phraseBars) {
+        const curPhrase = Math.floor((i) / phraseLen16);
+        const isClimaxPhrase = curPhrase === climaxPhraseIndex;
+        if (isClimaxPhrase) velBase += 0.08;
+      }
+      if (doCadenceNow) velBase += 0.1; // highlight cadence resolution
+      const velocity = humanizeVelocity(velBase);
       let finalTime = finalizeTime(time, pos16, config.rhythmPattern.swing, 'lead');
       // Pin strong-beat chord-tone notes tightly to the beat to align with chord onset for metrics
       if (chordBiasGlobal > 0 && isStrongBeat) {
+        finalTime = Math.round(finalTime / beat) * beat;
+      }
+      if (doCadenceNow) {
         finalTime = Math.round(finalTime / beat) * beat;
       }
       
@@ -693,9 +764,30 @@ function generateChordProgression(
     let chordDef = config.chordProgression[progressionIndex];
 
     // Probabilistically apply chord substitution (Phase 0 default enabled)
-    if ((params?.enableChordSubstitutions ?? true) && roll(0.15) && CHORD_SUBSTITUTIONS[chordDef.degree]) {
-      const substitutions = CHORD_SUBSTITUTIONS[chordDef.degree];
-      chordDef = choose(substitutions);
+    if ((params?.enableChordSubstitutions ?? true)) {
+      const baseSubP = 0.15;
+      const hc = Math.max(0, Math.min(1, params?.harmonicComplexity ?? 0));
+      const subProb = baseSubP + 0.35 * hc; // increase substitution chance with harmonic complexity
+      if (roll(subProb)) {
+        // Choose from diatonic substitutions, modal interchange, or secondary dominants when complexity is on
+        const candidates: { degree: number; quality: ChordProgression['quality'] }[] = [];
+        if (CHORD_SUBSTITUTIONS[chordDef.degree]) {
+          candidates.push(...CHORD_SUBSTITUTIONS[chordDef.degree]);
+        }
+        if (hc > 0) {
+          // Modal interchange: borrow iv (minor) or bVII (major) depending on current quality context
+          candidates.push({ degree: (chordDef.degree + 4) % 7, quality: 'minor' }); // iv (borrowed)
+          candidates.push({ degree: 6, quality: 'major' }); // bVII (approx in degree mapping)
+          // Secondary dominant of the NEXT chord
+          const nextIdx = Math.floor(((i / 2) + 1) % config.chordProgression.length);
+          const nextChord = config.chordProgression[nextIdx];
+          const secDomDegree = (nextChord.degree + 4) % 7; // V of next
+          candidates.push({ degree: secDomDegree, quality: 'dominant7' });
+        }
+        if (candidates.length > 0) {
+          chordDef = choose(candidates);
+        }
+      }
     }
     
     const chordRoot = rootC4 + scale[chordDef.degree];
@@ -730,8 +822,19 @@ function generateChordProgression(
       chordNotes = chosen.notes;
     }
     
-    // Add some chord rhythm variation
-    const rhythmPattern = roll(0.3) ? [0, beat] : [0]; // Sometimes split chord
+    // Add some chord rhythm variation (Phase 3: harmonicRhythmVariance)
+    let rhythmPattern: number[] = roll(0.3) ? [0, beat] : [0]; // baseline behavior
+    const hrv = Math.max(0, Math.min(1, params?.harmonicRhythmVariance ?? 0));
+    if (hrv > 0 && roll(0.2 + 0.6 * hrv)) {
+      const patterns: number[][] = [
+        [0],                 // hold 2 beats
+        [0, beat],           // split on beat
+        [0, beat * 1.5],     // late accent
+        [0.5 * beat, beat],  // anticipation then beat
+        [0, 0.75 * beat, 1.5 * beat], // syncopated triad hits within 2 beats
+      ];
+      rhythmPattern = choose(patterns);
+    }
     
     for (const rhythmOffset of rhythmPattern) {
       const chordTime = time + rhythmOffset;

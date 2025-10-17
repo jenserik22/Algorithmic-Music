@@ -33,8 +33,8 @@ Phase 2 — Phrasing & Cadence
 - [ ] Motif development A→A′→B→A
 
 Phase 3 — Harmonic Expansion
-- [ ] Style progression generator + substitutions (sec dom, modal)
-- [ ] Harmonic rhythm variation; pedals in breaks
+- [x] Style progression generator + substitutions (sec dom, modal)
+- [x] Harmonic rhythm variation; pedals in breaks
 
 Phase 4 — Inter‑Track Conversation
 - [ ] Call/response slots; bass echoes lead fragments (low p)

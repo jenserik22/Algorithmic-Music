@@ -1,4 +1,4 @@
-# Enhanced Helix — User Guide (Phase 1–2 Settings)
+# Enhanced Helix — User Guide (Phase 1–3 Settings)
 
 This guide explains the new Enhanced Helix settings and provides recommended values to get musical, human‑sounding results quickly. All settings are optional: leaving them unset preserves the original baseline.
 
@@ -53,23 +53,35 @@ This guide explains the new Enhanced Helix settings and provides recommended val
   - Encourages cadential target notes (root/5th) at phrase ends; adds a tiny "breath" before cadence.
   - 0.5–0.9 yields clear musical closures without being too predictable.
 
+- Harmonic Rhythm Variance (0..1)
+  - Varies chord onset timing inside each 2‑beat cell (split beats, anticipations, late hits). 0 keeps baseline.
+  - Use 0.2–0.6 to add movement in pads/comping.
+
+- Harmonic Complexity (0..1)
+  - Adds tasteful chord substitutions (diatonic swaps, light modal interchange, occasional secondary dominants).
+  - Start 0.2–0.4. Higher values add more color; keep moderate for clarity.
+
+- Pedal Tone Strength (0..1)
+  - Adds sustained low bass pedal notes in low‑energy/break/ambient sections.
+  - 1 forces at least one pedal per eligible section; 0.2–0.5 is subtle.
+
 ## Quick recipes (good‑sounding starting points)
 
 - EDM:
   - Groove: mpc62; Time 0.12; Vel 0.20; Lead Chord‑Tone 0.40; Accent 0.35; Bass Ant 0.30; Voice‑Lead 0.30; Max Leap 9; Min Gap 0.015
-  - Phrasing short; Cadence 0.7
+  - Phrasing short; Cadence 0.7; HarmRhythmVar 0.5; HarmComplex 0.3; Pedal 0.2
 
 - Cinematic:
   - Groove: straight; Time 0.12; Vel 0.15; Lead Chord‑Tone 0.50; Accent 0.10; Bass Ant 0.20; Voice‑Lead 0.70; Max Leap 7; Min Gap 0.020
-  - Phrasing long; Cadence 0.9
+  - Phrasing long; Cadence 0.9; HarmRhythmVar 0.3; HarmComplex 0.2; Pedal 0.5
 
 - Lo‑Fi:
   - Groove: shuffle; Time 0.25; Vel 0.30; Lead Chord‑Tone 0.35; Accent 0.40; Bass Ant 0.25; Voice‑Lead 0.40; Max Leap 7; Min Gap 0.020
-  - Phrasing short; Cadence 0.6
+  - Phrasing short; Cadence 0.6; HarmRhythmVar 0.4; HarmComplex 0.25; Pedal 0.3
 
 - Jazz:
   - Groove: shuffle; Time 0.15; Vel 0.20; Lead Chord‑Tone 0.50; Accent 0.20; Bass Ant 0.35; Voice‑Lead 0.80; Max Leap 9; Min Gap 0.015
-  - Phrasing medium; Cadence 0.5
+  - Phrasing medium; Cadence 0.5; HarmRhythmVar 0.35; HarmComplex 0.4; Pedal 0.2
 
 ## Tips for better results
 - Start from a preset, then tweak one control at a time.
@@ -80,4 +92,4 @@ This guide explains the new Enhanced Helix settings and provides recommended val
 
 ## Notes
 - All features are optional and backward‑compatible. With all values off/empty, Enhanced Helix matches the previous baseline.
-- When phrasing/cadence are used, the engine version tag shows `v2-phase2`.
+- When Phase 2 flags are used, the engine version tag shows `v2-phase2`. With any Phase 3 flag, it shows `v2-phase3`.
