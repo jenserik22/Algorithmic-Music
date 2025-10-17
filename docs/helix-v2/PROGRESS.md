@@ -91,3 +91,15 @@ Log
 - UI: Added Harmony controls (rhythm variance, complexity, pedal strength) and preset add‑ons
 - Docs: Updated FLAGS.md with Phase 3; CHECKLIST ticked Phase 3 items
 - Status: All unit tests pass except pre‑existing `appA11y.test.tsx`
+
+## [2025‑10‑17] PHASE 4 COMPLETE
+- Flags: added `callResponseIntensity`, `bassEchoProbability`, `densityGateStrength` (all optional; default neutral)
+- Engine:
+  - Call/response alternation: thins lead on response bars, thins chords on call bars (section‑level schedule)
+  - Bass echo: occasional echo of recent lead fragment in bass register
+  - Density gate: reduces simultaneous onsets across tracks under load
+- Version tag escalates to `v2-phase4` when any Phase 4 flag is used
+- Tests: `enhancedHelix.phase4.test.ts` validates versionTag, bass echo proximity, and alternating density pattern
+- UI: Added Conversation controls (call/response intensity, bass echo probability, density gate)
+- Docs: Updated FLAGS.md (Phase 1–4) with suggested values per style
+- Status: All unit tests pass except pre‑existing `appA11y.test.tsx`

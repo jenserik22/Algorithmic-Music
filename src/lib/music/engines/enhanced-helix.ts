@@ -371,6 +371,12 @@ export const EnhancedHelixEngine: Engine = {
       (params.harmonicRhythmVariance && params.harmonicRhythmVariance > 0) ||
       (params.pedalToneStrength && params.pedalToneStrength > 0)
     );
+    // Phase 4 activation (inter-track conversation)
+    const isPhase4Active = Boolean(
+      (params.callResponseIntensity && params.callResponseIntensity > 0) ||
+      (params.bassEchoProbability && params.bassEchoProbability > 0) ||
+      (params.densityGateStrength && params.densityGateStrength > 0)
+    );
 
     const events: NoteEvent[] = [];
     
@@ -400,22 +406,30 @@ export const EnhancedHelixEngine: Engine = {
       
       if (currentTime + sectionDuration > params.durationSecs) break;
       
+      // Phase 4 call/response schedule (deterministic per section)
+      const crIntensity = Math.max(0, Math.min(1, params.callResponseIntensity ?? 0));
+      const densityGate = Math.max(0, Math.min(1, params.densityGateStrength ?? 0));
+      const responseEven = roll(0.5); // choose even/odd bars as response bars
+
       // Generate events for this section based on included instruments
       if (section.instruments.includes('lead')) {
         generateLeadLine(events, currentTime, sectionDuration, section, config, leadMotif, {
-          rand, roll, humanizeTime, humanizeVelocity, applySwing, scalePitch, beat, sixteenth, choose, finalizeTime, params
+          rand, roll, humanizeTime, humanizeVelocity, applySwing, scalePitch, beat, sixteenth, choose, finalizeTime, params,
+          cr: { intensity: crIntensity, responseEven, densityGate }
         });
       }
       
       if (section.instruments.includes('chords')) {
         generateChordProgression(events, currentTime, sectionDuration, section, config, {
-          rand, roll, humanizeTime, humanizeVelocity, scalePitch, beat, rootC4, scale, choose, finalizeTime, params
+          rand, roll, humanizeTime, humanizeVelocity, scalePitch, beat, rootC4, scale, choose, finalizeTime, params,
+          cr: { intensity: crIntensity, responseEven, densityGate }
         });
       }
       
       if (section.instruments.includes('bass')) {
         generateBassLine(events, currentTime, sectionDuration, section, config, {
-          rand, roll, humanizeTime, humanizeVelocity, scalePitch, beat, sixteenth, choose, finalizeTime, params
+          rand, roll, humanizeTime, humanizeVelocity, scalePitch, beat, sixteenth, choose, finalizeTime, params,
+          cr: { intensity: crIntensity, responseEven, densityGate }
         });
       }
       
@@ -539,7 +553,8 @@ export const EnhancedHelixEngine: Engine = {
         swing: config.rhythmPattern.swing,
         lfos: makeEnhancedLfos(params),
         versionTag: (
-          isPhase3Active ? 'v2-phase3' : (
+          isPhase4Active ? 'v2-phase4' : (
+            isPhase3Active ? 'v2-phase3' : (
             (params.phrasing || params.cadenceStrength) ? 'v2-phase2' : (
               params.grooveTemplate ||
               params.humanizeTime ||
@@ -551,7 +566,7 @@ export const EnhancedHelixEngine: Engine = {
               params.leadMaxLeapSemitones ||
               params.spaceAllocatorMinGapSecs
             ) ? 'v2-phase1' : 'v2-sortfix'
-          )
+          ))
         ),
       },
     };
@@ -590,6 +605,7 @@ function generateLeadLine(
   utils: any
 ) {
   const { rand, roll, humanizeTime, humanizeVelocity, applySwing, scalePitch, beat, sixteenth, choose, finalizeTime, params } = utils;
+  const cr = (utils && utils.cr) ? utils.cr as { intensity?: number; responseEven?: boolean; densityGate?: number } : {};
   const noteCount = Math.floor(duration / sixteenth);
   let lastLeadPitch: number | undefined;
 
@@ -633,6 +649,14 @@ function generateLeadLine(
     let triggerProbability = section.density * section.energy;
     if (isDownbeat) triggerProbability *= 1.5;
     if (isOffbeat) triggerProbability *= 1.2;
+    // Phase 4: call/response — thin lead on designated response bars
+    if ((cr?.intensity ?? 0) > 0) {
+      const barInSection = Math.floor((time - startTime) / (4 * beat));
+      const isResponseBar = ((barInSection % 2 === 0) === Boolean(cr.responseEven));
+      if (isResponseBar) {
+        triggerProbability *= (1 - 0.6 * Math.max(0, Math.min(1, cr.intensity ?? 0)));
+      }
+    }
     // Phase 2: create a small breath before cadence by thinning just before last beat of the phrase
     if (phraseBars) {
       const idxInPhrase = i % phraseLen16;
@@ -731,6 +755,14 @@ function generateLeadLine(
         velocity,
         track: 'lead' as const,
       };
+      // Phase 4: density gate — reduce simultaneous onsets across tracks
+      const gate = Math.max(0, Math.min(1, cr?.densityGate ?? 0));
+      if (gate > 0) {
+        const near = events.reduce((acc, e) => acc + (Math.abs(e.time - finalTime) < sixteenth * 0.25 ? 1 : 0), 0);
+        if (near >= 3 && roll(gate * 0.7)) {
+          continue;
+        }
+      }
       events.push(ev);
       lastLeadPitch = ev.pitch;
     }
@@ -753,6 +785,7 @@ function generateChordProgression(
   utils: any
 ) {
   const { rand, roll, humanizeTime, humanizeVelocity, scalePitch, beat, rootC4, scale, choose, finalizeTime, params } = utils;
+  const cr = (utils && utils.cr) ? utils.cr as { intensity?: number; responseEven?: boolean; densityGate?: number } : {};
   const chordChanges = Math.floor(duration / beat); // One chord per beat potentially
   let lastChordPitches: number[] | undefined;
   
@@ -839,7 +872,25 @@ function generateChordProgression(
     for (const rhythmOffset of rhythmPattern) {
       const chordTime = time + rhythmOffset;
       if (chordTime >= startTime + duration) continue;
+      // Phase 4: call/response — thin chords on CALL bars
+      if ((cr?.intensity ?? 0) > 0) {
+        const barInSection = Math.floor((chordTime - startTime) / (4 * beat));
+        const isResponseBar = ((barInSection % 2 === 0) === Boolean(cr.responseEven));
+        // On call bars (not response), probabilistically skip chord hits
+        if (!isResponseBar && roll(0.4 * Math.max(0, Math.min(1, cr.intensity ?? 0)))) {
+          continue;
+        }
+      }
       
+      // Phase 4: density gate — avoid piling on when many onsets coincide
+      const gate = Math.max(0, Math.min(1, cr?.densityGate ?? 0));
+      if (gate > 0) {
+        const near = events.reduce((acc, e) => acc + (Math.abs(e.time - chordTime) < (beat * 0.125) ? 1 : 0), 0);
+        if (near >= 4 && roll(gate * 0.8)) {
+          continue;
+        }
+      }
+
       for (const note of chordNotes) {
         const clampedPitch = clampPitch(note, config.register.chords[0], config.register.chords[1]);
         const velocity = humanizeVelocity(0.4 + section.energy * 0.2);
@@ -869,6 +920,7 @@ function generateBassLine(
   utils: any
 ) {
   const { rand, roll, humanizeTime, humanizeVelocity, scalePitch, beat, sixteenth, choose, finalizeTime, params } = utils;
+  const cr = (utils && utils.cr) ? utils.cr as { intensity?: number; responseEven?: boolean; densityGate?: number } : {};
   const noteCount = Math.floor(duration / sixteenth);
   
   // Bass follows chord progression root notes
@@ -924,9 +976,19 @@ function generateBassLine(
       const velocity = humanizeVelocity(0.7 + section.energy * 0.2);
       const noteDuration = sixteenth * (roll(0.3) ? 4 : 2); // Vary note lengths
       
+      // Phase 4: density gate — reduce piling on
+      const gate = Math.max(0, Math.min(1, cr?.densityGate ?? 0));
+      const evtTime = finalizeTime(time, beatPosition, config.rhythmPattern.swing, 'bass');
+      if (gate > 0) {
+        const near = events.reduce((acc, e) => acc + (Math.abs(e.time - evtTime) < sixteenth * 0.25 ? 1 : 0), 0);
+        if (near >= 3 && roll(gate * 0.6)) {
+          continue;
+        }
+      }
+
       events.push({
         // Baseline: bass does not get swing
-        time: finalizeTime(time, beatPosition, config.rhythmPattern.swing, 'bass'),
+        time: evtTime,
         pitch,
         duration: noteDuration,
         velocity,
@@ -968,6 +1030,26 @@ function generateBassLine(
             velocity: humanizeVelocity(0.55 + section.energy * 0.2),
             track: 'bass',
           });
+        }
+      }
+
+      // Phase 4: bass echoes recent lead fragments (low probability)
+      const echoProb = Math.max(0, Math.min(1, params?.bassEchoProbability ?? 0));
+      if (echoProb > 0) {
+        // find a recent lead event within last half-beat
+        const recentLead = [...events].reverse().find(e => e.track === 'lead' && e.time <= time && (time - e.time) <= (beat * 0.5));
+        if (recentLead && roll(echoProb)) {
+          const echoTime = Math.min(startTime + duration - sixteenth * 0.5, recentLead.time + sixteenth);
+          if (echoTime >= startTime) {
+            const echoPitch = clampPitch((recentLead.pitch ?? 48) - 12, config.register.bass[0], config.register.bass[1]);
+            events.push({
+              time: finalizeTime(echoTime, Math.floor((echoTime / (beat / 4)) % 16), config.rhythmPattern.swing, 'bass'),
+              pitch: echoPitch,
+              duration: sixteenth * 0.75,
+              velocity: humanizeVelocity(0.45 + section.energy * 0.15),
+              track: 'bass',
+            });
+          }
         }
       }
     }

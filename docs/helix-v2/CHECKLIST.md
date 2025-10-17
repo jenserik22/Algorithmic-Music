@@ -37,8 +37,8 @@ Phase 3 — Harmonic Expansion
 - [x] Harmonic rhythm variation; pedals in breaks
 
 Phase 4 — Inter‑Track Conversation
-- [ ] Call/response slots; bass echoes lead fragments (low p)
-- [ ] Density gating (space allocator 2.0)
+- [x] Call/response slots; bass echoes lead fragments (low p)
+- [x] Density gating (space allocator 2.0)
 
 Phase 5 — Dynamics/Automation/FX
 - [ ] Section envelopes; extended LFO targets; sidechain metadata

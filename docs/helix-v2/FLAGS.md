@@ -1,4 +1,4 @@
-# Enhanced Helix – Phase 1–3 Flags
+# Enhanced Helix – Phase 1–4 Flags
 
 This document summarizes the humanization and musicality flags introduced in Phase 1 and Phase 2. Defaults maintain Phase 0 baseline until a flag is set non‑zero.
 
@@ -21,6 +21,11 @@ Phase 3 (harmonic expansion):
 - harmonicComplexity: 0..1. Bias for chord substitutions (diatonic + modal interchange + light secondary dominants). Baseline substitutions remain when 0.
 - pedalToneStrength: 0..1. Adds sustained low pedal tones in low‑energy or break sections (bass track). 1 forces at least one pedal per eligible section.
 
+Phase 4 (inter‑track conversation):
+- callResponseIntensity: 0..1. Alternation strength between lead (call) and chords (response) across bars.
+- bassEchoProbability: 0..1. Chance the bass will echo a recent lead fragment shortly after.
+- densityGateStrength: 0..1. Reduces simultaneous onsets across tracks to avoid clutter.
+
 Style presets (UI suggestions):
 - EDM: mpc62, 0.12, 0.20, 0.40, 0.35, 0.30, 0.30, 9, 0.015
 - Cinematic: straight, 0.12, 0.15, 0.50, 0.10, 0.20, 0.70, 7, 0.020
@@ -38,3 +43,9 @@ Suggested Phase 3 values:
 - Cinematic: 0.3, 0.2, 0.5
 - Lo‑Fi: 0.4, 0.25, 0.3
 - Jazz: 0.35, 0.4, 0.2
+
+Suggested Phase 4 values:
+- EDM: callResponseIntensity=0.6, bassEchoProbability=0.3, densityGateStrength=0.4
+- Cinematic: 0.4, 0.2, 0.3
+- Lo‑Fi: 0.3, 0.25, 0.2
+- Jazz: 0.5, 0.2, 0.3

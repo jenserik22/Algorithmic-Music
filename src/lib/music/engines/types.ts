@@ -37,6 +37,10 @@ export interface GenerationParams {
   harmonicComplexity?: number; // 0..1 probability/strength for reharmonization (substitutions)
   harmonicRhythmVariance?: number; // 0..1 variation in chord change timing (split/hold)
   pedalToneStrength?: number; // 0..1 likelihood/intensity of low pedal tones in low-energy/break sections
+  // Phase 4 inter-track conversation (default neutral)
+  callResponseIntensity?: number; // 0..1 alternation strength between lead/chords (call vs response)
+  bassEchoProbability?: number; // 0..1 chance bass echoes recent lead fragment
+  densityGateStrength?: number; // 0..1 reduces simultaneous onsets across tracks
 }
 
 export interface NoteEvent {

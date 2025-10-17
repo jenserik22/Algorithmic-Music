@@ -65,6 +65,11 @@ export function GeneratorUI({ onGenerate }: { onGenerate: (x: { algorithm: Algor
   const [harmonicRhythmVariance, setHarmonicRhythmVariance] = useState<number>(0);
   const [pedalToneStrength, setPedalToneStrength] = useState<number>(0);
 
+  // Phase 4 inter-track conversation (Enhanced Helix only)
+  const [callResponseIntensity, setCallResponseIntensity] = useState<number>(0);
+  const [bassEchoProbability, setBassEchoProbability] = useState<number>(0);
+  const [densityGateStrength, setDensityGateStrength] = useState<number>(0);
+
   // sync state when preset changes
   React.useEffect(() => {
     setBpm(base.bpm);
@@ -94,6 +99,9 @@ export function GeneratorUI({ onGenerate }: { onGenerate: (x: { algorithm: Algor
       harmonicComplexity: harmonicComplexity || undefined,
       harmonicRhythmVariance: harmonicRhythmVariance || undefined,
       pedalToneStrength: pedalToneStrength || undefined,
+      callResponseIntensity: callResponseIntensity || undefined,
+      bassEchoProbability: bassEchoProbability || undefined,
+      densityGateStrength: densityGateStrength || undefined,
     };
     onGenerate({ algorithm, params });
   };
@@ -116,6 +124,9 @@ export function GeneratorUI({ onGenerate }: { onGenerate: (x: { algorithm: Algor
       harmonicComplexity: harmonicComplexity || undefined,
       harmonicRhythmVariance: harmonicRhythmVariance || undefined,
       pedalToneStrength: pedalToneStrength || undefined,
+      callResponseIntensity: callResponseIntensity || undefined,
+      bassEchoProbability: bassEchoProbability || undefined,
+      densityGateStrength: densityGateStrength || undefined,
     };
     const jittered = { ...baseParams, seed: baseParams.seed + Math.floor(Math.random() * 1000) };
     onGenerate({ algorithm, params: jittered });
@@ -368,16 +379,16 @@ export function GeneratorUI({ onGenerate }: { onGenerate: (x: { algorithm: Algor
                 <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200">Humanization Presets</h3>
                 <div className="flex gap-2 flex-wrap">
                   <button type="button" className="px-3 py-1 text-xs rounded bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600"
-                    onClick={() => { setGrooveTemplate('mpc62'); setHumanizeTimeAmt(0.12); setHumanizeVelAmt(0.2); setLeadChordToneBias(0.4); setAccentMapIntensity(0.35); setBassAnticipation(0.3); setChordVoiceLeadingBias(0.3); setLeadMaxLeapSemitones(9); setSpaceAllocatorMinGapSecs(0.015); setPhrasing('short'); setCadenceStrength(0.7); setHarmonicRhythmVariance(0.5); setHarmonicComplexity(0.3); setPedalToneStrength(0.2); }}
+                    onClick={() => { setGrooveTemplate('mpc62'); setHumanizeTimeAmt(0.12); setHumanizeVelAmt(0.2); setLeadChordToneBias(0.4); setAccentMapIntensity(0.35); setBassAnticipation(0.3); setChordVoiceLeadingBias(0.3); setLeadMaxLeapSemitones(9); setSpaceAllocatorMinGapSecs(0.015); setPhrasing('short'); setCadenceStrength(0.7); setHarmonicRhythmVariance(0.5); setHarmonicComplexity(0.3); setPedalToneStrength(0.2); setCallResponseIntensity(0.6); setBassEchoProbability(0.3); setDensityGateStrength(0.4); }}
                   >EDM</button>
                   <button type="button" className="px-3 py-1 text-xs rounded bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600"
-                    onClick={() => { setGrooveTemplate(undefined); setHumanizeTimeAmt(0.12); setHumanizeVelAmt(0.15); setLeadChordToneBias(0.5); setAccentMapIntensity(0.1); setBassAnticipation(0.2); setChordVoiceLeadingBias(0.7); setLeadMaxLeapSemitones(7); setSpaceAllocatorMinGapSecs(0.02); setPhrasing('long'); setCadenceStrength(0.9); setHarmonicRhythmVariance(0.3); setHarmonicComplexity(0.2); setPedalToneStrength(0.5); }}
+                    onClick={() => { setGrooveTemplate(undefined); setHumanizeTimeAmt(0.12); setHumanizeVelAmt(0.15); setLeadChordToneBias(0.5); setAccentMapIntensity(0.1); setBassAnticipation(0.2); setChordVoiceLeadingBias(0.7); setLeadMaxLeapSemitones(7); setSpaceAllocatorMinGapSecs(0.02); setPhrasing('long'); setCadenceStrength(0.9); setHarmonicRhythmVariance(0.3); setHarmonicComplexity(0.2); setPedalToneStrength(0.5); setCallResponseIntensity(0.4); setBassEchoProbability(0.2); setDensityGateStrength(0.3); }}
                   >Cinematic</button>
                   <button type="button" className="px-3 py-1 text-xs rounded bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600"
-                    onClick={() => { setGrooveTemplate('shuffle'); setHumanizeTimeAmt(0.25); setHumanizeVelAmt(0.3); setLeadChordToneBias(0.35); setAccentMapIntensity(0.4); setBassAnticipation(0.25); setChordVoiceLeadingBias(0.4); setLeadMaxLeapSemitones(7); setSpaceAllocatorMinGapSecs(0.02); setPhrasing('short'); setCadenceStrength(0.6); setHarmonicRhythmVariance(0.4); setHarmonicComplexity(0.25); setPedalToneStrength(0.3); }}
+                    onClick={() => { setGrooveTemplate('shuffle'); setHumanizeTimeAmt(0.25); setHumanizeVelAmt(0.3); setLeadChordToneBias(0.35); setAccentMapIntensity(0.4); setBassAnticipation(0.25); setChordVoiceLeadingBias(0.4); setLeadMaxLeapSemitones(7); setSpaceAllocatorMinGapSecs(0.02); setPhrasing('short'); setCadenceStrength(0.6); setHarmonicRhythmVariance(0.4); setHarmonicComplexity(0.25); setPedalToneStrength(0.3); setCallResponseIntensity(0.3); setBassEchoProbability(0.25); setDensityGateStrength(0.2); }}
                   >Lo‑Fi</button>
                   <button type="button" className="px-3 py-1 text-xs rounded bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600"
-                    onClick={() => { setGrooveTemplate('shuffle'); setHumanizeTimeAmt(0.15); setHumanizeVelAmt(0.2); setLeadChordToneBias(0.5); setAccentMapIntensity(0.2); setBassAnticipation(0.35); setChordVoiceLeadingBias(0.8); setLeadMaxLeapSemitones(9); setSpaceAllocatorMinGapSecs(0.015); setPhrasing('medium'); setCadenceStrength(0.5); setHarmonicRhythmVariance(0.35); setHarmonicComplexity(0.4); setPedalToneStrength(0.2); }}
+                    onClick={() => { setGrooveTemplate('shuffle'); setHumanizeTimeAmt(0.15); setHumanizeVelAmt(0.2); setLeadChordToneBias(0.5); setAccentMapIntensity(0.2); setBassAnticipation(0.35); setChordVoiceLeadingBias(0.8); setLeadMaxLeapSemitones(9); setSpaceAllocatorMinGapSecs(0.015); setPhrasing('medium'); setCadenceStrength(0.5); setHarmonicRhythmVariance(0.35); setHarmonicComplexity(0.4); setPedalToneStrength(0.2); setCallResponseIntensity(0.5); setBassEchoProbability(0.2); setDensityGateStrength(0.3); }}
                   >Jazz</button>
                 </div>
               </div>
@@ -464,6 +475,23 @@ export function GeneratorUI({ onGenerate }: { onGenerate: (x: { algorithm: Algor
                 <div className="space-y-2">
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Pedal Tone Strength: {pedalToneStrength.toFixed(2)}</label>
                   <input type="range" min="0" max="1" step="0.05" value={pedalToneStrength} onChange={e=>setPedalToneStrength(Number(e.target.value))} className="w-full" />
+                </div>
+
+                {/* Phase 4: inter-track conversation */}
+                <div className="col-span-2 pt-2">
+                  <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200">Conversation</h3>
+                </div>
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Call/Response Intensity: {callResponseIntensity.toFixed(2)}</label>
+                  <input type="range" min="0" max="1" step="0.05" value={callResponseIntensity} onChange={e=>setCallResponseIntensity(Number(e.target.value))} className="w-full" />
+                </div>
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Bass Echo Probability: {bassEchoProbability.toFixed(2)}</label>
+                  <input type="range" min="0" max="1" step="0.05" value={bassEchoProbability} onChange={e=>setBassEchoProbability(Number(e.target.value))} className="w-full" />
+                </div>
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Density Gate Strength: {densityGateStrength.toFixed(2)}</label>
+                  <input type="range" min="0" max="1" step="0.05" value={densityGateStrength} onChange={e=>setDensityGateStrength(Number(e.target.value))} className="w-full" />
                 </div>
               </div>
             </div>
