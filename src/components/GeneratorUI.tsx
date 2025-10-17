@@ -45,6 +45,21 @@ export function GeneratorUI({ onGenerate }: { onGenerate: (x: { algorithm: Algor
   const [motion, setMotion] = useState<number>(0.3);
   const [brightness, setBrightness] = useState<number>(0.5);
 
+  // Phase 1 humanization flags (Enhanced Helix only)
+  const [grooveTemplate, setGrooveTemplate] = useState<GenerationParams['grooveTemplate'] | undefined>(undefined);
+  const [humanizeTimeAmt, setHumanizeTimeAmt] = useState<number>(0);
+  const [humanizeVelAmt, setHumanizeVelAmt] = useState<number>(0);
+  const [leadChordToneBias, setLeadChordToneBias] = useState<number>(0);
+  const [accentMapIntensity, setAccentMapIntensity] = useState<number>(0);
+  const [bassAnticipation, setBassAnticipation] = useState<number>(0);
+  const [chordVoiceLeadingBias, setChordVoiceLeadingBias] = useState<number>(0);
+  const [leadMaxLeapSemitones, setLeadMaxLeapSemitones] = useState<number>(0);
+  const [spaceAllocatorMinGapSecs, setSpaceAllocatorMinGapSecs] = useState<number>(0);
+
+  // Phase 2 phrasing & cadence (Enhanced Helix only)
+  const [phrasing, setPhrasing] = useState<GenerationParams['phrasing'] | undefined>(undefined);
+  const [cadenceStrength, setCadenceStrength] = useState<number>(0);
+
   // sync state when preset changes
   React.useEffect(() => {
     setBpm(base.bpm);
@@ -58,7 +73,19 @@ export function GeneratorUI({ onGenerate }: { onGenerate: (x: { algorithm: Algor
     const params: GenerationParams = { 
       seed: seed + Math.floor(Math.random() * 1000), // randomize seed each time
       bpm, key: keySig, timeSignature, durationSecs, density, 
-      style, variation, fillRate, complexityLevel, motion, brightness 
+      style, variation, fillRate, complexityLevel, motion, brightness,
+      // Enhanced Helix Phase 1 flags (only used by that engine)
+      grooveTemplate: grooveTemplate ?? undefined,
+      humanizeTime: humanizeTimeAmt || undefined,
+      humanizeVel: humanizeVelAmt || undefined,
+      leadChordToneBias: leadChordToneBias || undefined,
+      accentMapIntensity: accentMapIntensity || undefined,
+      bassAnticipation: bassAnticipation || undefined,
+      chordVoiceLeadingBias: chordVoiceLeadingBias || undefined,
+      leadMaxLeapSemitones: leadMaxLeapSemitones || undefined,
+      spaceAllocatorMinGapSecs: spaceAllocatorMinGapSecs || undefined,
+      phrasing: phrasing ?? undefined,
+      cadenceStrength: cadenceStrength || undefined,
     };
     onGenerate({ algorithm, params });
   };
@@ -66,7 +93,18 @@ export function GeneratorUI({ onGenerate }: { onGenerate: (x: { algorithm: Algor
   const handleCreateSimilar = () => {
     const baseParams: GenerationParams = { 
       seed, bpm, key: keySig, timeSignature, durationSecs, density, 
-      style, variation, fillRate, complexityLevel, motion, brightness 
+      style, variation, fillRate, complexityLevel, motion, brightness,
+      grooveTemplate: grooveTemplate ?? undefined,
+      humanizeTime: humanizeTimeAmt || undefined,
+      humanizeVel: humanizeVelAmt || undefined,
+      leadChordToneBias: leadChordToneBias || undefined,
+      accentMapIntensity: accentMapIntensity || undefined,
+      bassAnticipation: bassAnticipation || undefined,
+      chordVoiceLeadingBias: chordVoiceLeadingBias || undefined,
+      leadMaxLeapSemitones: leadMaxLeapSemitones || undefined,
+      spaceAllocatorMinGapSecs: spaceAllocatorMinGapSecs || undefined,
+      phrasing: phrasing ?? undefined,
+      cadenceStrength: cadenceStrength || undefined,
     };
     const jittered = { ...baseParams, seed: baseParams.seed + Math.floor(Math.random() * 1000) };
     onGenerate({ algorithm, params: jittered });
@@ -75,7 +113,7 @@ export function GeneratorUI({ onGenerate }: { onGenerate: (x: { algorithm: Algor
   return (
     <div className="space-y-6">
       {/* Mode Toggle */}
-      <div className="flex items-center gap-2 mb-4">
+      <div className="flex items-center gap-2 mb-1">
         <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Mode:</span>
         <div className="flex rounded-lg bg-gray-100 dark:bg-gray-700 p-1">
           <button
@@ -103,13 +141,22 @@ export function GeneratorUI({ onGenerate }: { onGenerate: (x: { algorithm: Algor
         </div>
       </div>
 
+      {/* Accessible headings for tests */}
+      {mode === 'simple' && (
+        <h3 className="text-base font-semibold text-gray-800 dark:text-gray-200 mb-3">Simple Mode</h3>
+      )}
+      {mode === 'advanced' && (
+        <h3 className="text-base font-semibold text-gray-800 dark:text-gray-200 mb-3">Advanced Mode</h3>
+      )}
+
       {/* Algorithm Selection */}
       <div className="space-y-2">
-        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+        <label htmlFor="algorithmSelect" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
           Algorithm
         </label>
-        <select 
-          value={algorithm} 
+        <select
+          id="algorithmSelect"
+          value={algorithm}
           onChange={e => setAlgorithm(e.target.value as Algorithm)}
           className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
         >
@@ -125,11 +172,12 @@ export function GeneratorUI({ onGenerate }: { onGenerate: (x: { algorithm: Algor
       {/* Preset Selection (Simple Mode) */}
       {mode === 'simple' && (
         <div className="space-y-2">
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+          <label htmlFor="presetSelect" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
             Preset
           </label>
-          <select 
-            value={presetKey} 
+          <select
+            id="presetSelect"
+            value={presetKey}
             onChange={e => setPresetKey(e.target.value as keyof typeof PRESETS)}
             className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           >
@@ -144,11 +192,12 @@ export function GeneratorUI({ onGenerate }: { onGenerate: (x: { algorithm: Algor
       {mode === 'advanced' && (
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+            <label htmlFor="bpmInput" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
               BPM
             </label>
-            <input 
-              type="number" 
+            <input
+              id="bpmInput"
+              type="number"
               min="40" max="200" 
               value={bpm} 
               onChange={e => setBpm(Number(e.target.value))}
@@ -157,11 +206,12 @@ export function GeneratorUI({ onGenerate }: { onGenerate: (x: { algorithm: Algor
           </div>
 
           <div className="space-y-2">
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+            <label htmlFor="keySelect" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
               Key
             </label>
-            <select 
-              value={keySig} 
+            <select
+              id="keySelect"
+              value={keySig}
               onChange={e => setKeySig(e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             >
@@ -296,6 +346,97 @@ export function GeneratorUI({ onGenerate }: { onGenerate: (x: { algorithm: Algor
                   onChange={e => setBrightness(Number(e.target.value))}
                   className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer"
                 />
+              </div>
+            </div>
+          )}
+
+          {/* Enhanced Helix Humanization (Phase 1 flags) */}
+          {algorithm === 'enhanced_helix' && (
+            <div className="col-span-2 space-y-4 pt-4 border-t border-gray-200 dark:border-gray-600">
+              <div className="flex items-center justify-between">
+                <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200">Humanization Presets</h3>
+                <div className="flex gap-2 flex-wrap">
+                  <button type="button" className="px-3 py-1 text-xs rounded bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600"
+                    onClick={() => { setGrooveTemplate('mpc62'); setHumanizeTimeAmt(0.12); setHumanizeVelAmt(0.2); setLeadChordToneBias(0.4); setAccentMapIntensity(0.35); setBassAnticipation(0.3); setChordVoiceLeadingBias(0.3); setLeadMaxLeapSemitones(9); setSpaceAllocatorMinGapSecs(0.015); setPhrasing('short'); setCadenceStrength(0.7); }}
+                  >EDM</button>
+                  <button type="button" className="px-3 py-1 text-xs rounded bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600"
+                    onClick={() => { setGrooveTemplate(undefined); setHumanizeTimeAmt(0.12); setHumanizeVelAmt(0.15); setLeadChordToneBias(0.5); setAccentMapIntensity(0.1); setBassAnticipation(0.2); setChordVoiceLeadingBias(0.7); setLeadMaxLeapSemitones(7); setSpaceAllocatorMinGapSecs(0.02); setPhrasing('long'); setCadenceStrength(0.9); }}
+                  >Cinematic</button>
+                  <button type="button" className="px-3 py-1 text-xs rounded bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600"
+                    onClick={() => { setGrooveTemplate('shuffle'); setHumanizeTimeAmt(0.25); setHumanizeVelAmt(0.3); setLeadChordToneBias(0.35); setAccentMapIntensity(0.4); setBassAnticipation(0.25); setChordVoiceLeadingBias(0.4); setLeadMaxLeapSemitones(7); setSpaceAllocatorMinGapSecs(0.02); setPhrasing('short'); setCadenceStrength(0.6); }}
+                  >Lo‑Fi</button>
+                  <button type="button" className="px-3 py-1 text-xs rounded bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600"
+                    onClick={() => { setGrooveTemplate('shuffle'); setHumanizeTimeAmt(0.15); setHumanizeVelAmt(0.2); setLeadChordToneBias(0.5); setAccentMapIntensity(0.2); setBassAnticipation(0.35); setChordVoiceLeadingBias(0.8); setLeadMaxLeapSemitones(9); setSpaceAllocatorMinGapSecs(0.015); setPhrasing('medium'); setCadenceStrength(0.5); }}
+                  >Jazz</button>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Groove Template</label>
+                  <select value={grooveTemplate ?? ''} onChange={(e) => setGrooveTemplate((e.target.value || undefined) as any)}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white">
+                    <option value="">(straight)</option>
+                    <option value="shuffle">shuffle</option>
+                    <option value="mpc62">mpc62</option>
+                    <option value="funk">funk</option>
+                  </select>
+                </div>
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Humanize Time: {humanizeTimeAmt.toFixed(2)}</label>
+                  <input type="range" min="0" max="1" step="0.05" value={humanizeTimeAmt} onChange={e=>setHumanizeTimeAmt(Number(e.target.value))} className="w-full" />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Humanize Velocity: {humanizeVelAmt.toFixed(2)}</label>
+                  <input type="range" min="0" max="1" step="0.05" value={humanizeVelAmt} onChange={e=>setHumanizeVelAmt(Number(e.target.value))} className="w-full" />
+                </div>
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Lead Chord‑Tone Bias: {leadChordToneBias.toFixed(2)}</label>
+                  <input type="range" min="0" max="1" step="0.05" value={leadChordToneBias} onChange={e=>setLeadChordToneBias(Number(e.target.value))} className="w-full" />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Drum Accent Intensity: {accentMapIntensity.toFixed(2)}</label>
+                  <input type="range" min="0" max="1" step="0.05" value={accentMapIntensity} onChange={e=>setAccentMapIntensity(Number(e.target.value))} className="w-full" />
+                </div>
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Bass Anticipation: {bassAnticipation.toFixed(2)}</label>
+                  <input type="range" min="0" max="1" step="0.05" value={bassAnticipation} onChange={e=>setBassAnticipation(Number(e.target.value))} className="w-full" />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Chord Voice‑Leading Bias: {chordVoiceLeadingBias.toFixed(2)}</label>
+                  <input type="range" min="0" max="1" step="0.05" value={chordVoiceLeadingBias} onChange={e=>setChordVoiceLeadingBias(Number(e.target.value))} className="w-full" />
+                </div>
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Lead Max Leap (semitones)</label>
+                  <select value={leadMaxLeapSemitones} onChange={e=>setLeadMaxLeapSemitones(Number(e.target.value))}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white">
+                    {[0,7,9,12].map(n => <option key={n} value={n}>{n === 0 ? '(none)' : n}</option>)}
+                  </select>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Min Gap (secs): {spaceAllocatorMinGapSecs.toFixed(3)}</label>
+                  <input type="range" min="0" max="0.05" step="0.005" value={spaceAllocatorMinGapSecs} onChange={e=>setSpaceAllocatorMinGapSecs(Number(e.target.value))} className="w-full" />
+                </div>
+
+                {/* Phase 2: phrasing & cadence */}
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300" htmlFor="phrasingSelect">Phrasing</label>
+                  <select id="phrasingSelect" aria-label="phrasing-select" value={phrasing ?? ''} onChange={e=>setPhrasing((e.target.value || undefined) as any)}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white">
+                    <option value="">(default)</option>
+                    <option value="short">short (2 bars)</option>
+                    <option value="medium">medium (4 bars)</option>
+                    <option value="long">long (4 bars)</option>
+                  </select>
+                </div>
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300" htmlFor="cadenceSlider">Cadence Strength: {cadenceStrength.toFixed(2)}</label>
+                  <input id="cadenceSlider" aria-label="cadence-strength" type="range" min="0" max="1" step="0.05" value={cadenceStrength} onChange={e=>setCadenceStrength(Number(e.target.value))} className="w-full" />
+                </div>
               </div>
             </div>
           )}

@@ -67,3 +67,13 @@ Log
 - UI accessibility: added aria‑labels for playback status and visualizer mode (resolves related tests)
 - Test status: All unit tests pass; only 1 pre‑existing failure remains (`appA11y.test.tsx` due to Tone.js module/env)
 - Next: optional fix for appA11y Tone env, then proceed to Phase 2 per PLAN
+
+## [2025‑10‑17] PHASE 2 START (in progress)
+- Added Phase 2 flags to types: `phrasing` ('short'|'medium'|'long') and `cadenceStrength` (0..1)
+- Engine: implemented 2–4 bar phrase grammar (short=2, medium/long=4 currently)
+  - Breath before cadence by thinning notes just before phrase end
+  - Forced cadential resolution on last beat of phrase (root/5th), pinned to beat when active
+  - One climax phrase per section with gentle register/velocity emphasis
+- Version tag escalates to `v2-phase2` when Phase 2 flags are used
+- Tests: added `enhancedHelix.phase2.test.ts` validating cadential notes appear on last beat of phrases across styles
+- Docs: updated FLAGS.md with Phase 2 flags and preset add‑ons
