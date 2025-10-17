@@ -83,6 +83,17 @@ export const SpectrumAnalyzer: React.FC<SpectrumAnalyzerProps> = ({
     };
   }, [isPlaying, smoothing]);
 
+  // Keep native analyser smoothing in sync when available
+  useEffect(() => {
+    const native = AnalysisBus.getNative();
+    if (native) {
+      try {
+        native.fft.smoothingTimeConstant = smoothing;
+        native.waveform.smoothingTimeConstant = 0.2;
+      } catch { /* noop */ }
+    }
+  }, [smoothing, isPlaying]);
+
   // Get color scheme based on theme
   const getColorScheme = useCallback(() => {
     if (colorTheme === 'auto') {
@@ -290,7 +301,7 @@ export const SpectrumAnalyzer: React.FC<SpectrumAnalyzerProps> = ({
       const ctx = canvas.getContext('2d');
       if (!ctx) return;
       
-      const native = nativeAnalyzersRef.current;
+      const native = AnalysisBus.getNative();
       if (native) {
         // Use native analyzers from non-Tone engines
         if (mode === 'waveform') {

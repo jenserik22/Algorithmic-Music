@@ -18,8 +18,13 @@ class AnalysisBusImpl {
   // This will create analyser nodes and connect the output node into them (fan‑out).
   registerNative(ctx: AudioContext, outputNode: AudioNode) {
     try {
-      // Create or reuse
-      if (!this.native) {
+      // If context changed, rebuild analyzers
+      if (!this.native || this.native.ctx !== ctx) {
+        // cleanup previous
+        if (this.native) {
+          try { this.native.fft.disconnect(); } catch {}
+          try { this.native.waveform.disconnect(); } catch {}
+        }
         const fft = ctx.createAnalyser();
         fft.fftSize = 1024; // 512 bins from getFloatFrequencyData
         fft.smoothingTimeConstant = 0.8;

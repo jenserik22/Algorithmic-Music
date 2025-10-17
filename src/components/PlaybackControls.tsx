@@ -100,15 +100,21 @@ export function PlaybackControls({ output, autoPlayToken, onPlaybackStateChange 
         }
       });
     // After starting playback, ensure AnalysisBus is wired for current engine
-    try {
-      if (engine === 'tone') {
-        AnalysisBus.clearNative();
-      } else if (engine === 'sf' || engine === 'sf2') {
-        const ctx: AudioContext | null = (playerRef.current as any)?.getAudioContext?.() ?? null;
-        const node: AudioNode | null = (playerRef.current as any)?.getOutputNode?.() ?? null;
-        if (ctx && node) AnalysisBus.registerNative(ctx, node);
-      }
-    } catch { /* ignore */ }
+    const wireAnalysis = () => {
+      try {
+        if (engine === 'tone') {
+          AnalysisBus.clearNative();
+        } else if (engine === 'sf' || engine === 'sf2') {
+          const ctx: AudioContext | null = (playerRef.current as any)?.getAudioContext?.() ?? null;
+          const node: AudioNode | null = (playerRef.current as any)?.getOutputNode?.() ?? null;
+          if (ctx && node) AnalysisBus.registerNative(ctx, node);
+        }
+      } catch { /* ignore */ }
+    };
+    // Try immediately and also shortly after to catch async context init
+    wireAnalysis();
+    setTimeout(wireAnalysis, 100);
+    setTimeout(wireAnalysis, 500);
   };
   const onPause = () => { 
     playerRef.current?.pause?.(); 
@@ -130,7 +136,7 @@ export function PlaybackControls({ output, autoPlayToken, onPlaybackStateChange 
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-2">
-        <div className={`text-sm font-medium px-3 py-1 rounded-full flex items-center gap-2 ${
+        <div aria-label="playback-status" className={`text-sm font-medium px-3 py-1 rounded-full flex items-center gap-2 ${
           status === 'playing' ? 'bg-green-100 text-green-800 dark:bg-green-800 dark:text-green-100' :
           status === 'paused' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-800 dark:text-yellow-100' :
           'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-100'
