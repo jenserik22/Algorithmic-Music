@@ -1,4 +1,4 @@
-# Enhanced Helix – Phase 1–4 Flags
+# Enhanced Helix – Phase 1–5 Flags
 
 This document summarizes the humanization and musicality flags introduced in Phase 1 and Phase 2. Defaults maintain Phase 0 baseline until a flag is set non‑zero.
 
@@ -26,6 +26,13 @@ Phase 4 (inter‑track conversation):
 - bassEchoProbability: 0..1. Chance the bass will echo a recent lead fragment shortly after.
 - densityGateStrength: 0..1. Reduces simultaneous onsets across tracks to avoid clutter.
 
+Phase 5 (dynamics/automation/FX):
+- dynamicsShape: 'flat' | 'rise' | 'fall' | 'swell'. Section envelope shaping across each section.
+- dynamicsStrength: 0..1. Scales velocity and note length by the section envelope.
+- registerLiftStrength: 0..1. Gently lifts lead register near section climaxes (when applicable).
+- extendedLfoTargets: 0..1. Adds extra LFO targets (e.g., master.width, lead.vibrato, chords.filterRes).
+- sidechainStrength: 0..1. Emits sidechain pulses metadata (kick onsets) and applies mild ducking to chords/bass near kicks.
+
 Style presets (UI suggestions):
 - EDM: mpc62, 0.12, 0.20, 0.40, 0.35, 0.30, 0.30, 9, 0.015
 - Cinematic: straight, 0.12, 0.15, 0.50, 0.10, 0.20, 0.70, 7, 0.020
@@ -49,3 +56,9 @@ Suggested Phase 4 values:
 - Cinematic: 0.4, 0.2, 0.3
 - Lo‑Fi: 0.3, 0.25, 0.2
 - Jazz: 0.5, 0.2, 0.3
+
+Suggested Phase 5 values:
+- EDM: dynamicsShape='swell', dynamicsStrength=0.6, registerLiftStrength=0.2, extendedLfoTargets=0.4, sidechainStrength=0.6
+- Cinematic: dynamicsShape='rise', dynamicsStrength=0.4, registerLiftStrength=0.3, extendedLfoTargets=0.3, sidechainStrength=0.2
+- Lo‑Fi: dynamicsShape='fall', dynamicsStrength=0.3, registerLiftStrength=0.1, extendedLfoTargets=0.3, sidechainStrength=0.2
+- Jazz: dynamicsShape='swell', dynamicsStrength=0.3, registerLiftStrength=0.2, extendedLfoTargets=0.2, sidechainStrength=0.2

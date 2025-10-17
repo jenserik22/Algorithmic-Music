@@ -41,6 +41,12 @@ export interface GenerationParams {
   callResponseIntensity?: number; // 0..1 alternation strength between lead/chords (call vs response)
   bassEchoProbability?: number; // 0..1 chance bass echoes recent lead fragment
   densityGateStrength?: number; // 0..1 reduces simultaneous onsets across tracks
+  // Phase 5 dynamics & automation (default neutral)
+  dynamicsShape?: 'flat' | 'rise' | 'fall' | 'swell'; // section envelope shape
+  dynamicsStrength?: number; // 0..1 scales velocity and note length by section envelope
+  registerLiftStrength?: number; // 0..1 gentle register lift near section climaxes (lead focus)
+  extendedLfoTargets?: number; // 0..1 adds extra LFO targets in meta when > 0
+  sidechainStrength?: number; // 0..1 emits sidechain pulses metadata and optional mild ducking
 }
 
 export interface NoteEvent {
@@ -60,6 +66,7 @@ export interface EngineOutput {
     style?: string;
     variation?: number;
     lfos?: LfoSpec[];
+    sidechain?: { pulses: number[]; strength?: number };
     versionTag?: string;
   };
 }

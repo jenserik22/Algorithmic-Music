@@ -70,6 +70,13 @@ export function GeneratorUI({ onGenerate }: { onGenerate: (x: { algorithm: Algor
   const [bassEchoProbability, setBassEchoProbability] = useState<number>(0);
   const [densityGateStrength, setDensityGateStrength] = useState<number>(0);
 
+  // Phase 5 dynamics & automation (Enhanced Helix only)
+  const [dynamicsShape, setDynamicsShape] = useState<GenerationParams['dynamicsShape'] | undefined>(undefined);
+  const [dynamicsStrength, setDynamicsStrength] = useState<number>(0);
+  const [registerLiftStrength, setRegisterLiftStrength] = useState<number>(0);
+  const [extendedLfoTargets, setExtendedLfoTargets] = useState<number>(0);
+  const [sidechainStrength, setSidechainStrength] = useState<number>(0);
+
   // sync state when preset changes
   React.useEffect(() => {
     setBpm(base.bpm);
@@ -102,6 +109,11 @@ export function GeneratorUI({ onGenerate }: { onGenerate: (x: { algorithm: Algor
       callResponseIntensity: callResponseIntensity || undefined,
       bassEchoProbability: bassEchoProbability || undefined,
       densityGateStrength: densityGateStrength || undefined,
+      dynamicsShape: dynamicsShape ?? undefined,
+      dynamicsStrength: dynamicsStrength || undefined,
+      registerLiftStrength: registerLiftStrength || undefined,
+      extendedLfoTargets: extendedLfoTargets || undefined,
+      sidechainStrength: sidechainStrength || undefined,
     };
     onGenerate({ algorithm, params });
   };
@@ -127,6 +139,11 @@ export function GeneratorUI({ onGenerate }: { onGenerate: (x: { algorithm: Algor
       callResponseIntensity: callResponseIntensity || undefined,
       bassEchoProbability: bassEchoProbability || undefined,
       densityGateStrength: densityGateStrength || undefined,
+      dynamicsShape: dynamicsShape ?? undefined,
+      dynamicsStrength: dynamicsStrength || undefined,
+      registerLiftStrength: registerLiftStrength || undefined,
+      extendedLfoTargets: extendedLfoTargets || undefined,
+      sidechainStrength: sidechainStrength || undefined,
     };
     const jittered = { ...baseParams, seed: baseParams.seed + Math.floor(Math.random() * 1000) };
     onGenerate({ algorithm, params: jittered });
@@ -492,6 +509,37 @@ export function GeneratorUI({ onGenerate }: { onGenerate: (x: { algorithm: Algor
                 <div className="space-y-2">
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Density Gate Strength: {densityGateStrength.toFixed(2)}</label>
                   <input type="range" min="0" max="1" step="0.05" value={densityGateStrength} onChange={e=>setDensityGateStrength(Number(e.target.value))} className="w-full" />
+                </div>
+
+                {/* Phase 5: Dynamics & FX */}
+                <div className="col-span-2 pt-2">
+                  <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200">Dynamics & FX</h3>
+                </div>
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Dynamics Shape</label>
+                  <select value={dynamicsShape ?? ''} onChange={(e)=>setDynamicsShape((e.target.value || undefined) as any)}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white">
+                    <option value="">(flat)</option>
+                    <option value="rise">rise</option>
+                    <option value="fall">fall</option>
+                    <option value="swell">swell</option>
+                  </select>
+                </div>
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Dynamics Strength: {dynamicsStrength.toFixed(2)}</label>
+                  <input type="range" min="0" max="1" step="0.05" value={dynamicsStrength} onChange={e=>setDynamicsStrength(Number(e.target.value))} className="w-full" />
+                </div>
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Register Lift (lead): {registerLiftStrength.toFixed(2)}</label>
+                  <input type="range" min="0" max="1" step="0.05" value={registerLiftStrength} onChange={e=>setRegisterLiftStrength(Number(e.target.value))} className="w-full" />
+                </div>
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Extended LFO Targets: {extendedLfoTargets.toFixed(2)}</label>
+                  <input type="range" min="0" max="1" step="0.05" value={extendedLfoTargets} onChange={e=>setExtendedLfoTargets(Number(e.target.value))} className="w-full" />
+                </div>
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Sidechain Strength: {sidechainStrength.toFixed(2)}</label>
+                  <input type="range" min="0" max="1" step="0.05" value={sidechainStrength} onChange={e=>setSidechainStrength(Number(e.target.value))} className="w-full" />
                 </div>
               </div>
             </div>

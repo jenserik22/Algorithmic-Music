@@ -188,8 +188,9 @@ function clampPitch(p: number, lo = 36, hi = 84) {
 function makeEnhancedLfos(params: GenerationParams): LfoSpec[] | undefined {
   const motion = Math.max(0, Math.min(1, params.motion ?? 0));
   const brightness = Math.max(0, Math.min(1, params.brightness ?? 0.5));
+  const extra = Math.max(0, Math.min(1, params.extendedLfoTargets ?? 0));
   
-  if (motion <= 0.01 && brightness <= 0.1) return undefined;
+  if (motion <= 0.01 && brightness <= 0.1 && extra <= 0) return undefined;
   
   const lfos: LfoSpec[] = [];
   
@@ -259,6 +260,34 @@ function makeEnhancedLfos(params: GenerationParams): LfoSpec[] | undefined {
     });
   }
   
+  // Phase 5: extended LFO targets when requested
+  if (extra > 0) {
+    lfos.push({
+      target: 'master.width',
+      rate: '4m',
+      depth: 0.5 * extra,
+      min: 0.5,
+      max: 1.0,
+      shape: 'sine',
+    });
+    lfos.push({
+      target: 'track:lead.vibrato',
+      rate: '2n',
+      depth: 0.75 * extra,
+      min: 0,
+      max: 0.6,
+      shape: 'sine',
+    });
+    lfos.push({
+      target: 'track:chords.filterRes',
+      rate: '2m',
+      depth: 0.4 * extra,
+      min: 0.1,
+      max: 1.2,
+      shape: 'triangle',
+    });
+  }
+
   return lfos.length > 0 ? lfos : undefined;
 }
 
@@ -399,13 +428,16 @@ export const EnhancedHelixEngine: Engine = {
     
     let currentTime = 0;
     let sectionStartBar = 0;
+    const sectionTimeline: Array<{ start: number; duration: number; energy: number; name: string }> = [];
     
     for (const section of config.sections) {
       const sectionBars = Math.max(1, Math.floor(section.bars * scaleFactor));
       const sectionDuration = sectionBars * 4 * beat;
       
       if (currentTime + sectionDuration > params.durationSecs) break;
-      
+      // Record section timeline for Phase 5 envelopes
+      sectionTimeline.push({ start: currentTime, duration: sectionDuration, energy: section.energy, name: section.name });
+
       // Phase 4 call/response schedule (deterministic per section)
       const crIntensity = Math.max(0, Math.min(1, params.callResponseIntensity ?? 0));
       const densityGate = Math.max(0, Math.min(1, params.densityGateStrength ?? 0));
@@ -543,6 +575,65 @@ export const EnhancedHelixEngine: Engine = {
       }
     }
 
+    // Phase 5: Dynamics/Automation — section envelopes and sidechain metadata
+    const dynShape = params.dynamicsShape ?? 'flat';
+    const dynStr = Math.max(0, Math.min(1, params.dynamicsStrength ?? 0));
+    const regLift = Math.max(0, Math.min(1, params.registerLiftStrength ?? 0));
+    const scStrength = Math.max(0, Math.min(1, params.sidechainStrength ?? 0));
+
+    const applyEnv = (x01: number) => {
+      switch (dynShape) {
+        case 'rise':
+          return 1 + (x01 - 0.5) * 0.4 * dynStr; // -0.2..+0.2 range
+        case 'fall':
+          return 1 + ((0.5 - x01)) * 0.4 * dynStr;
+        case 'swell': {
+          const s = Math.sin(Math.PI * x01); // 0..1..0
+          return 1 + s * 0.25 * dynStr; // up to +0.25 at center
+        }
+        case 'flat':
+        default:
+          return 1;
+      }
+    };
+
+    if (dynStr > 0 || regLift > 0 || scStrength > 0) {
+      // Build quick index of section by time
+      const findSection = (t: number) => sectionTimeline.find(s => t >= s.start && t < s.start + s.duration) ?? sectionTimeline[sectionTimeline.length - 1];
+      // Collect kick pulses for sidechain metadata
+      const kickTimes = events.filter(e => e.track === 'drums' && e.pitch === 36).map(e => e.time);
+      const beatDur = beat;
+      for (const e of events) {
+        // Section envelope for velocity and note length
+        if (dynStr > 0) {
+          const sec = findSection(e.time);
+          const x = Math.max(0, Math.min(1, (e.time - sec.start) / Math.max(0.0001, sec.duration)));
+          const f = applyEnv(x);
+          e.velocity = Math.max(0.1, Math.min(1, e.velocity * f));
+          // Note length scaling a bit milder
+          e.duration = Math.max(0.02, e.duration * (1 + (f - 1) * 0.6));
+        }
+        // Gentle register lift near climax on lead
+        if (regLift > 0 && e.track === 'lead') {
+          const sec = findSection(e.time);
+          const x = Math.max(0, Math.min(1, (e.time - sec.start) / Math.max(0.0001, sec.duration)));
+          // Emphasize later/center depending on shape
+          const liftBias = dynShape === 'rise' ? x : dynShape === 'swell' ? Math.sin(Math.PI * x) : 0;
+          if (liftBias > 0.8 && (rand() < regLift * 0.5)) {
+            e.pitch = clampPitch(e.pitch + 12, ENHANCED_TEMPLATES[style].register.lead[0], ENHANCED_TEMPLATES[style].register.lead[1]);
+          }
+        }
+        // Optional mild ducking for chords/bass near kick pulses
+        if (scStrength > 0 && (e.track === 'chords' || e.track === 'bass')) {
+          // nearest kick within ~1/8 note
+          const near = kickTimes.find(tk => Math.abs(tk - e.time) <= beatDur * 0.125);
+          if (near != null) {
+            e.velocity = Math.max(0.1, e.velocity * (1 - 0.35 * scStrength));
+          }
+        }
+      }
+    }
+
     const output: EngineOutput = {
       events,
       meta: {
@@ -552,21 +643,24 @@ export const EnhancedHelixEngine: Engine = {
         variation: params.variation,
         swing: config.rhythmPattern.swing,
         lfos: makeEnhancedLfos(params),
+        sidechain: (scStrength > 0) ? { pulses: events.filter(e => e.track === 'drums' && e.pitch === 36).map(e => e.time), strength: scStrength } : undefined,
         versionTag: (
-          isPhase4Active ? 'v2-phase4' : (
-            isPhase3Active ? 'v2-phase3' : (
-            (params.phrasing || params.cadenceStrength) ? 'v2-phase2' : (
-              params.grooveTemplate ||
-              params.humanizeTime ||
-              params.humanizeVel ||
-              params.leadChordToneBias ||
-              params.accentMapIntensity ||
-              params.bassAnticipation ||
-              params.chordVoiceLeadingBias ||
-              params.leadMaxLeapSemitones ||
-              params.spaceAllocatorMinGapSecs
-            ) ? 'v2-phase1' : 'v2-sortfix'
-          ))
+          (dynStr > 0 || regLift > 0 || scStrength > 0 || (params.extendedLfoTargets ?? 0) > 0)
+            ? 'v2-phase5'
+            : (isPhase4Active ? 'v2-phase4' : (
+              isPhase3Active ? 'v2-phase3' : (
+              (params.phrasing || params.cadenceStrength) ? 'v2-phase2' : (
+                params.grooveTemplate ||
+                params.humanizeTime ||
+                params.humanizeVel ||
+                params.leadChordToneBias ||
+                params.accentMapIntensity ||
+                params.bassAnticipation ||
+                params.chordVoiceLeadingBias ||
+                params.leadMaxLeapSemitones ||
+                params.spaceAllocatorMinGapSecs
+              ) ? 'v2-phase1' : 'v2-sortfix'
+            )))
         ),
       },
     };

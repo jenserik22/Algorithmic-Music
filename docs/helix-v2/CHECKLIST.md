@@ -41,7 +41,7 @@ Phase 4 — Inter‑Track Conversation
 - [x] Density gating (space allocator 2.0)
 
 Phase 5 — Dynamics/Automation/FX
-- [ ] Section envelopes; extended LFO targets; sidechain metadata
+- [x] Section envelopes; extended LFO targets; sidechain metadata
 
 Phase 6 — Rhythm Markov & Fills
 - [ ] Markov hats/percussion; rudiment micro‑motifs

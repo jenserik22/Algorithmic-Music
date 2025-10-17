@@ -1,6 +1,6 @@
 # Helix V2 Humanization — Progress Log
 
-Status: Phase 1 completed (all cross‑style validations passing; 1 pre‑existing a11y test issue unrelated to engine)
+Status: Phases 1–5 completed (all cross‑style validations passing; 1 pre‑existing a11y test issue unrelated to engine)
 Branch: feat/helix-humanize-v2
 
 How to read this file
@@ -103,3 +103,11 @@ Log
 - UI: Added Conversation controls (call/response intensity, bass echo probability, density gate)
 - Docs: Updated FLAGS.md (Phase 1–4) with suggested values per style
 - Status: All unit tests pass except pre‑existing `appA11y.test.tsx`
+
+## [2025‑10‑17] PHASE 5 COMPLETE
+- Flags: `dynamicsShape`, `dynamicsStrength`, `registerLiftStrength`, `extendedLfoTargets`, `sidechainStrength`
+- Engine: per‑section envelopes (velocity + note length), optional lead register lift near climaxes, extended LFO targets, and sidechain pulses metadata with mild ducking for chords/bass
+- Version tag escalates to `v2-phase5` when any Phase 5 flag is used
+- Tests: `enhancedHelix.phase5.test.ts` validating versionTag, envelope effect (swell > edges), sidechain pulses metadata, and extended LFO presence
+- UI: Phase 5 controls under “Dynamics & FX”
+- Docs: Updated FLAGS.md, CHECKLIST.md, USER_GUIDE.md
