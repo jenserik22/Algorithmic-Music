@@ -3,9 +3,20 @@
 This guide explains the new Enhanced Helix settings and provides recommended values to get musical, human‑sounding results quickly. All settings are optional: leaving them unset preserves the original baseline.
 
 ## Where to find the settings
+- Mode toggle: Simple | Advanced (top of the generator panel)
 - Advanced mode → Algorithm: "Enhanced Helix"
 - Humanization Presets (EDM / Cinematic / Lo‑Fi / Jazz)
 - Individual controls under "Enhanced Helix" section
+
+## Simple Mode (recommended starting point)
+- What it is: a global musicality mode that prioritizes clarity and structure over complexity.
+- What it does:
+  - Reuses short stepwise motifs round‑robin per chord step to reduce randomness
+  - Limits arrangement to at most 3 concurrent tracks per section (usually drums, chords, lead)
+  - Enforces chord tones on strong beats (1 & 3) with a strict final pass for clean harmony
+  - Uses deterministic anchors: root/fifth bass on 1/3, anchored lead placements, steady drum scaffolding
+- What still works: All Phase 1–5 controls (groove, humanize, phrasing/cadence, harmony, conversation, dynamics/FX)
+- When to turn off: switch to Advanced for more exploratory textures or denser arrangements
 
 ## Settings (what they do and when to use)
 

@@ -111,3 +111,10 @@ Log
 - Tests: `enhancedHelix.phase5.test.ts` validating versionTag, envelope effect (swell > edges), sidechain pulses metadata, and extended LFO presence
 - UI: Phase 5 controls under “Dynamics & FX”
 - Docs: Updated FLAGS.md, CHECKLIST.md, USER_GUIDE.md
+
+## [2025‑10‑17] MUSICALITY PIVOT — SIMPLE MODE COMPLETE
+- Global flag: `simpleMode` (also exposed via UI toggle Simple/Advanced)
+- Engine: motif memory with round‑robin reuse per progression step; arrangement constraints (≤3 concurrent tracks per section window); safety gates with strong‑beat chord‑tone enforcement and final strict pass aligned to metrics; deterministic anchors (root/fifth bass on 1/3, anchored lead, steady drums)
+- Tests: `enhancedHelix.simpleMode.test.ts` validates strong‑beat chord‑tone rate ≥ 0.8 (current: 1.0) and ≤ 3 concurrent tracks
+- Docs: Updated FLAGS.md (Simple Mode section) and USER_GUIDE.md (Simple Mode usage)
+- Status: Full suite green except pre‑existing `appA11y.test.tsx` (Tone env)

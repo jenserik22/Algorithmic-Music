@@ -33,6 +33,17 @@ Phase 5 (dynamics/automation/FX):
 - extendedLfoTargets: 0..1. Adds extra LFO targets (e.g., master.width, lead.vibrato, chords.filterRes).
 - sidechainStrength: 0..1. Emits sidechain pulses metadata (kick onsets) and applies mild ducking to chords/bass near kicks.
 
+Simple Mode (global musicality toggle):
+- simpleMode: boolean. When true, the engine prioritizes clarity and human‑like structure over complexity by applying:
+  - Motif memory with round‑robin reuse per progression step (reduces randomness, reinforces themes)
+  - Arrangement constraints: at most 3 concurrent tracks per section window (prefer drums, chords, lead)
+  - Safety gates: strong‑beat chord‑tone enforcement with a final strict pass aligned to metrics; stepwise bias and leap limiting
+  - Deterministic anchors: rooted bass (beats 1/3 with optional fifths), anchored lead on strong beats, steady drum scaffolding
+  Notes:
+  - Compatible with Phases 1–5 (groove/humanize/phrasing/harmony/conversation/dynamics still apply)
+  - UI exposes this as a Simple/Advanced mode toggle on the generator panel
+  - Target metric: ≥0.8 lead chord‑tone rate on strong beats (current tests: 1.0)
+
 Style presets (UI suggestions):
 - EDM: mpc62, 0.12, 0.20, 0.40, 0.35, 0.30, 0.30, 9, 0.015
 - Cinematic: straight, 0.12, 0.15, 0.50, 0.10, 0.20, 0.70, 7, 0.020
