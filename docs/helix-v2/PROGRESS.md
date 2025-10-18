@@ -118,3 +118,20 @@ Log
 - Tests: `enhancedHelix.simpleMode.test.ts` validates strong‑beat chord‑tone rate ≥ 0.8 (current: 1.0) and ≤ 3 concurrent tracks
 - Docs: Updated FLAGS.md (Simple Mode section) and USER_GUIDE.md (Simple Mode usage)
 - Status: Full suite green except pre‑existing `appA11y.test.tsx` (Tone env)
+
+## [2025‑10‑18] CRITICAL DURATION FIX & VALIDATION
+- Root cause: chord notes were being hard‑clamped by a total‑duration guard, creating many 0.02s blips late in pieces.
+- Fix: removed hard clamp; implemented intelligent per‑track duration handling (chords/bass/lead) with min thresholds and beat‑aware caps.
+- Result: chord durations now musical (e.g., 0.545s/1.091s instead of 0.02s); structure preserved across the full piece.
+- Tests: diagnostics updated; snapshots refreshed; added metrics debug for tolerance boundaries. All unit tests pass (except pre‑existing a11y).
+
+## [2025‑10‑18] UI DEFAULTS RESTORED (ENHANCED HELIX AS DEFAULT)
+- Default algorithm set to Enhanced Helix for Generator UI, Play Demo, and Quick Generate.
+- Advanced mode: auto‑sets Duration to 16s when switching if the field is untouched (preset‑matching); preserves user edits.
+- Style‑aware Advanced defaults: if Enhanced Helix advanced controls are untouched, auto‑apply profile for current style (EDM/Cinematic/Lo‑Fi/Jazz). If values still match previous profile when switching styles, apply the new style; otherwise keep custom values.
+- Humanize preset buttons updated to use the same profile helpers for clear differentiation by style.
+- Docs: Updated USER_GUIDE.md (Defaults & mode behavior) and FLAGS.md (UI behavior section).
+
+## [2025‑10‑18] AUDIO TROUBLESHOOTING (RESOLVED)
+- Symptom: no sound on Play.
+- Resolution: Channel Manager → Reset channels (corrupted mapping). Sound restored. Visualizer previously fixed to poll AnalysisBus each frame.

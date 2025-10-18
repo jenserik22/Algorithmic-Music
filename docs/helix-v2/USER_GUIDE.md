@@ -8,6 +8,12 @@ This guide explains the new Enhanced Helix settings and provides recommended val
 - Humanization Presets (EDM / Cinematic / Lo‑Fi / Jazz)
 - Individual controls under "Enhanced Helix" section
 
+## Defaults & mode behavior
+- Default algorithm: Enhanced Helix is the default for Generator UI, Play Demo, and Quick Generate.
+- Simple presets: e.g., "Upbeat" stays at 4s duration.
+- Advanced Duration: when you switch to Advanced, if the Duration still equals the preset value, it auto‑sets to 16s. If you’ve already edited Duration, your value is preserved.
+- Style‑aware Advanced defaults: in Advanced mode with Enhanced Helix, if the advanced controls are untouched, style‑specific defaults are auto‑applied for the selected style (EDM/Cinematic/Lo‑Fi/Jazz). If you later switch styles and your current values still match the previous style’s profile, the new style profile is applied; otherwise your custom values remain.
+
 ## Simple Mode (recommended starting point)
 - What it is: a global musicality mode that prioritizes clarity and structure over complexity.
 - What it does:

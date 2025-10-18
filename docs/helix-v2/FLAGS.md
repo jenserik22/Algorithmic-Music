@@ -73,3 +73,8 @@ Suggested Phase 5 values:
 - Cinematic: dynamicsShape='rise', dynamicsStrength=0.4, registerLiftStrength=0.3, extendedLfoTargets=0.3, sidechainStrength=0.2
 - Lo‑Fi: dynamicsShape='fall', dynamicsStrength=0.3, registerLiftStrength=0.1, extendedLfoTargets=0.3, sidechainStrength=0.2
 - Jazz: dynamicsShape='swell', dynamicsStrength=0.3, registerLiftStrength=0.2, extendedLfoTargets=0.2, sidechainStrength=0.2
+
+## UI behavior: Advanced defaults & Duration
+- Default algorithm is Enhanced Helix across Generator UI, Play Demo, and Quick Generate.
+- When switching to Advanced mode, if the Duration still equals the preset value, it auto‑sets to 16s (user edits are preserved).
+- In Advanced mode with Enhanced Helix, if the advanced controls are untouched, a style‑aware profile is auto‑applied for the selected style (EDM/Cinematic/Lo‑Fi/Jazz). If you switch styles and your current values still match the previous style profile, the new style profile is applied; otherwise your custom values remain.
