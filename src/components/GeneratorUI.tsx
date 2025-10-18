@@ -26,10 +26,236 @@ const ALGORITHM_INFO: Record<Algorithm, { name: string; description: string }> =
   enhanced_markov: { name: '🎼 Enhanced Markov', description: 'Probabilistic multi-track composition with harmonic progressions' },
 };
 
+// Style-aware advanced defaults for Enhanced Helix
+type StyleKey = 'edm' | 'cinematic' | 'lofi' | 'jazz';
+
+type HelixAdvancedProfile = {
+  grooveTemplate?: GenerationParams['grooveTemplate'];
+  humanizeTime: number;
+  humanizeVel: number;
+  leadChordToneBias: number;
+  accentMapIntensity: number;
+  bassAnticipation: number;
+  chordVoiceLeadingBias: number;
+  leadMaxLeapSemitones: number;
+  spaceMinGap: number;
+  phrasing?: GenerationParams['phrasing'];
+  cadenceStrength: number;
+  harmonicRhythmVariance: number;
+  harmonicComplexity: number;
+  pedalToneStrength: number;
+  callResponseIntensity: number;
+  bassEchoProbability: number;
+  densityGateStrength: number;
+  dynamicsShape?: GenerationParams['dynamicsShape'];
+  dynamicsStrength: number;
+  registerLiftStrength: number;
+  extendedLfoTargets: number;
+  sidechainStrength: number;
+};
+
+const ADVANCED_PROFILES: Record<StyleKey, HelixAdvancedProfile> = {
+  edm: {
+    grooveTemplate: 'mpc62',
+    humanizeTime: 0.14,
+    humanizeVel: 0.26,
+    leadChordToneBias: 0.62,
+    accentMapIntensity: 0.45,
+    bassAnticipation: 0.32,
+    chordVoiceLeadingBias: 0.55,
+    leadMaxLeapSemitones: 9,
+    spaceMinGap: 0.012,
+    phrasing: 'short',
+    cadenceStrength: 0.66,
+    harmonicRhythmVariance: 0.55,
+    harmonicComplexity: 0.34,
+    pedalToneStrength: 0.18,
+    callResponseIntensity: 0.64,
+    bassEchoProbability: 0.35,
+    densityGateStrength: 0.46,
+    dynamicsShape: 'swell',
+    dynamicsStrength: 0.55,
+    registerLiftStrength: 0.3,
+    extendedLfoTargets: 0.35,
+    sidechainStrength: 0.6,
+  },
+  cinematic: {
+    grooveTemplate: undefined,
+    humanizeTime: 0.1,
+    humanizeVel: 0.18,
+    leadChordToneBias: 0.7,
+    accentMapIntensity: 0.12,
+    bassAnticipation: 0.18,
+    chordVoiceLeadingBias: 0.82,
+    leadMaxLeapSemitones: 7,
+    spaceMinGap: 0.02,
+    phrasing: 'long',
+    cadenceStrength: 0.88,
+    harmonicRhythmVariance: 0.28,
+    harmonicComplexity: 0.4,
+    pedalToneStrength: 0.55,
+    callResponseIntensity: 0.34,
+    bassEchoProbability: 0.22,
+    densityGateStrength: 0.28,
+    dynamicsShape: 'rise',
+    dynamicsStrength: 0.52,
+    registerLiftStrength: 0.38,
+    extendedLfoTargets: 0.22,
+    sidechainStrength: 0.18,
+  },
+  lofi: {
+    grooveTemplate: 'shuffle',
+    humanizeTime: 0.28,
+    humanizeVel: 0.34,
+    leadChordToneBias: 0.42,
+    accentMapIntensity: 0.42,
+    bassAnticipation: 0.24,
+    chordVoiceLeadingBias: 0.48,
+    leadMaxLeapSemitones: 7,
+    spaceMinGap: 0.024,
+    phrasing: 'short',
+    cadenceStrength: 0.52,
+    harmonicRhythmVariance: 0.46,
+    harmonicComplexity: 0.22,
+    pedalToneStrength: 0.32,
+    callResponseIntensity: 0.28,
+    bassEchoProbability: 0.3,
+    densityGateStrength: 0.22,
+    dynamicsShape: 'fall',
+    dynamicsStrength: 0.33,
+    registerLiftStrength: 0.2,
+    extendedLfoTargets: 0.18,
+    sidechainStrength: 0.25,
+  },
+  jazz: {
+    grooveTemplate: 'shuffle',
+    humanizeTime: 0.18,
+    humanizeVel: 0.26,
+    leadChordToneBias: 0.62,
+    accentMapIntensity: 0.24,
+    bassAnticipation: 0.38,
+    chordVoiceLeadingBias: 0.85,
+    leadMaxLeapSemitones: 12,
+    spaceMinGap: 0.015,
+    phrasing: 'medium',
+    cadenceStrength: 0.58,
+    harmonicRhythmVariance: 0.38,
+    harmonicComplexity: 0.52,
+    pedalToneStrength: 0.24,
+    callResponseIntensity: 0.58,
+    bassEchoProbability: 0.26,
+    densityGateStrength: 0.32,
+    dynamicsShape: 'swell',
+    dynamicsStrength: 0.42,
+    registerLiftStrength: 0.36,
+    extendedLfoTargets: 0.24,
+    sidechainStrength: 0.2,
+  },
+};
+
+const HUMANIZE_PRESETS: Record<StyleKey, HelixAdvancedProfile> = {
+  edm: {
+    grooveTemplate: 'mpc62',
+    humanizeTime: 0.18,
+    humanizeVel: 0.38,
+    leadChordToneBias: 0.68,
+    accentMapIntensity: 0.55,
+    bassAnticipation: 0.4,
+    chordVoiceLeadingBias: 0.5,
+    leadMaxLeapSemitones: 9,
+    spaceMinGap: 0.012,
+    phrasing: 'short',
+    cadenceStrength: 0.6,
+    harmonicRhythmVariance: 0.58,
+    harmonicComplexity: 0.28,
+    pedalToneStrength: 0.12,
+    callResponseIntensity: 0.7,
+    bassEchoProbability: 0.38,
+    densityGateStrength: 0.5,
+    dynamicsShape: 'swell',
+    dynamicsStrength: 0.62,
+    registerLiftStrength: 0.28,
+    extendedLfoTargets: 0.4,
+    sidechainStrength: 0.72,
+  },
+  cinematic: {
+    grooveTemplate: undefined,
+    humanizeTime: 0.12,
+    humanizeVel: 0.22,
+    leadChordToneBias: 0.76,
+    accentMapIntensity: 0.14,
+    bassAnticipation: 0.22,
+    chordVoiceLeadingBias: 0.86,
+    leadMaxLeapSemitones: 7,
+    spaceMinGap: 0.02,
+    phrasing: 'long',
+    cadenceStrength: 0.94,
+    harmonicRhythmVariance: 0.26,
+    harmonicComplexity: 0.48,
+    pedalToneStrength: 0.62,
+    callResponseIntensity: 0.38,
+    bassEchoProbability: 0.24,
+    densityGateStrength: 0.32,
+    dynamicsShape: 'rise',
+    dynamicsStrength: 0.6,
+    registerLiftStrength: 0.42,
+    extendedLfoTargets: 0.26,
+    sidechainStrength: 0.22,
+  },
+  lofi: {
+    grooveTemplate: 'shuffle',
+    humanizeTime: 0.32,
+    humanizeVel: 0.36,
+    leadChordToneBias: 0.38,
+    accentMapIntensity: 0.48,
+    bassAnticipation: 0.26,
+    chordVoiceLeadingBias: 0.46,
+    leadMaxLeapSemitones: 7,
+    spaceMinGap: 0.026,
+    phrasing: 'short',
+    cadenceStrength: 0.48,
+    harmonicRhythmVariance: 0.5,
+    harmonicComplexity: 0.24,
+    pedalToneStrength: 0.36,
+    callResponseIntensity: 0.32,
+    bassEchoProbability: 0.34,
+    densityGateStrength: 0.24,
+    dynamicsShape: 'fall',
+    dynamicsStrength: 0.36,
+    registerLiftStrength: 0.22,
+    extendedLfoTargets: 0.2,
+    sidechainStrength: 0.28,
+  },
+  jazz: {
+    grooveTemplate: 'shuffle',
+    humanizeTime: 0.2,
+    humanizeVel: 0.28,
+    leadChordToneBias: 0.7,
+    accentMapIntensity: 0.28,
+    bassAnticipation: 0.42,
+    chordVoiceLeadingBias: 0.9,
+    leadMaxLeapSemitones: 12,
+    spaceMinGap: 0.015,
+    phrasing: 'medium',
+    cadenceStrength: 0.62,
+    harmonicRhythmVariance: 0.42,
+    harmonicComplexity: 0.58,
+    pedalToneStrength: 0.28,
+    callResponseIntensity: 0.66,
+    bassEchoProbability: 0.28,
+    densityGateStrength: 0.34,
+    dynamicsShape: 'swell',
+    dynamicsStrength: 0.46,
+    registerLiftStrength: 0.4,
+    extendedLfoTargets: 0.26,
+    sidechainStrength: 0.24,
+  },
+};
+
 export function GeneratorUI({ onGenerate }: { onGenerate: (x: { algorithm: Algorithm; params: GenerationParams }) => void }) {
   const [mode, setMode] = useState<'simple'|'advanced'>('simple');
   const [presetKey, setPresetKey] = useState<keyof typeof PRESETS>('upbeat');
-  const [algorithm, setAlgorithm] = useState<Algorithm>('euclidean');
+  const [algorithm, setAlgorithm] = useState<Algorithm>('enhanced_helix');
   const base = useMemo(() => PRESETS[presetKey].params, [presetKey]);
   const [seed] = useState<number>(1);
 
@@ -38,7 +264,7 @@ export function GeneratorUI({ onGenerate }: { onGenerate: (x: { algorithm: Algor
   const [timeSignature, setTimeSignature] = useState<string>(base.timeSignature);
   const [durationSecs, setDurationSecs] = useState<number>(base.durationSecs);
   const [density, setDensity] = useState<number>(base.density);
-  const [style, setStyle] = useState<'edm'|'cinematic'|'lofi'|'jazz'>('edm');
+  const [style, setStyle] = useState<StyleKey>('edm');
   const [variation, setVariation] = useState<number>(0.4);
   const [fillRate, setFillRate] = useState<number>(0.5);
   const [complexityLevel, setComplexityLevel] = useState<Complexity>('intermediate');
@@ -85,6 +311,113 @@ export function GeneratorUI({ onGenerate }: { onGenerate: (x: { algorithm: Algor
     setDurationSecs(base.durationSecs);
     setDensity(base.density);
   }, [base]);
+
+  // Advanced mode default duration: if user hasn't changed it (still equals preset), set to 16s
+  React.useEffect(() => {
+    if (mode === 'advanced' && durationSecs === base.durationSecs) {
+      setDurationSecs(16);
+    }
+  }, [mode, base, durationSecs]);
+
+  // --- Advanced defaults application for Enhanced Helix ---
+  const lastAdvancedStyleRef = React.useRef<StyleKey | null>(null);
+
+  const applyHelixProfile = React.useCallback((profile: HelixAdvancedProfile) => {
+    setGrooveTemplate(profile.grooveTemplate);
+    setHumanizeTimeAmt(profile.humanizeTime);
+    setHumanizeVelAmt(profile.humanizeVel);
+    setLeadChordToneBias(profile.leadChordToneBias);
+    setAccentMapIntensity(profile.accentMapIntensity);
+    setBassAnticipation(profile.bassAnticipation);
+    setChordVoiceLeadingBias(profile.chordVoiceLeadingBias);
+    setLeadMaxLeapSemitones(profile.leadMaxLeapSemitones);
+    setSpaceAllocatorMinGapSecs(profile.spaceMinGap);
+    setPhrasing(profile.phrasing);
+    setCadenceStrength(profile.cadenceStrength);
+    setHarmonicRhythmVariance(profile.harmonicRhythmVariance);
+    setHarmonicComplexity(profile.harmonicComplexity);
+    setPedalToneStrength(profile.pedalToneStrength);
+    setCallResponseIntensity(profile.callResponseIntensity);
+    setBassEchoProbability(profile.bassEchoProbability);
+    setDensityGateStrength(profile.densityGateStrength);
+    setDynamicsShape(profile.dynamicsShape);
+    setDynamicsStrength(profile.dynamicsStrength);
+    setRegisterLiftStrength(profile.registerLiftStrength);
+    setExtendedLfoTargets(profile.extendedLfoTargets);
+    setSidechainStrength(profile.sidechainStrength);
+  }, []);
+
+  const applyAdvancedDefaults = React.useCallback((sty: StyleKey) => {
+    applyHelixProfile(ADVANCED_PROFILES[sty]);
+    lastAdvancedStyleRef.current = sty;
+  }, [applyHelixProfile]);
+
+  const applyHumanizePreset = React.useCallback((sty: StyleKey) => {
+    applyHelixProfile(HUMANIZE_PRESETS[sty]);
+  }, [applyHelixProfile]);
+
+  React.useEffect(() => {
+    if (mode !== 'advanced' || algorithm !== 'enhanced_helix') return;
+
+    const untouched =
+      (grooveTemplate ?? '') === '' &&
+      humanizeTimeAmt === 0 &&
+      humanizeVelAmt === 0 &&
+      leadChordToneBias === 0 &&
+      accentMapIntensity === 0 &&
+      bassAnticipation === 0 &&
+      chordVoiceLeadingBias === 0 &&
+      leadMaxLeapSemitones === 0 &&
+      spaceAllocatorMinGapSecs === 0 &&
+      !phrasing &&
+      cadenceStrength === 0 &&
+      harmonicRhythmVariance === 0 &&
+      harmonicComplexity === 0 &&
+      pedalToneStrength === 0 &&
+      callResponseIntensity === 0 &&
+      bassEchoProbability === 0 &&
+      densityGateStrength === 0 &&
+      (!dynamicsShape) &&
+      dynamicsStrength === 0 &&
+      registerLiftStrength === 0 &&
+      extendedLfoTargets === 0 &&
+      sidechainStrength === 0;
+
+    if (untouched) {
+      applyAdvancedDefaults(style);
+    } else if (lastAdvancedStyleRef.current && lastAdvancedStyleRef.current !== style) {
+      // If current values still match previous style profile, switch to new style profile
+      const prev = ADVANCED_PROFILES[lastAdvancedStyleRef.current];
+      const floatEq = (a: number, b: number) => Math.abs(a - b) < 1e-3;
+      const matchesPrev =
+        (grooveTemplate ?? null) === (prev.grooveTemplate ?? null) &&
+        floatEq(humanizeTimeAmt, prev.humanizeTime) &&
+        floatEq(humanizeVelAmt, prev.humanizeVel) &&
+        floatEq(leadChordToneBias, prev.leadChordToneBias) &&
+        floatEq(accentMapIntensity, prev.accentMapIntensity) &&
+        floatEq(bassAnticipation, prev.bassAnticipation) &&
+        floatEq(chordVoiceLeadingBias, prev.chordVoiceLeadingBias) &&
+        leadMaxLeapSemitones === prev.leadMaxLeapSemitones &&
+        floatEq(spaceAllocatorMinGapSecs, prev.spaceMinGap) &&
+        (phrasing ?? null) === (prev.phrasing ?? null) &&
+        floatEq(cadenceStrength, prev.cadenceStrength) &&
+        floatEq(harmonicRhythmVariance, prev.harmonicRhythmVariance) &&
+        floatEq(harmonicComplexity, prev.harmonicComplexity) &&
+        floatEq(pedalToneStrength, prev.pedalToneStrength) &&
+        floatEq(callResponseIntensity, prev.callResponseIntensity) &&
+        floatEq(bassEchoProbability, prev.bassEchoProbability) &&
+        floatEq(densityGateStrength, prev.densityGateStrength) &&
+        (dynamicsShape ?? null) === (prev.dynamicsShape ?? null) &&
+        floatEq(dynamicsStrength, prev.dynamicsStrength) &&
+        floatEq(registerLiftStrength, prev.registerLiftStrength) &&
+        floatEq(extendedLfoTargets, prev.extendedLfoTargets) &&
+        floatEq(sidechainStrength, prev.sidechainStrength);
+
+      if (matchesPrev) applyAdvancedDefaults(style);
+    }
+
+    lastAdvancedStyleRef.current = style;
+  }, [mode, algorithm, style, grooveTemplate, humanizeTimeAmt, humanizeVelAmt, leadChordToneBias, accentMapIntensity, bassAnticipation, chordVoiceLeadingBias, leadMaxLeapSemitones, spaceAllocatorMinGapSecs, phrasing, cadenceStrength, harmonicRhythmVariance, harmonicComplexity, pedalToneStrength, callResponseIntensity, bassEchoProbability, densityGateStrength, dynamicsShape, dynamicsStrength, registerLiftStrength, extendedLfoTargets, sidechainStrength, applyAdvancedDefaults]);
 
   const handleGenerate = () => {
     const params: GenerationParams = { 
@@ -292,7 +625,7 @@ export function GeneratorUI({ onGenerate }: { onGenerate: (x: { algorithm: Algor
             </label>
             <select 
               value={style} 
-              onChange={e => setStyle(e.target.value as any)}
+              onChange={e => setStyle(e.target.value as StyleKey)}
               className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             >
               <option value="edm">🎛️ EDM</option>
@@ -397,17 +730,25 @@ export function GeneratorUI({ onGenerate }: { onGenerate: (x: { algorithm: Algor
               <div className="flex items-center justify-between">
                 <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200">Humanization Presets</h3>
                 <div className="flex gap-2 flex-wrap">
-                  <button type="button" className="px-3 py-1 text-xs rounded bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600"
-                    onClick={() => { setGrooveTemplate('mpc62'); setHumanizeTimeAmt(0.12); setHumanizeVelAmt(0.2); setLeadChordToneBias(0.4); setAccentMapIntensity(0.35); setBassAnticipation(0.3); setChordVoiceLeadingBias(0.3); setLeadMaxLeapSemitones(9); setSpaceAllocatorMinGapSecs(0.015); setPhrasing('short'); setCadenceStrength(0.7); setHarmonicRhythmVariance(0.5); setHarmonicComplexity(0.3); setPedalToneStrength(0.2); setCallResponseIntensity(0.6); setBassEchoProbability(0.3); setDensityGateStrength(0.4); }}
+                  <button
+                    type="button"
+                    className="px-3 py-1 text-xs rounded bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600"
+                    onClick={() => applyHumanizePreset('edm')}
                   >EDM</button>
-                  <button type="button" className="px-3 py-1 text-xs rounded bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600"
-                    onClick={() => { setGrooveTemplate(undefined); setHumanizeTimeAmt(0.12); setHumanizeVelAmt(0.15); setLeadChordToneBias(0.5); setAccentMapIntensity(0.1); setBassAnticipation(0.2); setChordVoiceLeadingBias(0.7); setLeadMaxLeapSemitones(7); setSpaceAllocatorMinGapSecs(0.02); setPhrasing('long'); setCadenceStrength(0.9); setHarmonicRhythmVariance(0.3); setHarmonicComplexity(0.2); setPedalToneStrength(0.5); setCallResponseIntensity(0.4); setBassEchoProbability(0.2); setDensityGateStrength(0.3); }}
+                  <button
+                    type="button"
+                    className="px-3 py-1 text-xs rounded bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600"
+                    onClick={() => applyHumanizePreset('cinematic')}
                   >Cinematic</button>
-                  <button type="button" className="px-3 py-1 text-xs rounded bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600"
-                    onClick={() => { setGrooveTemplate('shuffle'); setHumanizeTimeAmt(0.25); setHumanizeVelAmt(0.3); setLeadChordToneBias(0.35); setAccentMapIntensity(0.4); setBassAnticipation(0.25); setChordVoiceLeadingBias(0.4); setLeadMaxLeapSemitones(7); setSpaceAllocatorMinGapSecs(0.02); setPhrasing('short'); setCadenceStrength(0.6); setHarmonicRhythmVariance(0.4); setHarmonicComplexity(0.25); setPedalToneStrength(0.3); setCallResponseIntensity(0.3); setBassEchoProbability(0.25); setDensityGateStrength(0.2); }}
+                  <button
+                    type="button"
+                    className="px-3 py-1 text-xs rounded bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600"
+                    onClick={() => applyHumanizePreset('lofi')}
                   >Lo‑Fi</button>
-                  <button type="button" className="px-3 py-1 text-xs rounded bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600"
-                    onClick={() => { setGrooveTemplate('shuffle'); setHumanizeTimeAmt(0.15); setHumanizeVelAmt(0.2); setLeadChordToneBias(0.5); setAccentMapIntensity(0.2); setBassAnticipation(0.35); setChordVoiceLeadingBias(0.8); setLeadMaxLeapSemitones(9); setSpaceAllocatorMinGapSecs(0.015); setPhrasing('medium'); setCadenceStrength(0.5); setHarmonicRhythmVariance(0.35); setHarmonicComplexity(0.4); setPedalToneStrength(0.2); setCallResponseIntensity(0.5); setBassEchoProbability(0.2); setDensityGateStrength(0.3); }}
+                  <button
+                    type="button"
+                    className="px-3 py-1 text-xs rounded bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600"
+                    onClick={() => applyHumanizePreset('jazz')}
                   >Jazz</button>
                 </div>
               </div>

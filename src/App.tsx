@@ -81,7 +81,7 @@ export default function App() {
 
   const playDemo = () => {
     const demo: { algorithm: AlgorithmName; params: GenerationParams } = {
-      algorithm: 'euclidean',
+      algorithm: 'enhanced_helix',
       params: { seed: 42, bpm: 120, key: 'C', timeSignature: '4/4', durationSecs: 8, density: 0.6 },
     };
     void onGenerateAndPlay(demo);
@@ -89,7 +89,7 @@ export default function App() {
 
   const quickGenerate = () => {
     const params: GenerationParams = { seed: 1, bpm: 128, key: 'C', timeSignature: '4/4', durationSecs: 8, density: 0.6 };
-    void onGenerateAndPlay({ algorithm: 'euclidean', params });
+    void onGenerateAndPlay({ algorithm: 'enhanced_helix', params });
   };
 
   return (
