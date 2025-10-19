@@ -543,7 +543,7 @@ export function GeneratorUI({ onGenerate }: { onGenerate: (x: { algorithm: Algor
             <option key={key} value={key}>{info.name}</option>
           ))}
         </select>
-        <p className="text-xs text-gray-500 dark:text-gray-400">
+        <p className="text-xs text-gray-600 dark:text-gray-300">
           {ALGORITHM_INFO[algorithm].description}
         </p>
       </div>

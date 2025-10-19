@@ -176,7 +176,7 @@ export default function App() {
           {/* Left Column - Generation Controls */}
           <div className="lg:col-span-2 space-y-6">
             <div className={`p-6 rounded-lg border ${
-              isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'
+              isDarkMode ? 'bg-gray-800 border-gray-700 text-gray-100' : 'bg-white border-gray-200 text-gray-900'
             }`}>
               <h2 className={`text-xl font-semibold mb-4 flex items-center gap-2 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
                 <SettingsIcon className="w-5 h-5" />
@@ -186,7 +186,7 @@ export default function App() {
             </div>
 
             <div className={`p-6 rounded-lg border ${
-              isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'
+              isDarkMode ? 'bg-gray-800 border-gray-700 text-gray-100' : 'bg-white border-gray-200 text-gray-900'
             }`}>
               <h2 className={`text-xl font-semibold mb-4 flex items-center gap-2 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
                 <FolderIcon className="w-5 h-5" />
@@ -203,7 +203,7 @@ export default function App() {
 
             {/* Advanced Options */}
             <div className={`p-6 rounded-lg border ${
-              isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'
+              isDarkMode ? 'bg-gray-800 border-gray-700 text-gray-100' : 'bg-white border-gray-200 text-gray-900'
             }`}>
               <h2 className={`text-xl font-semibold mb-4 flex items-center gap-2 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
                 <SettingsIcon className="w-4 h-4" />
@@ -235,7 +235,7 @@ export default function App() {
             {/* Playback Controls */}
             {lastOutput && (
               <div className={`p-6 rounded-lg border ${
-                isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'
+                isDarkMode ? 'bg-gray-800 border-gray-700 text-gray-100' : 'bg-white border-gray-200 text-gray-900'
               }`}>
                 <h2 className={`text-xl font-semibold mb-4 flex items-center gap-2 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
                   <MusicIcon className="w-5 h-5" />
@@ -251,7 +251,7 @@ export default function App() {
 
             {/* Export Controls */}
             <div className={`p-6 rounded-lg border ${
-              isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'
+              isDarkMode ? 'bg-gray-800 border-gray-700 text-gray-100' : 'bg-white border-gray-200 text-gray-900'
             }`}>
               <h2 className={`text-xl font-semibold mb-6 flex items-center gap-2 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
                 <DownloadIcon className="w-5 h-5" />
