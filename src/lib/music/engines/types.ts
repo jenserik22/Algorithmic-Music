@@ -20,6 +20,7 @@ export interface GenerationParams {
   brightness?: number; // 0..1 tonal brightness macro
   // Phase 1 optional flags (default neutral)
   grooveTemplate?: 'straight' | 'shuffle' | 'mpc62' | 'funk';
+  humanizeDistribution?: 'uniform' | 'gaussian';
   humanizeTime?: number; // 0..1 additional correlated timing humanization
   humanizeVel?: number; // 0..1 additional velocity humanization
   leadChordToneBias?: number; // 0..1 probability bias for lead to pick chord tones on strong beats

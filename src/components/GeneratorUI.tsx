@@ -31,6 +31,7 @@ type StyleKey = 'edm' | 'cinematic' | 'lofi' | 'jazz';
 
 type HelixAdvancedProfile = {
   grooveTemplate?: GenerationParams['grooveTemplate'];
+  humanizeDistribution?: 'uniform' | 'gaussian';
   humanizeTime: number;
   humanizeVel: number;
   leadChordToneBias: number;
@@ -302,6 +303,7 @@ export function GeneratorUI({ onGenerate }: { onGenerate: (x: { algorithm: Algor
   const [registerLiftStrength, setRegisterLiftStrength] = useState<number>(0);
   const [extendedLfoTargets, setExtendedLfoTargets] = useState<number>(0);
   const [sidechainStrength, setSidechainStrength] = useState<number>(0);
+  const [humanizeDistribution, setHumanizeDistribution] = useState<'uniform'|'gaussian'>('uniform');
 
   // sync state when preset changes
   React.useEffect(() => {
@@ -324,6 +326,7 @@ export function GeneratorUI({ onGenerate }: { onGenerate: (x: { algorithm: Algor
 
   const applyHelixProfile = React.useCallback((profile: HelixAdvancedProfile) => {
     setGrooveTemplate(profile.grooveTemplate);
+    if (profile.humanizeDistribution) setHumanizeDistribution(profile.humanizeDistribution);
     setHumanizeTimeAmt(profile.humanizeTime);
     setHumanizeVelAmt(profile.humanizeVel);
     setLeadChordToneBias(profile.leadChordToneBias);
@@ -427,6 +430,7 @@ export function GeneratorUI({ onGenerate }: { onGenerate: (x: { algorithm: Algor
       simpleMode: mode === 'simple' ? true : undefined,
       // Enhanced Helix Phase 1 flags (only used by that engine)
       grooveTemplate: grooveTemplate ?? undefined,
+      humanizeDistribution: humanizeDistribution,
       humanizeTime: humanizeTimeAmt || undefined,
       humanizeVel: humanizeVelAmt || undefined,
       leadChordToneBias: leadChordToneBias || undefined,
@@ -458,6 +462,7 @@ export function GeneratorUI({ onGenerate }: { onGenerate: (x: { algorithm: Algor
       style, variation, fillRate, complexityLevel, motion, brightness,
       simpleMode: mode === 'simple' ? true : undefined,
       grooveTemplate: grooveTemplate ?? undefined,
+      humanizeDistribution: humanizeDistribution,
       humanizeTime: humanizeTimeAmt || undefined,
       humanizeVel: humanizeVelAmt || undefined,
       leadChordToneBias: leadChordToneBias || undefined,
@@ -727,6 +732,16 @@ export function GeneratorUI({ onGenerate }: { onGenerate: (x: { algorithm: Algor
           {/* Enhanced Helix Humanization (Phase 1 flags) */}
           {algorithm === 'enhanced_helix' && (
             <div className="col-span-2 space-y-4 pt-4 border-t border-gray-200 dark:border-gray-600">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Humanize Distribution</label>
+                  <select value={humanizeDistribution} onChange={e=>setHumanizeDistribution(e.target.value as any)}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white">
+                    <option value="uniform">uniform</option>
+                    <option value="gaussian">gaussian</option>
+                  </select>
+                </div>
+              </div>
               <div className="flex items-center justify-between">
                 <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200">Humanization Presets</h3>
                 <div className="flex gap-2 flex-wrap">

@@ -1,5 +1,5 @@
 import type { Engine, EngineOutput, GenerationParams, NoteEvent, LfoSpec } from './types';
-import { mulberry32 } from '@/lib/music/seededRandom';
+import { mulberry32, gaussianJitter } from '@/lib/music/seededRandom';
 
 // Enhanced song structures with more sophisticated arrangements
 type EnhancedSongConfig = {
@@ -317,19 +317,34 @@ export const EnhancedHelixEngine: Engine = {
     // Enhanced humanization
     const extraTimeHumanize = Math.max(0, Math.min(1, params.humanizeTime ?? 0));
     const extraVelHumanize = Math.max(0, Math.min(1, params.humanizeVel ?? 0));
+    const dist = params.humanizeDistribution ?? 'uniform';
     const humanizeTime = (t: number) => {
-      // Preserve baseline when humanizeTime is undefined (same amplitude as before)
-      const base = (rand() - 0.5) * 0.02 * variation;
-      const extra = extraTimeHumanize > 0 ? (rand() - 0.5) * 0.02 * extraTimeHumanize : 0;
-      return Math.max(0, t + base + extra);
+      // Preserve baseline amplitude when humanizeTime is undefined
+      if (dist === 'gaussian') {
+        const baseHalf = 0.01 * variation;
+        const base = gaussianJitter(rand, baseHalf / 1.96, baseHalf);
+        const extraHalf = 0.01 * extraTimeHumanize;
+        const extra = extraTimeHumanize > 0 ? gaussianJitter(rand, extraHalf / 1.96, extraHalf) : 0;
+        return Math.max(0, t + base + extra);
+      } else {
+        const base = (rand() - 0.5) * 0.02 * variation;
+        const extra = extraTimeHumanize > 0 ? (rand() - 0.5) * 0.02 * extraTimeHumanize : 0;
+        return Math.max(0, t + base + extra);
+      }
     };
     const humanizeVelocity = (v: number) => {
       // Base symmetric jitter preserves Phase 0 behavior when extraVelHumanize is 0
-      const base = (rand() - 0.5) * 0.2 * variation;
+      const base = dist === 'gaussian'
+        ? gaussianJitter(rand, (0.1 * variation) / 1.96, 0.1 * variation)
+        : (rand() - 0.5) * 0.2 * variation;
       // Headroom-aware extra jitter to avoid clipping at bounds which can reduce variance
       const headroom = Math.max(0, Math.min(1 - v, v - 0.1));
       const extraAmp = 0.5 * extraVelHumanize; // stronger to ensure measurable variance increase
-      const extra = extraVelHumanize > 0 ? (rand() - 0.5) * 2 * headroom * extraAmp : 0;
+      const extra = extraVelHumanize > 0
+        ? (dist === 'gaussian'
+            ? gaussianJitter(rand, (headroom * extraAmp) / 1.96, headroom * extraAmp)
+            : (rand() - 0.5) * 2 * headroom * extraAmp)
+        : 0;
       // Mild scaling of base when extra humanize is active to further increase spread without clipping
       const scaledBase = base * (1 + extraVelHumanize * 0.8);
       let val = v + scaledBase + extra;
