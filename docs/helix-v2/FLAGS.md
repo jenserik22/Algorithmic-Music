@@ -1,6 +1,6 @@
 # Enhanced Helix – Phase 1–7 Flags
 
-This document summarizes the humanization and musicality flags introduced across Phases 1–6. Defaults maintain Phase 0 baseline until a flag is set non‑zero.
+This document summarizes the humanization and musicality flags introduced across Phases 1–7. Defaults maintain Phase 0 baseline until a flag is set non‑zero.
 
 - grooveTemplate: one of `straight (empty)`, `shuffle`, `mpc62`, `funk`. Applies correlated micro‑timing.
 - humanizeDistribution: 'uniform' | 'gaussian'. Shapes jitter distribution; gaussian concentrates around center with rare extremes.
@@ -43,6 +43,7 @@ Phase 7 (ornamentation & articulation):
 - ornamentation: 0..1. Probability/intensity of lead ornaments (grace notes, slides, short turns) preceding target notes.
 - legatoStrength: 0..1. Reduces gaps between successive lead notes; may create slight overlaps and ties on repeated pitches.
 - chordStabArpIntensity: 0..1. Adds short chord stabs or quick arpeggios at section transitions (start of sections) on the chords track.
+  UI: Advanced → Algorithm = Enhanced Helix → “Ornamentation & Articulation” group (three sliders; default 0, step 0.05)
 
 Simple Mode (global musicality toggle):
 - simpleMode: boolean. When true, the engine prioritizes clarity and human‑like structure over complexity by applying:
@@ -96,3 +97,4 @@ Suggested Phase 7 values:
 - Default algorithm is Enhanced Helix across Generator UI, Play Demo, and Quick Generate.
 - When switching to Advanced mode, if the Duration still equals the preset value, it auto‑sets to 16s (user edits are preserved).
 - In Advanced mode with Enhanced Helix, if the advanced controls are untouched, a style‑aware profile is auto‑applied for the selected style (EDM/Cinematic/Lo‑Fi/Jazz). If you switch styles and your current values still match the previous style profile, the new style profile is applied; otherwise your custom values remain.
+ - Phase 7 controls are exposed under “Ornamentation & Articulation” within the Enhanced Helix advanced section.

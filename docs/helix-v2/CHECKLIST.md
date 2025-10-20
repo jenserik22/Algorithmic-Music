@@ -50,6 +50,7 @@ Phase 6 — Rhythm Markov & Fills
 
 Phase 7 — Ornamentation/Articulation
 - [x] Lead ornaments (grace/slide/turns); chord stabs/arps; legato/ties
+- [x] UI controls exposed in Generator UI (Advanced → Enhanced Helix → Ornamentation & Articulation)
 
 Phase 8 — Evaluation & Auto‑Repair (flag)
 - [ ] Phrase‑level evaluator; bounded local re‑gen
@@ -58,5 +59,6 @@ Phase 9 — Light Adaptive Weighting (opt)
 - [ ] Persist liked‑output n‑grams; bias choices when enabled
 
 Release Gates
-- [ ] Flags default off, A/B proven, docs updated
+- [ ] Flags default off, A/B proven
+- [x] Docs updated
 - [ ] Flip default on (post‑acceptance)

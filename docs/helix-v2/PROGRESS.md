@@ -1,6 +1,6 @@
 # Helix V2 Humanization — Progress Log
 
-Status: Phases 1–6 completed (Phase 6 merged; baseline snapshots accepted; 1 pre‑existing a11y test issue unrelated to engine)
+Status: Phases 1–7 completed; all tests pass (101/101), build succeeds; Phase 7 UI controls exposed in Generator UI
 Branch: feat/helix-humanize-v2
 
 How to read this file
@@ -160,3 +160,8 @@ Log
 - Tests: `enhanced-helix.phase7.test.ts` covering determinism, ornament lead count increase, legato gap reduction, and transition chord activity
 - Docs: Updated FLAGS.md, USER_GUIDE.md, PLAN.md, CHECKLIST.md with Phase 7 details and presets
 - Status: Ready for A/B with flags off by default; CI run pending due to local bridge outage during this update
+
+## [2025‑10‑20] PHASE 7 UI EXPOSED & VALIDATED
+- UI: Added "Ornamentation & Articulation" group to Generator UI (Advanced → Enhanced Helix) with three sliders (ornamentation, legatoStrength, chordStabArpIntensity). Defaults 0, step 0.05.
+- Validation: Typecheck OK; Unit tests all green (101/101); Build OK
+- Docs: Updated FLAGS, USER_GUIDE, PLAN, CHECKLIST to reference UI control location

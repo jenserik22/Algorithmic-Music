@@ -6,7 +6,8 @@ This guide explains the new Enhanced Helix settings and provides recommended val
 - Mode toggle: Simple | Advanced (top of the generator panel)
 - Advanced mode → Algorithm: "Enhanced Helix"
 - Humanization Presets (EDM / Cinematic / Lo‑Fi / Jazz)
-- Individual controls under "Enhanced Helix" section
+- Individual controls under "Enhanced Helix" section, including the Phase 7 group:
+  - Ornamentation & Articulation → sliders for Ornamentation, Legato Strength, Chord Stab/Arp Intensity (default 0, step 0.05)
 
 ## Defaults & mode behavior
 - Default algorithm: Enhanced Helix is the default for Generator UI, Play Demo, and Quick Generate.

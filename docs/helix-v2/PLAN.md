@@ -1,6 +1,6 @@
 # EnhancedHelixEngine Humanization — Refactor Plan/Spec
 
-Status: Active — Phases 0–7 complete; next Phase 8 (Evaluation & Auto‑Repair)
+Status: Active — Phases 0–7 complete; UI for Phase 7 exposed; next Phase 8 (Evaluation & Auto‑Repair)
 
 Scope
 - Make EnhancedHelixEngine sound more human than SoundHelix via phrasing, groove, harmony variety, inter‑track intent.
@@ -89,6 +89,8 @@ Files/Modules Affected
 - src/lib/music/engines/enhanced-helix.ts (feature‑flagged updates only)
 - src/lib/music/engines/types.ts (optional params, meta)
 - tests/** (heuristics + snapshots + perf)
+ - src/components/GeneratorUI.tsx (UI exposure for Phase 1–5 & Phase 7 controls)
+ - docs/helix-v2/* (FLAGS, USER_GUIDE, PLAN, CHECKLIST, PROGRESS)
 
 Next Steps (post‑approval)
 - Create branch feat/helix-humanize-v2
