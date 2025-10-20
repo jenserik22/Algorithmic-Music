@@ -40,7 +40,7 @@ type RhythmPattern = {
 const ENHANCED_TEMPLATES: Record<NonNullable<GenerationParams['style']>, EnhancedSongConfig> = {
   edm: {
     sections: [
-      { name: 'intro', bars: 4, density: 0.3, energy: 0.2, instruments: ['chords', 'hats'], crash: true },
+      { name: 'intro', bars: 4, density: 0.3, energy: 0.2, instruments: ['chords'], crash: true },
       { name: 'buildup', bars: 4, density: 0.6, energy: 0.5, instruments: ['lead', 'chords', 'bass', 'drums'], riserBefore: true },
       { name: 'drop', bars: 8, density: 1.0, energy: 1.0, instruments: ['lead', 'chords', 'bass', 'drums', 'fx'], crash: true, fill: true },
       { name: 'break', bars: 4, density: 0.4, energy: 0.3, instruments: ['lead', 'chords'] },
@@ -91,7 +91,7 @@ const ENHANCED_TEMPLATES: Record<NonNullable<GenerationParams['style']>, Enhance
   
   lofi: {
     sections: [
-      { name: 'intro', bars: 4, density: 0.3, energy: 0.2, instruments: ['chords', 'hats'] },
+      { name: 'intro', bars: 4, density: 0.3, energy: 0.2, instruments: ['chords'] },
       { name: 'verse', bars: 16, density: 0.5, energy: 0.4, instruments: ['lead', 'chords', 'bass', 'drums'] },
       { name: 'chorus', bars: 8, density: 0.7, energy: 0.6, instruments: ['lead', 'chords', 'bass', 'drums'] },
       { name: 'verse2', bars: 16, density: 0.5, energy: 0.4, instruments: ['lead', 'chords', 'bass', 'drums'] },
@@ -421,6 +421,12 @@ export const EnhancedHelixEngine: Engine = {
       (params.bassEchoProbability && params.bassEchoProbability > 0) ||
       (params.densityGateStrength && params.densityGateStrength > 0)
     );
+    // Phase 7 activation (ornamentation & articulation)
+    const isPhase7Active = Boolean(
+      (params.ornamentation && params.ornamentation > 0) ||
+      (params.legatoStrength && params.legatoStrength > 0) ||
+      (params.chordStabArpIntensity && params.chordStabArpIntensity > 0)
+    );
 
     const events: NoteEvent[] = [];
 
@@ -559,7 +565,139 @@ export const EnhancedHelixEngine: Engine = {
       currentTime += sectionDuration;
       sectionStartBar += sectionBars;
     }
-    
+
+    // Phase 7: Ornamentation & Articulation (lead ornaments, legato/ties, chord stabs/arps)
+    if (isPhase7Active) {
+      const orn = Math.max(0, Math.min(1, params.ornamentation ?? 0));
+      const leg = Math.max(0, Math.min(1, params.legatoStrength ?? 0));
+      const stab = Math.max(0, Math.min(1, params.chordStabArpIntensity ?? 0));
+
+      const findSectionAt = (t: number) => {
+        return sectionTimeline.find(s => t >= s.start && t < s.start + s.duration) ?? sectionTimeline[sectionTimeline.length - 1];
+      };
+
+      // Lead legato and ornaments
+      const leadEvents = events.filter(e => e.track === 'lead').sort((a,b)=>a.time-b.time);
+      // Legato: reduce gaps proportionally; keep overlaps bounded
+      if (leg > 0 && leadEvents.length > 1) {
+        for (let i = 1; i < leadEvents.length; i++) {
+          const prev = leadEvents[i-1];
+          const cur = leadEvents[i];
+          const gap = (cur.time - (prev.time + (prev.duration ?? 0)));
+          if (gap > 0) {
+            const reduce = gap * leg;
+            prev.duration = Math.max(0.02, (prev.duration ?? 0) + reduce);
+          } else if (gap < 0) {
+            const maxOverlap = (prev.duration ?? 0) * 0.15 * leg;
+            const actualOverlap = -gap;
+            if (actualOverlap > maxOverlap) {
+              prev.duration = Math.max(0.02, (prev.duration ?? 0) - (actualOverlap - maxOverlap));
+            }
+          }
+          // Tie same pitch: extend slightly into next when identical pitch
+          if (prev.pitch === cur.pitch && leg > 0) {
+            const extend = Math.min(beat * 0.1, Math.max(0, cur.time - prev.time) * 0.3) * leg;
+            prev.duration = Math.max(prev.duration ?? 0, (cur.time - prev.time) + extend);
+          }
+        }
+      }
+
+      // Ornaments: grace, slide, turn (pre-notes)
+      if (orn > 0 && leadEvents.length > 0) {
+        for (let i = 0; i < leadEvents.length; i++) {
+          const e = leadEvents[i];
+          const sec = findSectionAt(e.time);
+          const p = Math.min(0.85, 0.15 + 0.35 * orn + 0.2 * sec.energy);
+          if (roll(p)) {
+            const minWindow = sixteenth * 0.25;
+            const prev = i > 0 ? leadEvents[i-1] : undefined;
+            const windowStart = prev ? (prev.time + (prev.duration ?? 0)) : (sec.start);
+            const available = e.time - windowStart;
+            if (available >= minWindow * 1.1) {
+              const kind = choose(['grace','slide','turn'] as const);
+              if (kind === 'grace' || kind === 'slide') {
+                const d = sixteenth * (kind === 'grace' ? 0.25 : 0.3);
+                const t = Math.max(sec.start, e.time - d * 1.05);
+                const delta = choose([-2,-1,1,2]);
+                const pitch = clampPitch(e.pitch + delta, ENHANCED_TEMPLATES[style].register.lead[0], ENHANCED_TEMPLATES[style].register.lead[1]);
+                const barStart = Math.floor(t / (4 * beat)) * (4 * beat);
+                const pos16 = Math.floor(((t - barStart) / sixteenth)) % 16;
+                events.push({
+                  time: finalizeTime(t, pos16, config.rhythmPattern.swing, 'lead'),
+                  pitch,
+                  duration: d * 0.9,
+                  velocity: Math.max(0.1, e.velocity * (0.7 + 0.2 * orn)),
+                  track: 'lead',
+                });
+              } else { // turn
+                const step = sixteenth * 0.125;
+                const t2 = Math.max(sec.start, e.time - step * 2.2);
+                const seq = choose([[ -1, +1 ], [ +1, -1 ]] as const);
+                for (let k = 0; k < 2; k++) {
+                  const pk = clampPitch(e.pitch + seq[k], ENHANCED_TEMPLATES[style].register.lead[0], ENHANCED_TEMPLATES[style].register.lead[1]);
+                  const tk = t2 + k * step;
+                  const barStart = Math.floor(tk / (4 * beat)) * (4 * beat);
+                  const pos16 = Math.floor(((tk - barStart) / sixteenth)) % 16;
+                  events.push({
+                    time: finalizeTime(tk, pos16, config.rhythmPattern.swing, 'lead'),
+                    pitch: pk,
+                    duration: step * 0.9,
+                    velocity: Math.max(0.1, e.velocity * (0.65 + 0.25 * orn)),
+                    track: 'lead',
+                  });
+                }
+              }
+            }
+          }
+        }
+      }
+
+      // Chord stabs/arpeggios at section transitions
+      if (stab > 0) {
+        for (let si = 0; si < sectionTimeline.length; si++) {
+          const sec = sectionTimeline[si];
+          if (!sec.instruments.includes('chords')) continue;
+          const t = sec.start;
+          if (t >= params.durationSecs) continue;
+          const progIdx = progressionAtTime(t, sec.start);
+          const chordDef = ENHANCED_TEMPLATES[style].chordProgression[progIdx];
+          const chordRoot = rootC4 + SCALES[config.scale][chordDef.degree];
+          const inversion = roll(0.3) ? choose([0,1,2]) : 0;
+          const notes = getChordNotes(chordRoot, chordDef.quality, inversion).map(n => clampPitch(n, config.register.chords[0], config.register.chords[1]));
+          const doArp = roll(0.4 + 0.4 * stab);
+          if (doArp) {
+            const order = roll(0.5) ? [...notes].sort((a,b)=>a-b) : [...notes].sort((a,b)=>b-a);
+            const step = Math.min(sixteenth * 0.25, Math.max(0.03, (sec.duration) * 0.02));
+            for (let j = 0; j < order.length; j++) {
+              const tk = t + j * step;
+              if (tk >= sec.start + Math.min(sec.duration, beat * 1.5)) break;
+              const barStart = Math.floor(tk / (4 * beat)) * (4 * beat);
+              const pos16 = Math.floor(((tk - barStart) / sixteenth)) % 16;
+              events.push({
+                time: finalizeTime(tk, pos16, config.rhythmPattern.swing, 'chords'),
+                pitch: order[j],
+                duration: step * 1.2,
+                velocity: humanizeVelocity(0.5 + sec.energy * 0.25),
+                track: 'chords',
+              });
+            }
+          } else {
+            const barStart = Math.floor(t / (4 * beat)) * (4 * beat);
+            const pos16 = Math.floor(((t - barStart) / sixteenth)) % 16;
+            for (const n of notes) {
+              events.push({
+                time: finalizeTime(t, pos16, config.rhythmPattern.swing, 'chords'),
+                pitch: n,
+                duration: sixteenth * (0.5 + 0.5 * stab),
+                velocity: humanizeVelocity(0.55 + sec.energy * 0.25),
+                track: 'chords',
+              });
+            }
+          }
+        }
+      }
+    }
+
     // Sort events by time with tie-breakers
     events.sort((a, b) => {
       const dt = a.time - b.time;
@@ -793,6 +931,53 @@ export const EnhancedHelixEngine: Engine = {
       }
     }
 
+    // Phase 1 quick enforcement: if leadChordToneBias is maxed, ensure strong-beat lead notes are chord tones
+    if (!simpleMode && Math.max(0, params.leadChordToneBias ?? 0) >= 1) {
+      const leadEvents = events.filter(e => e.track === 'lead').sort((a,b)=>a.time-b.time);
+      const chordEvents = events.filter(e => e.track === 'chords');
+      // Build chord blocks using millisecond rounding
+      const chordBlocksMs = new Map<number, number[]>();
+      for (const c of chordEvents) {
+        const tKey = +c.time.toFixed(3);
+        const arr = chordBlocksMs.get(tKey) ?? [];
+        arr.push(c.pitch);
+        chordBlocksMs.set(tKey, arr);
+      }
+      const chordTimesSorted = Array.from(chordBlocksMs.keys()).sort((a,b)=>a-b);
+      const findChordAt = (t: number): number[] | undefined => {
+        let idx = -1;
+        for (let i = 0; i < chordTimesSorted.length; i++) {
+          if (chordTimesSorted[i] <= t) idx = i; else break;
+        }
+        if (idx >= 0) return (chordBlocksMs.get(chordTimesSorted[idx]) ?? []).map(n => ((n % 12) + 12) % 12);
+        const sec = sectionTimeline.find(s=> t>=s.start && t < s.start + s.duration) ?? sectionTimeline[0];
+        const progIdx = progressionAtTime(t, sec.start);
+        const chordDef = ENHANCED_TEMPLATES[style].chordProgression[progIdx];
+        const chordRoot = rootC4 + SCALES[config.scale][chordDef.degree];
+        return getChordNotes(chordRoot, chordDef.quality).map(n=> (n%12+12)%12);
+      };
+      const strongTol = 0.05; // seconds
+      for (const e of leadEvents) {
+        const nearestStrong = Math.round((e.time / beat) / 2) * 2 * beat;
+        if (Math.abs(e.time - nearestStrong) <= strongTol) {
+          e.time = nearestStrong;
+          const chordPcs = findChordAt(nearestStrong) ?? [];
+          const pClass = ((e.pitch % 12) + 12) % 12;
+          if (chordPcs.length && !chordPcs.includes(pClass)) {
+            let best = e.pitch; let bestD = Infinity;
+            for (const cpc of chordPcs) {
+              const curClass = ((e.pitch % 12) + 12) % 12;
+              const shift = ((cpc - curClass + 18) % 12) - 6;
+              const cand = clampPitch(e.pitch + shift, ENHANCED_TEMPLATES[style].register.lead[0], ENHANCED_TEMPLATES[style].register.lead[1]);
+              const d = Math.abs(cand - e.pitch);
+              if (d < bestD) { bestD = d; best = cand; }
+            }
+            e.pitch = best;
+          }
+        }
+      }
+    }
+
     // Phase 5: Dynamics/Automation — section envelopes and sidechain metadata
     const dynShape = params.dynamicsShape ?? 'flat';
     const dynStr = Math.max(0, Math.min(1, params.dynamicsStrength ?? 0));
@@ -863,44 +1048,26 @@ export const EnhancedHelixEngine: Engine = {
         lfos: makeEnhancedLfos(params),
         sidechain: (scStrength > 0) ? { pulses: events.filter(e => e.track === 'drums' && e.pitch === 36).map(e => e.time), strength: scStrength } : undefined,
         versionTag: (
-          (dynStr > 0 || regLift > 0 || scStrength > 0 || (params.extendedLfoTargets ?? 0) > 0)
-            ? 'v2-phase5'
-            : (isPhase4Active ? 'v2-phase4' : (
-              isPhase3Active ? 'v2-phase3' : (
-              (params.phrasing || params.cadenceStrength) ? 'v2-phase2' : (
-                params.grooveTemplate ||
-                params.humanizeTime ||
-                params.humanizeVel ||
-                params.leadChordToneBias ||
-                params.accentMapIntensity ||
-                params.bassAnticipation ||
-                params.chordVoiceLeadingBias ||
-                params.leadMaxLeapSemitones ||
-                params.spaceAllocatorMinGapSecs
-              ) ? 'v2-phase1' : 'v2-sortfix'
-            )))
+          isPhase7Active ? 'v2-phase7' : (
+            (dynStr > 0 || regLift > 0 || scStrength > 0 || (params.extendedLfoTargets ?? 0) > 0)
+              ? 'v2-phase5'
+              : (isPhase4Active ? 'v2-phase4' : (
+                isPhase3Active ? 'v2-phase3' : (
+                (params.phrasing || params.cadenceStrength) ? 'v2-phase2' : (
+                  params.grooveTemplate ||
+                  params.humanizeTime ||
+                  params.humanizeVel ||
+                  params.leadChordToneBias ||
+                  params.accentMapIntensity ||
+                  params.bassAnticipation ||
+                  params.chordVoiceLeadingBias ||
+                  params.leadMaxLeapSemitones ||
+                  params.spaceAllocatorMinGapSecs
+                ) ? 'v2-phase1' : 'v2-sortfix'
+              ))))
         ),
       },
     };
-    try {
-      if (style === 'edm') {
-        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-        // @ts-ignore
-        import('node:fs').then((m: any) => {
-          const writeFileSync = m.writeFileSync || (m.default && m.default.writeFileSync);
-          if (writeFileSync) {
-            writeFileSync(
-              '.engine-edm-events.json',
-              JSON.stringify(
-                events.map(e => ({ t: e.time, p: e.pitch, d: e.duration, v: e.velocity, tr: e.track })),
-                null,
-                2
-              )
-            );
-          }
-        }).catch(() => {});
-      }
-    } catch {}
     
     return output;
   },
@@ -1183,7 +1350,7 @@ function generateChordProgression(
       const candidates = [0, 1, 2].map(inv => {
         const notes = getChordNotes(chordRoot, chordDef.quality, inv).map(n => clampPitch(n, config.register.chords[0], config.register.chords[1]));
         // Compute greedy nearest movement cost
-        const prev = lastChordPitches.slice().sort((a, b) => a - b);
+        const prev = lastChordPitches!.slice().sort((a, b) => a - b);
         const cur = notes.slice().sort((a, b) => a - b);
         const used = new Set<number>();
         let cost = 0;
@@ -1448,7 +1615,7 @@ function generateDrumPattern(
     const b = hatPresent[(i + 1) % 16];
     if (a && b) c11++; else if (a && !b) c10++; else if (!a && b) c01++; else c00++;
   }
-  const p11 = (c11 + c10) > 0 ? c11 / (c11 + c10) : 0.5;
+  let p11 = (c11 + c10) > 0 ? c11 / (c11 + c10) : 0.5;
   const p01 = (c01 + c00) > 0 ? c01 / (c01 + c00) : 0.5;
 
   const fillPatterns = [
@@ -1539,7 +1706,10 @@ function generateDrumPattern(
         const hatProbBase = (params?.grooveTemplate && params.grooveTemplate !== 'straight') ? 0.95 : 0.8;
         // Baseline behavior: allow occasional hats off the canonical pattern to keep texture lively
         const basePresence = pattern.hats.includes(i) ? hatProbBase : 0.15 * hatProbBase;
-        const markovPresence = lastHat ? p11 : p01;
+        // Encourage some adjacency when Markov is emphasized even if the base pattern has none
+        const adjacencyBoost = 0.4 * rmk;
+        const p11Adj = Math.max(p11, adjacencyBoost);
+        const markovPresence = lastHat ? p11Adj : p01;
         const p = rmk > 0 ? ((1 - rmk) * basePresence + rmk * markovPresence) : basePresence;
         if (roll(p)) {
           const isAccent = i % 4 === 0;

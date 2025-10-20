@@ -52,6 +52,10 @@ export interface GenerationParams {
   registerLiftStrength?: number; // 0..1 gentle register lift near section climaxes (lead focus)
   extendedLfoTargets?: number; // 0..1 adds extra LFO targets in meta when > 0
   sidechainStrength?: number; // 0..1 emits sidechain pulses metadata and optional mild ducking
+  // Phase 7 ornamentation & articulation (default neutral)
+  ornamentation?: number; // 0..1 overall ornament probability (grace/slide/turns)
+  legatoStrength?: number; // 0..1 reduce gaps / slight overlaps between successive lead notes
+  chordStabArpIntensity?: number; // 0..1 add short chord stabs/arps at section transitions
 }
 
 export interface NoteEvent {
@@ -67,9 +71,11 @@ export interface EngineOutput {
   meta?: {
     bpm?: number;
     key?: string;
+    algorithm?: string;
     swing?: number; // 0..1
     style?: string;
     variation?: number;
+    timeSignature?: string;
     lfos?: LfoSpec[];
     sidechain?: { pulses: number[]; strength?: number };
     versionTag?: string;

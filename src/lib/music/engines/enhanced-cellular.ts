@@ -40,7 +40,7 @@ const CA_RULES: Record<string, CARule> = {
 
 // Different track configurations
 type TrackConfig = {
-  name: string;
+  name: 'lead' | 'chords' | 'bass' | 'drums' | 'fx';
   rule: string;
   gridSize: { width: number; height: number };
   initDensity: number;

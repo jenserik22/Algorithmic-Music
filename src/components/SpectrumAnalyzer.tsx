@@ -1,5 +1,11 @@
 import React, { useRef, useEffect, useState, useCallback } from 'react';
-import * as Tone from 'tone';
+let ToneMod: any | null = null;
+const getTone = async () => {
+  if (!ToneMod) {
+    ToneMod = await import('tone');
+  }
+  return ToneMod;
+};
 import { AnalysisBus } from '@/lib/audio/analysisBus';
 
 interface SpectrumAnalyzerProps {
@@ -19,8 +25,8 @@ export const SpectrumAnalyzer: React.FC<SpectrumAnalyzerProps> = ({
   className = ''
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const fftAnalyzerRef = useRef<Tone.Analyser | null>(null);
-  const waveformAnalyzerRef = useRef<Tone.Analyser | null>(null);
+  const fftAnalyzerRef = useRef<any | null>(null);
+  const waveformAnalyzerRef = useRef<any | null>(null);
   const nativeAnalyzersRef = useRef<{ ctx: AudioContext; fft: AnalyserNode; waveform: AnalyserNode } | null>(null);
   const animationFrameRef = useRef<number | null>(null);
   
@@ -45,8 +51,9 @@ export const SpectrumAnalyzer: React.FC<SpectrumAnalyzerProps> = ({
         nativeAnalyzersRef.current = native;
         if (!native) {
           // Ensure Tone context is running first
-          if (Tone.getContext().state !== 'running') {
-            await Tone.start();
+          const tone = await getTone();
+          if (tone.getContext().state !== 'running') {
+            await tone.start();
           }
           // Clean up existing analyzers
           if (fftAnalyzerRef.current) {
@@ -56,14 +63,14 @@ export const SpectrumAnalyzer: React.FC<SpectrumAnalyzerProps> = ({
             waveformAnalyzerRef.current.dispose();
           }
           // Create FFT analyzer for bars and circular modes
-          fftAnalyzerRef.current = new Tone.Analyser('fft', 512);
+          fftAnalyzerRef.current = new tone.Analyser('fft', 512);
           fftAnalyzerRef.current.smoothing = smoothing;
           // Create waveform analyzer for waveform mode
-          waveformAnalyzerRef.current = new Tone.Analyser('waveform', 512);
+          waveformAnalyzerRef.current = new tone.Analyser('waveform', 512);
           waveformAnalyzerRef.current.smoothing = 0.2; // Some smoothing for cleaner waveform
           // Better connection method - connect TO the analyzers FROM master
-          Tone.getDestination().connect(fftAnalyzerRef.current);
-          Tone.getDestination().connect(waveformAnalyzerRef.current);
+          tone.getDestination().connect(fftAnalyzerRef.current);
+          tone.getDestination().connect(waveformAnalyzerRef.current);
         }
         
         console.log('[SpectrumAnalyzer] Analyzers initialized (native:', !!nativeAnalyzersRef.current, ')');
@@ -455,6 +462,7 @@ export const SpectrumAnalyzer: React.FC<SpectrumAnalyzerProps> = ({
           ref={canvasRef}
           width={width}
           height={height}
+          aria-hidden="true"
           className="border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900"
           style={{ maxWidth: '100%', height: 'auto' }}
         />

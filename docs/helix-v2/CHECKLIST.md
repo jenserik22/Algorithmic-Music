@@ -49,7 +49,7 @@ Phase 6 — Rhythm Markov & Fills
 - [x] Humanize distribution selector (uniform/gaussian) + presets update per style
 
 Phase 7 — Ornamentation/Articulation
-- [ ] Lead ornaments (grace/slide/turns); chord stabs/arps; legato/ties
+- [x] Lead ornaments (grace/slide/turns); chord stabs/arps; legato/ties
 
 Phase 8 — Evaluation & Auto‑Repair (flag)
 - [ ] Phrase‑level evaluator; bounded local re‑gen

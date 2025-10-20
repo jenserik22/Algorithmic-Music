@@ -82,8 +82,7 @@ export class EnhancedTonePlayer {
       // Enhanced Chords section with rich processing
       const chords = new tone.PolySynth(tone.Synth, {
         oscillator: { type: 'sawtooth' },
-        envelope: { attack: 0.02, decay: 0.3, sustain: 0.6, release: 0.8 },
-        filter: { frequency: 2500, rolloff: -24 }
+        envelope: { attack: 0.02, decay: 0.3, sustain: 0.6, release: 0.8 }
       });
       const chordsFilter = new tone.Filter({ type: 'lowpass', frequency: 3000 });
       const chordsChorus = new tone.Chorus({ frequency: 0.4, delayTime: 2.5, depth: 0.7 }).start();
@@ -96,8 +95,7 @@ export class EnhancedTonePlayer {
       // Enhanced Lead synth with character
       const lead = new tone.Synth({
         oscillator: { type: 'sawtooth' },
-        envelope: { attack: 0.005, decay: 0.2, sustain: 0.4, release: 0.3 },
-        filter: { frequency: 4000, rolloff: -12 }
+        envelope: { attack: 0.005, decay: 0.2, sustain: 0.4, release: 0.3 }
       });
       const leadSaturator = new tone.Distortion(0.2);
       const leadFilter = new tone.Filter({ type: 'lowpass', frequency: 2500 });
@@ -115,8 +113,7 @@ export class EnhancedTonePlayer {
       // Enhanced Bass with punch and character
       const bass = new tone.MonoSynth({
         oscillator: { type: 'square' },
-        envelope: { attack: 0.005, decay: 0.2, sustain: 0.8, release: 0.4 },
-        filter: { frequency: 800, rolloff: -12 }
+        envelope: { attack: 0.005, decay: 0.2, sustain: 0.8, release: 0.4 }
       });
       const bassFilter = new tone.Filter({ type: 'lowpass', frequency: 600 });
       const bassCompressor = new tone.Compressor({ 
@@ -150,8 +147,7 @@ export class EnhancedTonePlayer {
 
       // Snare with room
       const snare = new tone.NoiseSynth({
-        envelope: { attack: 0.001, decay: 0.15, sustain: 0 },
-        filter: { frequency: 3000 }
+        envelope: { attack: 0.001, decay: 0.15, sustain: 0 }
       });
       const snareReverb = new tone.Reverb({ decay: 0.8, wet: 0.4 });
       const snareCompressor = new tone.Compressor({ 
@@ -165,13 +161,14 @@ export class EnhancedTonePlayer {
 
       // Hi-hats with sparkle
       const hat = new tone.MetalSynth({
-        frequency: 400,
         envelope: { attack: 0.001, decay: 0.08, release: 0.1 },
         harmonicity: 5.1,
         modulationIndex: 32,
         resonance: 4000,
         octaves: 1.5
       });
+      // Set frequency after construction to satisfy typings
+      try { hat.frequency.value = 400; } catch {}
       const hatFilter = new tone.Filter({ type: 'highpass', frequency: 8000 });
       const hatPan = new tone.Panner(0.3);
       hat.chain(hatFilter, hatPan);
@@ -179,15 +176,14 @@ export class EnhancedTonePlayer {
 
       // Enhanced FX section
       const fxNoise = new tone.NoiseSynth({
-        envelope: { attack: 0.5, decay: 1, sustain: 0.8, release: 2 },
-        filter: { frequency: 200 }
+        envelope: { attack: 0.5, decay: 1, sustain: 0.8, release: 2 }
       });
       const fxMetal = new tone.MetalSynth({
-        frequency: 200,
         envelope: { attack: 0.001, decay: 1, release: 0.1 },
         harmonicity: 3,
         modulationIndex: 20
       });
+      try { fxMetal.frequency.value = 200; } catch {}
       const fxFilter = new tone.Filter({ type: 'bandpass', frequency: 1000, Q: 10 });
       const fxDelay = new tone.FeedbackDelay({ 
         delayTime: '4n', 

@@ -105,8 +105,8 @@ export class MidiExporter {
     
     // Create MIDI writer with tracks array
     const writer = new MidiWriter.Writer(tracks);
-    
-    return writer.buildFile();
+    const data = writer.buildFile();
+    return data;
   }
 
   /**
@@ -151,7 +151,7 @@ export class MidiExporter {
   /**
    * Create a MIDI track from track data
    */
-  private static createMidiTrack(trackData: MidiTrackData, bpm: number, options: MidiExportOptions): MidiWriter.Track {
+  private static createMidiTrack(trackData: MidiTrackData, bpm: number, options: MidiExportOptions) {
     const track = new MidiWriter.Track();
     
     // Optionally write track name as a text meta event for compatibility
@@ -322,7 +322,10 @@ export class MidiExporter {
    * Download MIDI file
    */
   private static downloadMidi(data: Uint8Array, fileName: string): void {
-    const blob = new Blob([data], { type: 'audio/midi' });
+    // Ensure we pass a real ArrayBuffer to Blob for widest compatibility
+    const ab = new ArrayBuffer(data.byteLength);
+    new Uint8Array(ab).set(data as Uint8Array);
+    const blob = new Blob([ab], { type: 'audio/midi' });
     const url = URL.createObjectURL(blob);
     
     const link = document.createElement('a');

@@ -1,4 +1,4 @@
-# Enhanced Helix — User Guide (Phase 1–6 Settings)
+# Enhanced Helix — User Guide (Phase 1–7 Settings)
 
 This guide explains the new Enhanced Helix settings and provides recommended values to get musical, human‑sounding results quickly. All settings are optional: leaving them unset preserves the original baseline.
 
@@ -118,27 +118,42 @@ This guide explains the new Enhanced Helix settings and provides recommended val
 - Sidechain Strength (0..1)
   - Emits sidechain pulses metadata (kick onsets) and mildly ducks chords/bass near kicks. 0.2–0.6 for EDM/lo‑fi glue.
 
+### Ornamentation & Articulation (Phase 7)
+
+- Ornamentation (0..1)
+  - Adds lead ornaments: quick grace notes, short slides, or tiny turns just before target notes. Higher values add more embellishment.
+
+- Legato Strength (0..1)
+  - Reduces gaps between successive lead notes (and lightly ties repeated pitches). Higher values approach connected, singing lines.
+
+- Chord Stab/Arp Intensity (0..1)
+  - Adds short chord stabs or quick arpeggios at section transitions (start of sections) to emphasize form changes.
+
 ## Quick recipes (good‑sounding starting points)
 
 - EDM:
   - Groove: mpc62; Time 0.12; Vel 0.20; Lead Chord‑Tone 0.40; Accent 0.35; Bass Ant 0.30; Voice‑Lead 0.30; Max Leap 9; Min Gap 0.015
   - Phrasing short; Cadence 0.7; HarmRhythmVar 0.5; HarmComplex 0.3; Pedal 0.2; Call/Resp 0.6; Bass Echo 0.3; Density Gate 0.4
   - Dynamics: shape=swell; strength=0.6; regLift=0.2; extLFO=0.4; sidechain=0.6
+  - Ornamentation/Articulation: ornamentation=0.5; legatoStrength=0.4; chordStabArpIntensity=0.6
 
 - Cinematic:
   - Groove: straight; Time 0.12; Vel 0.15; Lead Chord‑Tone 0.50; Accent 0.10; Bass Ant 0.20; Voice‑Lead 0.70; Max Leap 7; Min Gap 0.020
   - Phrasing long; Cadence 0.9; HarmRhythmVar 0.3; HarmComplex 0.2; Pedal 0.5; Call/Resp 0.4; Bass Echo 0.2; Density Gate 0.3
   - Dynamics: shape=rise; strength=0.4; regLift=0.3; extLFO=0.3; sidechain=0.2
+  - Ornamentation/Articulation: 0.35; 0.5; 0.3
 
 - Lo‑Fi:
   - Groove: shuffle; Time 0.25; Vel 0.30; Lead Chord‑Tone 0.35; Accent 0.40; Bass Ant 0.25; Voice‑Lead 0.40; Max Leap 7; Min Gap 0.020
   - Phrasing short; Cadence 0.6; HarmRhythmVar 0.4; HarmComplex 0.25; Pedal 0.3; Call/Resp 0.3; Bass Echo 0.25; Density Gate 0.2
   - Dynamics: shape=fall; strength=0.3; regLift=0.1; extLFO=0.3; sidechain=0.2
+  - Ornamentation/Articulation: 0.4; 0.6; 0.2
 
 - Jazz:
   - Groove: shuffle; Time 0.15; Vel 0.20; Lead Chord‑Tone 0.50; Accent 0.20; Bass Ant 0.35; Voice‑Lead 0.80; Max Leap 9; Min Gap 0.015
   - Phrasing medium; Cadence 0.5; HarmRhythmVar 0.35; HarmComplex 0.4; Pedal 0.2; Call/Resp 0.5; Bass Echo 0.2; Density Gate 0.3
   - Dynamics: shape=swell; strength=0.3; regLift=0.2; extLFO=0.2; sidechain=0.2
+  - Ornamentation/Articulation: 0.5; 0.5; 0.25
 
 ## Tips for better results
 - Start from a preset, then tweak one control at a time.
@@ -150,4 +165,4 @@ This guide explains the new Enhanced Helix settings and provides recommended val
 
 ## Notes
 - All features are optional and backward‑compatible. With all values off/empty, Enhanced Helix matches the previous baseline.
-- When Phase 2 flags are used, the engine version tag shows `v2-phase2`. With any Phase 3 flag, it shows `v2-phase3`. With any Phase 4 flag, it shows `v2-phase4`. With any Phase 5 flag, it shows `v2-phase5`.
+- When Phase 2 flags are used, the engine version tag shows `v2-phase2`. With any Phase 3 flag, it shows `v2-phase3`. With any Phase 4 flag, it shows `v2-phase4`. With any Phase 5 flag, it shows `v2-phase5`. With any Phase 7 flag, it shows `v2-phase7`.

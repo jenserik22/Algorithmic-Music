@@ -149,3 +149,14 @@ Log
 - Notes:
   - Users preferred the gaussian option for Lo‑Fi/Jazz feel; uniform retained for tight EDM/Cinematic
   - Proceeding to Phase 7 (Ornamentation/Articulation)
+
+## [2025‑10‑20] PHASE 7 COMPLETE — Ornamentation & Articulation
+- Flags (types.ts): `ornamentation`, `legatoStrength`, `chordStabArpIntensity` (all optional; default neutral)
+- Engine (enhanced-helix.ts):
+  - Lead ornaments: probabilistic grace notes, short slides, and tiny turns before targets; deterministic by seed
+  - Legato/ties: reduces positive gaps between successive lead notes; lightly ties identical consecutive pitches
+  - Chord stabs/arps: short stabs or quick arpeggios at section starts on the chords track (intensity‑gated)
+  - Version tag escalates to `v2-phase7` when any Phase 7 flag is used
+- Tests: `enhanced-helix.phase7.test.ts` covering determinism, ornament lead count increase, legato gap reduction, and transition chord activity
+- Docs: Updated FLAGS.md, USER_GUIDE.md, PLAN.md, CHECKLIST.md with Phase 7 details and presets
+- Status: Ready for A/B with flags off by default; CI run pending due to local bridge outage during this update

@@ -83,21 +83,20 @@ export function PlaybackControls({ output, autoPlayToken, onPlaybackStateChange 
       .catch((error) => {
         console.warn('[PlaybackControls] Playback failed, trying fallback:', error);
         // fallback: if Tone failed and we were using Tone, try SoundFont; otherwise WebAudio
-        try {
-          if (engine === 'tone') {
-            playerRef.current = new SfPlayer();
-          } else {
-            playerRef.current = new WebAudioPlayer();
-          }
-          playerRef.current.play(output, () => {
-            setStatus('stopped');
-            onPlaybackStateChange?.(false);
-          });
-        } catch (fallbackError) {
+        if (engine === 'tone') {
+          playerRef.current = new SfPlayer();
+        } else {
+          playerRef.current = new WebAudioPlayer();
+        }
+        return Promise.resolve((playerRef.current as any).play(output, () => {
+          setStatus('stopped');
+          onPlaybackStateChange?.(false);
+        }))
+        .catch((fallbackError) => {
           console.error('[PlaybackControls] Fallback also failed:', fallbackError);
           setStatus('stopped');
           onPlaybackStateChange?.(false);
-        }
+        });
       });
     // After starting playback, ensure AnalysisBus is wired for current engine
     const wireAnalysis = () => {

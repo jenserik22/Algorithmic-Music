@@ -4,7 +4,7 @@ exports[`EnhancedHelixEngine baseline (flags off) > generates valid events — c
 {
   "backbeat": 0,
   "chordRate": 0.2,
-  "collisions": 103,
+  "collisions": 98,
   "first10": [
     {
       "d": 3.84,
@@ -77,16 +77,16 @@ exports[`EnhancedHelixEngine baseline (flags off) > generates valid events — c
       "v": 0.43,
     },
   ],
-  "n": 297,
-  "vlCost": 4.38,
+  "n": 288,
+  "vlCost": 4.59,
 }
 `;
 
 exports[`EnhancedHelixEngine baseline (flags off) > generates valid events — edm 1`] = `
 {
   "backbeat": 0,
-  "chordRate": 0.091,
-  "collisions": 81,
+  "chordRate": 0.1,
+  "collisions": 87,
   "first10": [
     {
       "d": 0.968,
@@ -159,16 +159,16 @@ exports[`EnhancedHelixEngine baseline (flags off) > generates valid events — e
       "v": 0.77,
     },
   ],
-  "n": 245,
-  "vlCost": 4.44,
+  "n": 260,
+  "vlCost": 4.38,
 }
 `;
 
 exports[`EnhancedHelixEngine baseline (flags off) > generates valid events — jazz 1`] = `
 {
   "backbeat": 0,
-  "chordRate": 0.188,
-  "collisions": 186,
+  "chordRate": 0.125,
+  "collisions": 187,
   "first10": [
     {
       "d": 0.857,
@@ -220,18 +220,11 @@ exports[`EnhancedHelixEngine baseline (flags off) > generates valid events — j
       "v": 0.73,
     },
     {
-      "d": 0.054,
-      "p": 42,
-      "t": 0.123,
-      "tr": "drums",
-      "v": 0.45,
-    },
-    {
       "d": 0.161,
       "p": 38,
-      "t": 0.218,
+      "t": 0.224,
       "tr": "drums",
-      "v": 0.83,
+      "v": 0.84,
     },
     {
       "d": 0.054,
@@ -240,17 +233,24 @@ exports[`EnhancedHelixEngine baseline (flags off) > generates valid events — j
       "tr": "drums",
       "v": 0.48,
     },
+    {
+      "d": 0.214,
+      "p": 43,
+      "t": 0.428,
+      "tr": "bass",
+      "v": 0.81,
+    },
   ],
-  "n": 603,
-  "vlCost": 4.5,
+  "n": 611,
+  "vlCost": 4.34,
 }
 `;
 
 exports[`EnhancedHelixEngine baseline (flags off) > generates valid events — lofi 1`] = `
 {
   "backbeat": 0,
-  "chordRate": 0.2,
-  "collisions": 158,
+  "chordRate": 0.25,
+  "collisions": 181,
   "first10": [
     {
       "d": 1.429,
@@ -323,7 +323,7 @@ exports[`EnhancedHelixEngine baseline (flags off) > generates valid events — l
       "v": 0.44,
     },
   ],
-  "n": 454,
+  "n": 493,
   "vlCost": 4.29,
 }
 `;

@@ -1,6 +1,6 @@
 # EnhancedHelixEngine Humanization — Refactor Plan/Spec
 
-Status: Active — Phases 0–6 complete; next Phase 7 (Ornamentation/Articulation)
+Status: Active — Phases 0–7 complete; next Phase 8 (Evaluation & Auto‑Repair)
 
 Scope
 - Make EnhancedHelixEngine sound more human than SoundHelix via phrasing, groove, harmony variety, inter‑track intent.
@@ -66,7 +66,7 @@ Phase 5 — Dynamics/Automation/FX
 Phase 6 — Rhythm Markov & Advanced Fills
 - Markov hats/percussion conditioned on groove; rudiment micro‑motifs; bar‑position‑aware fills.
 
-Phase 7 — Ornamentation/Articulation
+Phase 7 — Ornamentation/Articulation (COMPLETED)
 - Grace/slide/turns (low p); chord stabs/arps at transitions; legato/ties.
 
 Phase 8 — Evaluation & Auto‑Repair (flagged)

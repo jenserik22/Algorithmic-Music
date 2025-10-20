@@ -1,4 +1,4 @@
-# Enhanced Helix – Phase 1–6 Flags
+# Enhanced Helix – Phase 1–7 Flags
 
 This document summarizes the humanization and musicality flags introduced across Phases 1–6. Defaults maintain Phase 0 baseline until a flag is set non‑zero.
 
@@ -38,6 +38,11 @@ Phase 5 (dynamics/automation/FX):
 - registerLiftStrength: 0..1. Gently lifts lead register near section climaxes (when applicable).
 - extendedLfoTargets: 0..1. Adds extra LFO targets (e.g., master.width, lead.vibrato, chords.filterRes).
 - sidechainStrength: 0..1. Emits sidechain pulses metadata (kick onsets) and applies mild ducking to chords/bass near kicks.
+
+Phase 7 (ornamentation & articulation):
+- ornamentation: 0..1. Probability/intensity of lead ornaments (grace notes, slides, short turns) preceding target notes.
+- legatoStrength: 0..1. Reduces gaps between successive lead notes; may create slight overlaps and ties on repeated pitches.
+- chordStabArpIntensity: 0..1. Adds short chord stabs or quick arpeggios at section transitions (start of sections) on the chords track.
 
 Simple Mode (global musicality toggle):
 - simpleMode: boolean. When true, the engine prioritizes clarity and human‑like structure over complexity by applying:
@@ -80,6 +85,12 @@ Suggested Phase 5 values:
 - Cinematic: dynamicsShape='rise', dynamicsStrength=0.4, registerLiftStrength=0.3, extendedLfoTargets=0.3, sidechainStrength=0.2
 - Lo‑Fi: dynamicsShape='fall', dynamicsStrength=0.3, registerLiftStrength=0.1, extendedLfoTargets=0.3, sidechainStrength=0.2
 - Jazz: dynamicsShape='swell', dynamicsStrength=0.3, registerLiftStrength=0.2, extendedLfoTargets=0.2, sidechainStrength=0.2
+
+Suggested Phase 7 values:
+- EDM: ornamentation=0.5, legatoStrength=0.4, chordStabArpIntensity=0.6
+- Cinematic: 0.35, 0.5, 0.3
+- Lo‑Fi: 0.4, 0.6, 0.2
+- Jazz: 0.5, 0.5, 0.25
 
 ## UI behavior: Advanced defaults & Duration
 - Default algorithm is Enhanced Helix across Generator UI, Play Demo, and Quick Generate.
