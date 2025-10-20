@@ -44,8 +44,9 @@ Phase 5 — Dynamics/Automation/FX
 - [x] Section envelopes; extended LFO targets; sidechain metadata
 
 Phase 6 — Rhythm Markov & Fills
-- [ ] Markov hats/percussion; rudiment micro‑motifs
-- [ ] Bar‑aware fill generator
+- [x] Markov hats/percussion; rudiment micro‑motifs
+- [x] Bar‑aware fill generator
+- [x] Humanize distribution selector (uniform/gaussian) + presets update per style
 
 Phase 7 — Ornamentation/Articulation
 - [ ] Lead ornaments (grace/slide/turns); chord stabs/arps; legato/ties

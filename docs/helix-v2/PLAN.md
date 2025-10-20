@@ -1,6 +1,6 @@
 # EnhancedHelixEngine Humanization — Refactor Plan/Spec
 
-Status: Draft (awaiting approval)
+Status: Active — Phases 0–6 complete; next Phase 7 (Ornamentation/Articulation)
 
 Scope
 - Make EnhancedHelixEngine sound more human than SoundHelix via phrasing, groove, harmony variety, inter‑track intent.
@@ -28,7 +28,7 @@ Non‑Breaking Strategy
 - meta.engineVersion = 'enhanced-helix-v2' when features used.
 
 Branching, CI, Rollout
-- Branch (to be created after approval): feat/helix-humanize-v2
+- Branch: feat/helix-humanize-v2 (active)
 - PRs per phase with green CI: typecheck, lint, unit, snapshots, perf.
 - Flags default off; A/B compare v1 vs v2 by same seeds; flip default after acceptance.
 

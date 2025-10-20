@@ -1,4 +1,4 @@
-# Enhanced Helix — User Guide (Phase 1–5 Settings)
+# Enhanced Helix — User Guide (Phase 1–6 Settings)
 
 This guide explains the new Enhanced Helix settings and provides recommended values to get musical, human‑sounding results quickly. All settings are optional: leaving them unset preserves the original baseline.
 
@@ -18,6 +18,7 @@ This guide explains the new Enhanced Helix settings and provides recommended val
 - Choose between `uniform` and `gaussian` for time/velocity jitter.
 - Gaussian concentrates small jitters around center with occasional larger ones; good for Lo‑Fi/Jazz naturalness.
 - Uniform is more evenly spread; good for tight EDM.
+ - Defaults by style: EDM/Cinematic → uniform; Lo‑Fi/Jazz → gaussian.
 
 ## Simple Mode (recommended starting point)
 - What it is: a global musicality mode that prioritizes clarity and structure over complexity.

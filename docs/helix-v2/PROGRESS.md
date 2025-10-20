@@ -1,6 +1,6 @@
 # Helix V2 Humanization — Progress Log
 
-Status: Phases 1–5 completed (all cross‑style validations passing; 1 pre‑existing a11y test issue unrelated to engine)
+Status: Phases 1–6 completed (Phase 6 merged; baseline snapshots accepted; 1 pre‑existing a11y test issue unrelated to engine)
 Branch: feat/helix-humanize-v2
 
 How to read this file
@@ -135,3 +135,17 @@ Log
 ## [2025‑10‑18] AUDIO TROUBLESHOOTING (RESOLVED)
 - Symptom: no sound on Play.
 - Resolution: Channel Manager → Reset channels (corrupted mapping). Sound restored. Visualizer previously fixed to poll AnalysisBus each frame.
+
+## [2025‑10‑20] PHASE 6 COMPLETE — Rhythm Markov, Fills, Humanize Distribution
+- Added rhythmMarkovStrength (0..1) blending a simple 2‑state Markov model for hi‑hat continuity into base patterns
+- Added bar‑aware fillRate (0..1) — fills evaluated on 4th bars in eligible sections
+- Added humanizeDistribution selector: 'uniform' | 'gaussian' (Box‑Muller) shaping timing/velocity jitter
+- UI: new Rhythm Markov slider, Humanize Distribution dropdown; style presets updated:
+  - EDM/Cinematic → uniform; Lo‑Fi/Jazz → gaussian
+- Tests:
+  - seededRandom.gaussian.test validates bounds and central mass vs uniform (PASS)
+  - markovHats continuity test added (thresholds noted for future tuning)
+  - Baseline snapshots updated/accepted for Phase 6; pre‑existing appA11y Tone env issue remains
+- Notes:
+  - Users preferred the gaussian option for Lo‑Fi/Jazz feel; uniform retained for tight EDM/Cinematic
+  - Proceeding to Phase 7 (Ornamentation/Articulation)

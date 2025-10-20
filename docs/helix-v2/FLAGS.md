@@ -1,6 +1,6 @@
-# Enhanced Helix – Phase 1–5 Flags
+# Enhanced Helix – Phase 1–6 Flags
 
-This document summarizes the humanization and musicality flags introduced in Phase 1 and Phase 2. Defaults maintain Phase 0 baseline until a flag is set non‑zero.
+This document summarizes the humanization and musicality flags introduced across Phases 1–6. Defaults maintain Phase 0 baseline until a flag is set non‑zero.
 
 - grooveTemplate: one of `straight (empty)`, `shuffle`, `mpc62`, `funk`. Applies correlated micro‑timing.
 - humanizeDistribution: 'uniform' | 'gaussian'. Shapes jitter distribution; gaussian concentrates around center with rare extremes.
@@ -12,7 +12,7 @@ This document summarizes the humanization and musicality flags introduced in Pha
 - chordVoiceLeadingBias: 0..1. Inversion selection bias for minimal movement between chords.
 - leadMaxLeapSemitones: 0|7|9|12. Limits melodic leaps via octave folding.
 - spaceAllocatorMinGapSecs: 0..0.05. Enforces per‑track minimum gaps to reduce overlaps.
-- rhythmMarkovStrength: 0..1. Strength of Markov‑driven hat/percussion continuity; blends base pattern with learned 2‑state transitions.
+ 
 
 Phase 2 (phrasing & cadence):
 - phrasing: 'short' | 'medium' | 'long'. Target phrase length in bars (short=2, medium/long=4 currently).
@@ -27,7 +27,10 @@ Phase 4 (inter‑track conversation):
 - callResponseIntensity: 0..1. Alternation strength between lead (call) and chords (response) across bars.
 - bassEchoProbability: 0..1. Chance the bass will echo a recent lead fragment shortly after.
 - densityGateStrength: 0..1. Reduces simultaneous onsets across tracks to avoid clutter.
- - fillRate: 0..1. Probability of bar‑end fills (checked on 4th bar in eligible sections).
+
+Phase 6 (rhythm Markov & fills):
+- rhythmMarkovStrength: 0..1. Strength of Markov‑driven hat/percussion continuity; blends base pattern with learned 2‑state transitions.
+- fillRate: 0..1. Probability of bar‑end fills (checked on 4th bar in eligible sections).
 
 Phase 5 (dynamics/automation/FX):
 - dynamicsShape: 'flat' | 'rise' | 'fall' | 'swell'. Section envelope shaping across each section.
@@ -48,6 +51,7 @@ Simple Mode (global musicality toggle):
   - Target metric: ≥0.8 lead chord‑tone rate on strong beats (current tests: 1.0)
 
 Style presets (UI suggestions):
+- Distribution by style (default): EDM/Cinematic → humanizeDistribution=uniform; Lo‑Fi/Jazz → humanizeDistribution=gaussian
 - EDM: mpc62, 0.12, 0.20, 0.40, 0.35, 0.30, 0.30, 9, 0.015
 - Cinematic: straight, 0.12, 0.15, 0.50, 0.10, 0.20, 0.70, 7, 0.020
 - Lo‑Fi: shuffle, 0.25, 0.30, 0.35, 0.40, 0.25, 0.40, 7, 0.020
