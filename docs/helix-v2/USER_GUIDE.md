@@ -14,6 +14,11 @@ This guide explains the new Enhanced Helix settings and provides recommended val
 - Advanced Duration: when you switch to Advanced, if the Duration still equals the preset value, it auto‑sets to 16s. If you’ve already edited Duration, your value is preserved.
 - Style‑aware Advanced defaults: in Advanced mode with Enhanced Helix, if the advanced controls are untouched, style‑specific defaults are auto‑applied for the selected style (EDM/Cinematic/Lo‑Fi/Jazz). If you later switch styles and your current values still match the previous style’s profile, the new style profile is applied; otherwise your custom values remain.
 
+### New: Humanize Distribution
+- Choose between `uniform` and `gaussian` for time/velocity jitter.
+- Gaussian concentrates small jitters around center with occasional larger ones; good for Lo‑Fi/Jazz naturalness.
+- Uniform is more evenly spread; good for tight EDM.
+
 ## Simple Mode (recommended starting point)
 - What it is: a global musicality mode that prioritizes clarity and structure over complexity.
 - What it does:
@@ -45,6 +50,10 @@ This guide explains the new Enhanced Helix settings and provides recommended val
 - Drum Accent Intensity (0..1)
   - Shapes hats/backbeat with repeating accent maps; combines nicely with groove templates.
   - 0.20–0.40 is subtle and musical.
+
+- Rhythm Markov Strength (0..1)
+  - Adds continuity to hi‑hat/percussion using a simple Markov model blended with base patterns.
+  - 0 keeps the original pattern behavior; 0.3–0.6 for more flowing hats.
 
 - Bass Anticipation (0..1)
   - Chance that bass hits the "& of 4" to lead into the next bar.
@@ -136,6 +145,7 @@ This guide explains the new Enhanced Helix settings and provides recommended val
 - Increase Lead Chord‑Tone Bias for clearer harmony; reduce for more exploratory melodies.
 - Use Phrasing + Cadence to add musical sentences and closure.
 - Keep Min Gap > 0 to avoid overlaps when density is high.
+- Bar‑aware fills are controlled by Fill Rate (0..1) and happen on eligible sections (usually every 4th bar).
 
 ## Notes
 - All features are optional and backward‑compatible. With all values off/empty, Enhanced Helix matches the previous baseline.

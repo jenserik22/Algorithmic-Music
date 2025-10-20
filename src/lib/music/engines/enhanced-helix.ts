@@ -1438,6 +1438,18 @@ function generateDrumPattern(
   const { rand, roll, humanizeTime, humanizeVelocity, applySwing, beat, sixteenth, choose, finalizeTime, params } = utils;
   const pattern = config.rhythmPattern;
   const bars = Math.floor(duration / (4 * beat));
+  const rmk = Math.max(0, Math.min(1, params?.rhythmMarkovStrength ?? 0));
+
+  // Build simple 2-state Markov model for hats from base pattern
+  const hatPresent: boolean[] = Array.from({ length: 16 }, (_, i) => pattern.hats.includes(i));
+  let c11 = 0, c10 = 0, c01 = 0, c00 = 0;
+  for (let i = 0; i < 16; i++) {
+    const a = hatPresent[i];
+    const b = hatPresent[(i + 1) % 16];
+    if (a && b) c11++; else if (a && !b) c10++; else if (!a && b) c01++; else c00++;
+  }
+  const p11 = (c11 + c10) > 0 ? c11 / (c11 + c10) : 0.5;
+  const p01 = (c01 + c00) > 0 ? c01 / (c01 + c00) : 0.5;
 
   const fillPatterns = [
     [0, 2, 4, 6, 8, 10, 12, 14], // 8th note fill
@@ -1474,9 +1486,11 @@ function generateDrumPattern(
   for (let bar = 0; bar < bars; bar++) {
     const barStart = startTime + bar * 4 * beat;
     let hatCountThisBar = 0;
+    let lastHat = false;
     
     // Add fills occasionally
-    const isFill = section.fill && roll(0.25) && bar % 4 === 3;
+    const fillProb = Math.max(0, Math.min(1, params?.fillRate ?? 0.25));
+    const isFill = section.fill && roll(fillProb) && bar % 4 === 3;
     
     if (isFill) {
       // Generate drum fill
@@ -1522,8 +1536,12 @@ function generateDrumPattern(
         }
 
         // Probabilistic hi-hats (slightly higher when groove template is active to ensure detectable offbeats)
-        const hatProb = (params?.grooveTemplate && params.grooveTemplate !== 'straight') ? 0.95 : 0.8;
-        if (pattern.hats.includes(i) && roll(hatProb)) {
+        const hatProbBase = (params?.grooveTemplate && params.grooveTemplate !== 'straight') ? 0.95 : 0.8;
+        // Baseline behavior: allow occasional hats off the canonical pattern to keep texture lively
+        const basePresence = pattern.hats.includes(i) ? hatProbBase : 0.15 * hatProbBase;
+        const markovPresence = lastHat ? p11 : p01;
+        const p = rmk > 0 ? ((1 - rmk) * basePresence + rmk * markovPresence) : basePresence;
+        if (roll(p)) {
           const isAccent = i % 4 === 0;
           let velBase = (isAccent ? 0.6 : 0.4) + section.energy * 0.1;
           const accent = Math.max(0, Math.min(1, params?.accentMapIntensity ?? 0));
@@ -1540,6 +1558,9 @@ function generateDrumPattern(
             track: 'drums',
           });
           hatCountThisBar++;
+          lastHat = true;
+        } else {
+          lastHat = false;
         }
 
         // Probabilistic ghost notes

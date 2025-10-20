@@ -58,6 +58,7 @@ type HelixAdvancedProfile = {
 const ADVANCED_PROFILES: Record<StyleKey, HelixAdvancedProfile> = {
   edm: {
     grooveTemplate: 'mpc62',
+    humanizeDistribution: 'uniform',
     humanizeTime: 0.14,
     humanizeVel: 0.26,
     leadChordToneBias: 0.62,
@@ -82,6 +83,7 @@ const ADVANCED_PROFILES: Record<StyleKey, HelixAdvancedProfile> = {
   },
   cinematic: {
     grooveTemplate: undefined,
+    humanizeDistribution: 'uniform',
     humanizeTime: 0.1,
     humanizeVel: 0.18,
     leadChordToneBias: 0.7,
@@ -106,6 +108,7 @@ const ADVANCED_PROFILES: Record<StyleKey, HelixAdvancedProfile> = {
   },
   lofi: {
     grooveTemplate: 'shuffle',
+    humanizeDistribution: 'gaussian',
     humanizeTime: 0.28,
     humanizeVel: 0.34,
     leadChordToneBias: 0.42,
@@ -130,6 +133,7 @@ const ADVANCED_PROFILES: Record<StyleKey, HelixAdvancedProfile> = {
   },
   jazz: {
     grooveTemplate: 'shuffle',
+    humanizeDistribution: 'gaussian',
     humanizeTime: 0.18,
     humanizeVel: 0.26,
     leadChordToneBias: 0.62,
@@ -157,6 +161,7 @@ const ADVANCED_PROFILES: Record<StyleKey, HelixAdvancedProfile> = {
 const HUMANIZE_PRESETS: Record<StyleKey, HelixAdvancedProfile> = {
   edm: {
     grooveTemplate: 'mpc62',
+    humanizeDistribution: 'uniform',
     humanizeTime: 0.18,
     humanizeVel: 0.38,
     leadChordToneBias: 0.68,
@@ -181,6 +186,7 @@ const HUMANIZE_PRESETS: Record<StyleKey, HelixAdvancedProfile> = {
   },
   cinematic: {
     grooveTemplate: undefined,
+    humanizeDistribution: 'uniform',
     humanizeTime: 0.12,
     humanizeVel: 0.22,
     leadChordToneBias: 0.76,
@@ -205,6 +211,7 @@ const HUMANIZE_PRESETS: Record<StyleKey, HelixAdvancedProfile> = {
   },
   lofi: {
     grooveTemplate: 'shuffle',
+    humanizeDistribution: 'gaussian',
     humanizeTime: 0.32,
     humanizeVel: 0.36,
     leadChordToneBias: 0.38,
@@ -229,6 +236,7 @@ const HUMANIZE_PRESETS: Record<StyleKey, HelixAdvancedProfile> = {
   },
   jazz: {
     grooveTemplate: 'shuffle',
+    humanizeDistribution: 'gaussian',
     humanizeTime: 0.2,
     humanizeVel: 0.28,
     leadChordToneBias: 0.7,
@@ -279,6 +287,7 @@ export function GeneratorUI({ onGenerate }: { onGenerate: (x: { algorithm: Algor
   const [leadChordToneBias, setLeadChordToneBias] = useState<number>(0);
   const [accentMapIntensity, setAccentMapIntensity] = useState<number>(0);
   const [bassAnticipation, setBassAnticipation] = useState<number>(0);
+  const [rhythmMarkovStrength, setRhythmMarkovStrength] = useState<number>(0);
   const [chordVoiceLeadingBias, setChordVoiceLeadingBias] = useState<number>(0);
   const [leadMaxLeapSemitones, setLeadMaxLeapSemitones] = useState<number>(0);
   const [spaceAllocatorMinGapSecs, setSpaceAllocatorMinGapSecs] = useState<number>(0);
@@ -437,6 +446,7 @@ export function GeneratorUI({ onGenerate }: { onGenerate: (x: { algorithm: Algor
       accentMapIntensity: accentMapIntensity || undefined,
       bassAnticipation: bassAnticipation || undefined,
       chordVoiceLeadingBias: chordVoiceLeadingBias || undefined,
+      rhythmMarkovStrength: rhythmMarkovStrength || undefined,
       leadMaxLeapSemitones: leadMaxLeapSemitones || undefined,
       spaceAllocatorMinGapSecs: spaceAllocatorMinGapSecs || undefined,
       phrasing: phrasing ?? undefined,
@@ -469,6 +479,7 @@ export function GeneratorUI({ onGenerate }: { onGenerate: (x: { algorithm: Algor
       accentMapIntensity: accentMapIntensity || undefined,
       bassAnticipation: bassAnticipation || undefined,
       chordVoiceLeadingBias: chordVoiceLeadingBias || undefined,
+      rhythmMarkovStrength: rhythmMarkovStrength || undefined,
       leadMaxLeapSemitones: leadMaxLeapSemitones || undefined,
       spaceAllocatorMinGapSecs: spaceAllocatorMinGapSecs || undefined,
       phrasing: phrasing ?? undefined,
@@ -802,6 +813,10 @@ export function GeneratorUI({ onGenerate }: { onGenerate: (x: { algorithm: Algor
                   <input type="range" min="0" max="1" step="0.05" value={bassAnticipation} onChange={e=>setBassAnticipation(Number(e.target.value))} className="w-full" />
                 </div>
 
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Rhythm Markov Strength: {rhythmMarkovStrength.toFixed(2)}</label>
+                  <input type="range" min="0" max="1" step="0.05" value={rhythmMarkovStrength} onChange={e=>setRhythmMarkovStrength(Number(e.target.value))} className="w-full" />
+                </div>
                 <div className="space-y-2">
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Chord Voice‑Leading Bias: {chordVoiceLeadingBias.toFixed(2)}</label>
                   <input type="range" min="0" max="1" step="0.05" value={chordVoiceLeadingBias} onChange={e=>setChordVoiceLeadingBias(Number(e.target.value))} className="w-full" />
