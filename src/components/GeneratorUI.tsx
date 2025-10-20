@@ -53,6 +53,10 @@ type HelixAdvancedProfile = {
   registerLiftStrength: number;
   extendedLfoTargets: number;
   sidechainStrength: number;
+  // Phase 7 (optional in profiles)
+  ornamentation?: number;
+  legatoStrength?: number;
+  chordStabArpIntensity?: number;
 };
 
 const ADVANCED_PROFILES: Record<StyleKey, HelixAdvancedProfile> = {
@@ -314,6 +318,11 @@ export function GeneratorUI({ onGenerate }: { onGenerate: (x: { algorithm: Algor
   const [sidechainStrength, setSidechainStrength] = useState<number>(0);
   const [humanizeDistribution, setHumanizeDistribution] = useState<'uniform'|'gaussian'>('uniform');
 
+  // Phase 7 ornamentation & articulation (Enhanced Helix only)
+  const [ornamentation, setOrnamentation] = useState<number>(0);
+  const [legatoStrength, setLegatoStrength] = useState<number>(0);
+  const [chordStabArpIntensity, setChordStabArpIntensity] = useState<number>(0);
+
   // sync state when preset changes
   React.useEffect(() => {
     setBpm(base.bpm);
@@ -357,6 +366,9 @@ export function GeneratorUI({ onGenerate }: { onGenerate: (x: { algorithm: Algor
     setRegisterLiftStrength(profile.registerLiftStrength);
     setExtendedLfoTargets(profile.extendedLfoTargets);
     setSidechainStrength(profile.sidechainStrength);
+    if (profile.ornamentation !== undefined) setOrnamentation(profile.ornamentation);
+    if (profile.legatoStrength !== undefined) setLegatoStrength(profile.legatoStrength);
+    if (profile.chordStabArpIntensity !== undefined) setChordStabArpIntensity(profile.chordStabArpIntensity);
   }, []);
 
   const applyAdvancedDefaults = React.useCallback((sty: StyleKey) => {
@@ -462,6 +474,10 @@ export function GeneratorUI({ onGenerate }: { onGenerate: (x: { algorithm: Algor
       registerLiftStrength: registerLiftStrength || undefined,
       extendedLfoTargets: extendedLfoTargets || undefined,
       sidechainStrength: sidechainStrength || undefined,
+      // Phase 7
+      ornamentation: ornamentation || undefined,
+      legatoStrength: legatoStrength || undefined,
+      chordStabArpIntensity: chordStabArpIntensity || undefined,
     };
     onGenerate({ algorithm, params });
   };
@@ -495,6 +511,9 @@ export function GeneratorUI({ onGenerate }: { onGenerate: (x: { algorithm: Algor
       registerLiftStrength: registerLiftStrength || undefined,
       extendedLfoTargets: extendedLfoTargets || undefined,
       sidechainStrength: sidechainStrength || undefined,
+      ornamentation: ornamentation || undefined,
+      legatoStrength: legatoStrength || undefined,
+      chordStabArpIntensity: chordStabArpIntensity || undefined,
     };
     const jittered = { ...baseParams, seed: baseParams.seed + Math.floor(Math.random() * 1000) };
     onGenerate({ algorithm, params: jittered });
@@ -913,6 +932,23 @@ export function GeneratorUI({ onGenerate }: { onGenerate: (x: { algorithm: Algor
                 <div className="space-y-2">
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Sidechain Strength: {sidechainStrength.toFixed(2)}</label>
                   <input type="range" min="0" max="1" step="0.05" value={sidechainStrength} onChange={e=>setSidechainStrength(Number(e.target.value))} className="w-full" />
+                </div>
+
+                {/* Phase 7: Ornamentation & Articulation */}
+                <div className="col-span-2 pt-2">
+                  <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200">Ornamentation & Articulation</h3>
+                </div>
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Ornamentation: {ornamentation.toFixed(2)}</label>
+                  <input type="range" min="0" max="1" step="0.05" value={ornamentation} onChange={e=>setOrnamentation(Number(e.target.value))} className="w-full" />
+                </div>
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Legato Strength: {legatoStrength.toFixed(2)}</label>
+                  <input type="range" min="0" max="1" step="0.05" value={legatoStrength} onChange={e=>setLegatoStrength(Number(e.target.value))} className="w-full" />
+                </div>
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Chord Stab/Arp Intensity: {chordStabArpIntensity.toFixed(2)}</label>
+                  <input type="range" min="0" max="1" step="0.05" value={chordStabArpIntensity} onChange={e=>setChordStabArpIntensity(Number(e.target.value))} className="w-full" />
                 </div>
               </div>
             </div>
