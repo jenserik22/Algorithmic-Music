@@ -57,6 +57,10 @@ type HelixAdvancedProfile = {
   ornamentation?: number;
   legatoStrength?: number;
   chordStabArpIntensity?: number;
+  // Phase 8 (optional in profiles)
+  evaluationStrength?: number;
+  autoRepairStrength?: number;
+  autoRepairBudgetMs?: number;
 };
 
 const ADVANCED_PROFILES: Record<StyleKey, HelixAdvancedProfile> = {
@@ -187,6 +191,14 @@ const HUMANIZE_PRESETS: Record<StyleKey, HelixAdvancedProfile> = {
     registerLiftStrength: 0.28,
     extendedLfoTargets: 0.4,
     sidechainStrength: 0.72,
+    // Phase 7
+    ornamentation: 0.5,
+    legatoStrength: 0.4,
+    chordStabArpIntensity: 0.6,
+    // Phase 8
+    evaluationStrength: 0.5,
+    autoRepairStrength: 0.4,
+    autoRepairBudgetMs: 6,
   },
   cinematic: {
     grooveTemplate: undefined,
@@ -212,6 +224,12 @@ const HUMANIZE_PRESETS: Record<StyleKey, HelixAdvancedProfile> = {
     registerLiftStrength: 0.42,
     extendedLfoTargets: 0.26,
     sidechainStrength: 0.22,
+    ornamentation: 0.35,
+    legatoStrength: 0.5,
+    chordStabArpIntensity: 0.3,
+    evaluationStrength: 0.4,
+    autoRepairStrength: 0.35,
+    autoRepairBudgetMs: 6,
   },
   lofi: {
     grooveTemplate: 'shuffle',
@@ -237,6 +255,12 @@ const HUMANIZE_PRESETS: Record<StyleKey, HelixAdvancedProfile> = {
     registerLiftStrength: 0.22,
     extendedLfoTargets: 0.2,
     sidechainStrength: 0.28,
+    ornamentation: 0.4,
+    legatoStrength: 0.6,
+    chordStabArpIntensity: 0.2,
+    evaluationStrength: 0.5,
+    autoRepairStrength: 0.3,
+    autoRepairBudgetMs: 6,
   },
   jazz: {
     grooveTemplate: 'shuffle',
@@ -262,6 +286,12 @@ const HUMANIZE_PRESETS: Record<StyleKey, HelixAdvancedProfile> = {
     registerLiftStrength: 0.4,
     extendedLfoTargets: 0.26,
     sidechainStrength: 0.24,
+    ornamentation: 0.5,
+    legatoStrength: 0.5,
+    chordStabArpIntensity: 0.25,
+    evaluationStrength: 0.5,
+    autoRepairStrength: 0.35,
+    autoRepairBudgetMs: 6,
   },
 };
 
@@ -374,6 +404,9 @@ export function GeneratorUI({ onGenerate }: { onGenerate: (x: { algorithm: Algor
     if (profile.ornamentation !== undefined) setOrnamentation(profile.ornamentation);
     if (profile.legatoStrength !== undefined) setLegatoStrength(profile.legatoStrength);
     if (profile.chordStabArpIntensity !== undefined) setChordStabArpIntensity(profile.chordStabArpIntensity);
+    if (profile.evaluationStrength !== undefined) setEvaluationStrength(profile.evaluationStrength);
+    if (profile.autoRepairStrength !== undefined) setAutoRepairStrength(profile.autoRepairStrength);
+    if (profile.autoRepairBudgetMs !== undefined) setAutoRepairBudgetMs(profile.autoRepairBudgetMs);
   }, []);
 
   const applyAdvancedDefaults = React.useCallback((sty: StyleKey) => {

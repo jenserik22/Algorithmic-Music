@@ -1,4 +1,4 @@
-# Enhanced Helix — User Guide (Phase 1–7 Settings)
+# Enhanced Helix — User Guide (Phase 1–8 Settings)
 
 This guide explains the new Enhanced Helix settings and provides recommended values to get musical, human‑sounding results quickly. All settings are optional: leaving them unset preserves the original baseline.
 
@@ -160,24 +160,28 @@ This guide explains the new Enhanced Helix settings and provides recommended val
   - Phrasing short; Cadence 0.7; HarmRhythmVar 0.5; HarmComplex 0.3; Pedal 0.2; Call/Resp 0.6; Bass Echo 0.3; Density Gate 0.4
   - Dynamics: shape=swell; strength=0.6; regLift=0.2; extLFO=0.4; sidechain=0.6
   - Ornamentation/Articulation: ornamentation=0.5; legatoStrength=0.4; chordStabArpIntensity=0.6
+  - Evaluation & Auto‑Repair: evaluationStrength=0.5; autoRepairStrength=0.4; autoRepairBudgetMs=6
 
 - Cinematic:
   - Groove: straight; Time 0.12; Vel 0.15; Lead Chord‑Tone 0.50; Accent 0.10; Bass Ant 0.20; Voice‑Lead 0.70; Max Leap 7; Min Gap 0.020
   - Phrasing long; Cadence 0.9; HarmRhythmVar 0.3; HarmComplex 0.2; Pedal 0.5; Call/Resp 0.4; Bass Echo 0.2; Density Gate 0.3
   - Dynamics: shape=rise; strength=0.4; regLift=0.3; extLFO=0.3; sidechain=0.2
   - Ornamentation/Articulation: 0.35; 0.5; 0.3
+  - Evaluation & Auto‑Repair: evaluationStrength=0.4; autoRepairStrength=0.35; autoRepairBudgetMs=6
 
 - Lo‑Fi:
   - Groove: shuffle; Time 0.25; Vel 0.30; Lead Chord‑Tone 0.35; Accent 0.40; Bass Ant 0.25; Voice‑Lead 0.40; Max Leap 7; Min Gap 0.020
   - Phrasing short; Cadence 0.6; HarmRhythmVar 0.4; HarmComplex 0.25; Pedal 0.3; Call/Resp 0.3; Bass Echo 0.25; Density Gate 0.2
   - Dynamics: shape=fall; strength=0.3; regLift=0.1; extLFO=0.3; sidechain=0.2
   - Ornamentation/Articulation: 0.4; 0.6; 0.2
+  - Evaluation & Auto‑Repair: evaluationStrength=0.5; autoRepairStrength=0.3; autoRepairBudgetMs=6
 
 - Jazz:
   - Groove: shuffle; Time 0.15; Vel 0.20; Lead Chord‑Tone 0.50; Accent 0.20; Bass Ant 0.35; Voice‑Lead 0.80; Max Leap 9; Min Gap 0.015
   - Phrasing medium; Cadence 0.5; HarmRhythmVar 0.35; HarmComplex 0.4; Pedal 0.2; Call/Resp 0.5; Bass Echo 0.2; Density Gate 0.3
   - Dynamics: shape=swell; strength=0.3; regLift=0.2; extLFO=0.2; sidechain=0.2
   - Ornamentation/Articulation: 0.5; 0.5; 0.25
+  - Evaluation & Auto‑Repair: evaluationStrength=0.5; autoRepairStrength=0.35; autoRepairBudgetMs=6
 
 ## Tips for better results
 - Start from a preset, then tweak one control at a time.
