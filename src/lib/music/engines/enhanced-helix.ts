@@ -427,6 +427,11 @@ export const EnhancedHelixEngine: Engine = {
       (params.legatoStrength && params.legatoStrength > 0) ||
       (params.chordStabArpIntensity && params.chordStabArpIntensity > 0)
     );
+    // Phase 8 activation (evaluation & auto-repair)
+    const isPhase8Active = Boolean(
+      (params.evaluationStrength && params.evaluationStrength > 0) ||
+      (params.autoRepairStrength && params.autoRepairStrength > 0)
+    );
 
     const events: NoteEvent[] = [];
 
@@ -1037,6 +1042,236 @@ export const EnhancedHelixEngine: Engine = {
       }
     }
 
+    // Phase 8: Evaluation & Auto-Repair
+    if (isPhase8Active) {
+      const evalStr = Math.max(0, Math.min(1, params.evaluationStrength ?? 0));
+      const repStr = Math.max(0, Math.min(1, params.autoRepairStrength ?? 0));
+      const budgetMs = Math.max(0, Math.min(50, params.autoRepairBudgetMs ?? 6));
+      // Deterministic ops budget derived from budgetMs (no wall-clock dependency)
+      let opsBudget = Math.max(8, Math.floor(budgetMs * 0.8));
+
+      // Precompute helpers
+      const chordEvents = events.filter(e => e.track === 'chords').slice().sort((a,b)=>a.time-b.time);
+      const chordBlocksMs = new Map<number, number[]>();
+      for (const c of chordEvents) {
+        const tKey = +c.time.toFixed(3);
+        const arr = chordBlocksMs.get(tKey) ?? [];
+        arr.push(c.pitch);
+        chordBlocksMs.set(tKey, arr);
+      }
+      const chordTimesSorted = Array.from(chordBlocksMs.keys()).sort((a,b)=>a-b);
+      const findChordAt = (t: number): number[] | undefined => {
+        let idx = -1;
+        for (let i = 0; i < chordTimesSorted.length; i++) {
+          if (chordTimesSorted[i] <= t) idx = i; else break;
+        }
+        if (idx >= 0) return (chordBlocksMs.get(chordTimesSorted[idx]) ?? []).map(n => ((n % 12) + 12) % 12);
+        // fallback to scheduled progression
+        const sec = sectionTimeline.find(s=> t>=s.start && t < s.start + s.duration) ?? sectionTimeline[0];
+        const progIdx = progressionAtTime(t, sec.start);
+        const chordDef = ENHANCED_TEMPLATES[style].chordProgression[progIdx];
+        const chordRoot = rootC4 + SCALES[config.scale][chordDef.degree];
+        return getChordNotes(chordRoot, chordDef.quality).map(n=> (n%12+12)%12);
+      };
+      const strongTol = 0.05; // 50ms tolerance
+
+      // Metrics
+      const sixteenth = beat / 4;
+      const leadEvents = events.filter(e => e.track === 'lead').slice().sort((a,b)=>a.time-b.time);
+      let strongTotal = 0; let strongChordTone = 0;
+      for (const e of leadEvents) {
+        const barStart = Math.floor(e.time / (4 * beat)) * (4 * beat);
+        const rel = e.time - barStart;
+        const targets = [0, 2 * beat];
+        let nearest = targets[0];
+        if (Math.abs(targets[1] - rel) < Math.abs(nearest - rel)) nearest = targets[1];
+        const isStrong = Math.abs(nearest - rel) <= strongTol || (() => {
+          const pos16 = Math.round((e.time - barStart) / sixteenth) % 16; return (pos16 === 0 || pos16 === 8);
+        })();
+        if (!isStrong) continue;
+        strongTotal++;
+        const chordPcs = findChordAt(barStart + nearest) ?? [];
+        const pClass = ((e.pitch % 12) + 12) % 12;
+        if (chordPcs.includes(pClass)) strongChordTone++;
+      }
+      const strongBeatChordToneRate = strongTotal > 0 ? strongChordTone / strongTotal : 1;
+
+      // Collision metric: events per quantized 16th
+      const grid = new Map<number, number[]>(); // idx -> indices of events in master list
+      for (let i = 0; i < events.length; i++) {
+        const e = events[i];
+        const idx = Math.round(e.time / sixteenth);
+        const arr = grid.get(idx) ?? [];
+        arr.push(i);
+        grid.set(idx, arr);
+      }
+      let maxSimul = 0;
+      for (const arr of grid.values()) maxSimul = Math.max(maxSimul, arr.length);
+
+      // Register outliers count (pre-repair)
+      const reg = ENHANCED_TEMPLATES[style].register;
+      const isOutReg = (e: NoteEvent) => {
+        if (!e.track) return false;
+        const r = (reg as any)[e.track];
+        if (!r) return false;
+        return e.pitch < r[0] || e.pitch > r[1];
+      };
+
+      // Auto-Repair heuristics (bounded by opsBudget)
+      if (repStr > 0 && opsBudget > 0) {
+        const THRESH_CHORD_TONE = 0.80; // target rate
+        const THRESH_MAX_SIMUL = 5;     // per 16th window
+
+        // 1) Snap strong-beat lead notes to nearest chord tone if below target
+        if (strongBeatChordToneRate < THRESH_CHORD_TONE) {
+          const offenders: number[] = [];
+          for (let i = 0; i < leadEvents.length; i++) {
+            const e = leadEvents[i];
+            const barStart = Math.floor(e.time / (4 * beat)) * (4 * beat);
+            const rel = e.time - barStart;
+            const targets = [0, 2 * beat];
+            let nearest = targets[0];
+            if (Math.abs(targets[1] - rel) < Math.abs(nearest - rel)) nearest = targets[1];
+            const isStrong = Math.abs(nearest - rel) <= strongTol || (() => {
+              const pos16 = Math.round((e.time - barStart) / sixteenth) % 16; return (pos16 === 0 || pos16 === 8);
+            })();
+            if (!isStrong) continue;
+            const chordPcs = findChordAt(barStart + nearest) ?? [];
+            const pClass = ((e.pitch % 12) + 12) % 12;
+            if (!chordPcs.includes(pClass)) offenders.push(i);
+          }
+          const need = Math.ceil((THRESH_CHORD_TONE - strongBeatChordToneRate) * (strongTotal || 1));
+          const fixCount = Math.min(offenders.length, Math.max(1, Math.floor(need * repStr)));
+          for (let k = 0; k < fixCount && opsBudget > 0; k++) {
+            const idxInLead = offenders[k];
+            const e = leadEvents[idxInLead];
+            const sec = sectionTimeline.find(s=> e.time>=s.start && e.time < s.start + s.duration) ?? sectionTimeline[0];
+            const nearestStrong = Math.round((e.time / beat) / 2) * 2 * beat;
+            const chordPcs = findChordAt(nearestStrong) ?? [];
+            if (chordPcs.length) {
+              let best = e.pitch; let bestD = Infinity;
+              for (const cpc of chordPcs) {
+                const curClass = ((e.pitch % 12) + 12) % 12;
+                const shift = ((cpc - curClass + 18) % 12) - 6;
+                const cand = clampPitch(e.pitch + shift, ENHANCED_TEMPLATES[style].register.lead[0], ENHANCED_TEMPLATES[style].register.lead[1]);
+                const d = Math.abs(cand - e.pitch);
+                if (d < bestD) { bestD = d; best = cand; }
+              }
+              // Apply to master events array
+              const masterIdx = events.findIndex(ev => ev === e);
+              if (masterIdx >= 0) events[masterIdx].pitch = best;
+              e.pitch = best;
+              opsBudget--;
+            }
+          }
+        }
+
+        // 2) Thin dense onset clusters to threshold per 16th window
+        if (opsBudget > 0) {
+          const trackWeight: Record<NonNullable<NoteEvent['track']>, number> = {
+            fx: 0.1, drums: 0.2, chords: 0.5, bass: 0.7, lead: 1.5,
+          } as const as any;
+          const keys = Array.from(grid.keys()).sort((a,b)=>a-b);
+          for (const k of keys) {
+            const arr = grid.get(k)!;
+            if (arr.length <= THRESH_MAX_SIMUL) continue;
+            const over = arr.length - THRESH_MAX_SIMUL;
+            const removeCount = Math.max(1, Math.floor(over * repStr));
+            // Sort candidates: low weight, then low velocity, then short duration
+            const cand = arr.map(idx => ({ idx, e: events[idx] }))
+              .sort((a,b)=>{
+                const wa = a.e.track ? (trackWeight as any)[a.e.track] ?? 1 : 1;
+                const wb = b.e.track ? (trackWeight as any)[b.e.track] ?? 1 : 1;
+                if (wa !== wb) return wa - wb;
+                if (a.e.velocity !== b.e.velocity) return a.e.velocity - b.e.velocity;
+                return (a.e.duration ?? 0) - (b.e.duration ?? 0);
+              });
+            let removed = 0;
+            for (let i = 0; i < cand.length && removed < removeCount && opsBudget > 0; i++) {
+              const { idx } = cand[i];
+              // Never remove lead unless absolutely necessary
+              if (events[idx].track === 'lead' && cand.length - i > removeCount - removed) continue;
+              events.splice(idx, 1);
+              removed++;
+              opsBudget--;
+            }
+          }
+        }
+
+        // 3) Micro-quantize chords/bass near grid (preserve feel)
+        if (opsBudget > 0) {
+          const nearTol = sixteenth * 0.08;
+          for (const e of events) {
+            if (e.track !== 'chords' && e.track !== 'bass') continue;
+            const tGrid = Math.round(e.time / sixteenth) * sixteenth;
+            const dt = Math.abs(e.time - tGrid);
+            if (dt > 0 && dt <= nearTol) {
+              e.time = tGrid;
+              opsBudget--;
+              if (opsBudget <= 0) break;
+            }
+          }
+        }
+
+        // 4) Spacing overlaps per track using existing minGap if provided
+        if (opsBudget > 0) {
+          const minGap = Math.max(0, params.spaceAllocatorMinGapSecs ?? 0);
+          if (minGap > 0) {
+            const byTrack = new Map<string, NoteEvent[]>();
+            for (const e of events) {
+              const t = e.track ?? 'unknown';
+              if (!byTrack.has(t)) byTrack.set(t, []);
+              byTrack.get(t)!.push(e);
+            }
+            for (const [t, arr] of byTrack) {
+              arr.sort((a,b)=>a.time-b.time);
+              let curEnd = -Infinity;
+              for (const e of arr) {
+                if (e.time < curEnd + minGap) {
+                  const shift = (curEnd + minGap) - e.time;
+                  e.time += shift;
+                  opsBudget--;
+                }
+                curEnd = e.time + (e.duration ?? 0);
+                if (opsBudget <= 0) break;
+              }
+              if (opsBudget <= 0) break;
+            }
+          }
+        }
+
+        // 5) Clamp any register outliers
+        if (opsBudget > 0) {
+          for (const e of events) {
+            if (!e.track) continue;
+            const r = (reg as any)[e.track];
+            if (!r) continue;
+            if (e.pitch < r[0] || e.pitch > r[1]) {
+              e.pitch = clampPitch(e.pitch, r[0], r[1]);
+              opsBudget--;
+              if (opsBudget <= 0) break;
+            }
+          }
+        }
+
+        // Resort after edits and enforce non-decreasing times
+        events.sort((a, b) => {
+          const dt = a.time - b.time;
+          if (dt !== 0) return dt;
+          const dp = (a.pitch ?? 0) - (b.pitch ?? 0);
+          if (dp !== 0) return dp;
+          const ta = a.track ?? '';
+          const tb = b.track ?? '';
+          return ta.localeCompare(tb);
+        });
+        for (let i = 1; i < events.length; i++) {
+          if (events[i].time < events[i - 1].time) {
+            events[i].time = events[i - 1].time;
+          }
+        }
+      }
+    }
+
     const output: EngineOutput = {
       events,
       meta: {
@@ -1048,6 +1283,7 @@ export const EnhancedHelixEngine: Engine = {
         lfos: makeEnhancedLfos(params),
         sidechain: (scStrength > 0) ? { pulses: events.filter(e => e.track === 'drums' && e.pitch === 36).map(e => e.time), strength: scStrength } : undefined,
         versionTag: (
+          isPhase8Active ? 'v2-phase8' : (
           isPhase7Active ? 'v2-phase7' : (
             (dynStr > 0 || regLift > 0 || scStrength > 0 || (params.extendedLfoTargets ?? 0) > 0)
               ? 'v2-phase5'
@@ -1064,7 +1300,7 @@ export const EnhancedHelixEngine: Engine = {
                   params.leadMaxLeapSemitones ||
                   params.spaceAllocatorMinGapSecs
                 ) ? 'v2-phase1' : 'v2-sortfix'
-              ))))
+              )))))
         ),
       },
     };

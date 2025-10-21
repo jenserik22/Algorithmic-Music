@@ -1,6 +1,6 @@
 # Helix V2 Humanization — Progress Log
 
-Status: Phases 1–7 completed; all tests pass (101/101), build succeeds; Phase 7 UI controls exposed in Generator UI
+Status: Phases 1–8 completed; all tests pass, build succeeds; Phase 7 + 8 UI controls exposed in Generator UI
 Branch: feat/helix-humanize-v2
 
 How to read this file
@@ -165,3 +165,9 @@ Log
 - UI: Added "Ornamentation & Articulation" group to Generator UI (Advanced → Enhanced Helix) with three sliders (ornamentation, legatoStrength, chordStabArpIntensity). Defaults 0, step 0.05.
 - Validation: Typecheck OK; Unit tests all green (101/101); Build OK
 - Docs: Updated FLAGS, USER_GUIDE, PLAN, CHECKLIST to reference UI control location
+
+## [2025‑10‑21] PHASE 8 UI, TESTS, DOCS — COMPLETE
+- UI: Added "Evaluation & Auto‑Repair" group (Advanced → Enhanced Helix) with sliders for evaluationStrength and autoRepairStrength, plus numeric autoRepairBudgetMs (0..50, default 6)
+- Tests: added enhanced-helix.phase8.test.ts covering determinism, evaluation‑only no‑op on events, and strong‑beat chord‑tone rate improvement ≥ baseline
+- Docs: Updated FLAGS.md (Phase 8 flags + UI location), USER_GUIDE.md (new section), PLAN.md (Phase 8 marked complete), CHECKLIST.md (Phase 8 items checked)
+- Validation: Typecheck OK; full test suite green; build OK

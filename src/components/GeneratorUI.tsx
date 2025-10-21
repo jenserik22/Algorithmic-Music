@@ -323,6 +323,11 @@ export function GeneratorUI({ onGenerate }: { onGenerate: (x: { algorithm: Algor
   const [legatoStrength, setLegatoStrength] = useState<number>(0);
   const [chordStabArpIntensity, setChordStabArpIntensity] = useState<number>(0);
 
+  // Phase 8 evaluation & auto-repair (Enhanced Helix only)
+  const [evaluationStrength, setEvaluationStrength] = useState<number>(0);
+  const [autoRepairStrength, setAutoRepairStrength] = useState<number>(0);
+  const [autoRepairBudgetMs, setAutoRepairBudgetMs] = useState<number>(6);
+
   // sync state when preset changes
   React.useEffect(() => {
     setBpm(base.bpm);
@@ -478,6 +483,10 @@ export function GeneratorUI({ onGenerate }: { onGenerate: (x: { algorithm: Algor
       ornamentation: ornamentation || undefined,
       legatoStrength: legatoStrength || undefined,
       chordStabArpIntensity: chordStabArpIntensity || undefined,
+      // Phase 8
+      evaluationStrength: evaluationStrength || undefined,
+      autoRepairStrength: autoRepairStrength || undefined,
+      autoRepairBudgetMs: autoRepairStrength > 0 ? autoRepairBudgetMs : undefined,
     };
     onGenerate({ algorithm, params });
   };
@@ -514,6 +523,9 @@ export function GeneratorUI({ onGenerate }: { onGenerate: (x: { algorithm: Algor
       ornamentation: ornamentation || undefined,
       legatoStrength: legatoStrength || undefined,
       chordStabArpIntensity: chordStabArpIntensity || undefined,
+      evaluationStrength: evaluationStrength || undefined,
+      autoRepairStrength: autoRepairStrength || undefined,
+      autoRepairBudgetMs: autoRepairStrength > 0 ? autoRepairBudgetMs : undefined,
     };
     const jittered = { ...baseParams, seed: baseParams.seed + Math.floor(Math.random() * 1000) };
     onGenerate({ algorithm, params: jittered });
@@ -949,6 +961,24 @@ export function GeneratorUI({ onGenerate }: { onGenerate: (x: { algorithm: Algor
                 <div className="space-y-2">
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Chord Stab/Arp Intensity: {chordStabArpIntensity.toFixed(2)}</label>
                   <input type="range" min="0" max="1" step="0.05" value={chordStabArpIntensity} onChange={e=>setChordStabArpIntensity(Number(e.target.value))} className="w-full" />
+                </div>
+
+                {/* Phase 8: Evaluation & Auto-Repair */}
+                <div className="col-span-2 pt-2">
+                  <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200">Evaluation & Auto-Repair</h3>
+                </div>
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Evaluation Strength: {evaluationStrength.toFixed(2)}</label>
+                  <input type="range" min="0" max="1" step="0.05" value={evaluationStrength} onChange={e=>setEvaluationStrength(Number(e.target.value))} className="w-full" />
+                </div>
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Auto-Repair Strength: {autoRepairStrength.toFixed(2)}</label>
+                  <input type="range" min="0" max="1" step="0.05" value={autoRepairStrength} onChange={e=>setAutoRepairStrength(Number(e.target.value))} className="w-full" />
+                </div>
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Auto-Repair Budget (ms)</label>
+                  <input type="number" min="0" max="50" step="1" value={autoRepairBudgetMs} onChange={e=>setAutoRepairBudgetMs(Number(e.target.value))}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white" />
                 </div>
               </div>
             </div>

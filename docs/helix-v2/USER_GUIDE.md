@@ -6,8 +6,9 @@ This guide explains the new Enhanced Helix settings and provides recommended val
 - Mode toggle: Simple | Advanced (top of the generator panel)
 - Advanced mode → Algorithm: "Enhanced Helix"
 - Humanization Presets (EDM / Cinematic / Lo‑Fi / Jazz)
-- Individual controls under "Enhanced Helix" section, including the Phase 7 group:
+- Individual controls under "Enhanced Helix" section, including:
   - Ornamentation & Articulation → sliders for Ornamentation, Legato Strength, Chord Stab/Arp Intensity (default 0, step 0.05)
+  - Evaluation & Auto‑Repair → sliders for Evaluation Strength and Auto‑Repair Strength, plus a numeric Auto‑Repair Budget (ms)
 
 ## Defaults & mode behavior
 - Default algorithm: Enhanced Helix is the default for Generator UI, Play Demo, and Quick Generate.
@@ -129,6 +130,28 @@ This guide explains the new Enhanced Helix settings and provides recommended val
 
 - Chord Stab/Arp Intensity (0..1)
   - Adds short chord stabs or quick arpeggios at section transitions (start of sections) to emphasize form changes.
+
+### Evaluation & Auto‑Repair (Phase 8)
+
+- Evaluation Strength (0..1)
+  - Runs a musical evaluation pass (no changes to events by itself). Measures:
+    - Strong‑beat chord‑tone rate for lead
+    - Onset density/collisions per 16th
+    - Register outliers per track
+  - Use 0.3–0.6 to monitor metrics without changing the output.
+
+- Auto‑Repair Strength (0..1)
+  - Applies bounded heuristics to gently improve metrics while preserving feel:
+    - Snap strong‑beat lead notes toward chord tones when under target
+    - Thin dense onset clusters beyond threshold per 16th
+    - Micro‑quantize chords/bass that are very near the grid
+    - Respect per‑track spacing (Min Gap) if set
+    - Clamp out‑of‑register notes into track ranges
+  - 0 keeps events unchanged; 0.3–0.7 is subtle and musical.
+
+- Auto‑Repair Budget (ms)
+  - Soft operations budget (0..50, default 6 ≈ ~4 ops), interpreted deterministically.
+  - Only used when Auto‑Repair Strength > 0.
 
 ## Quick recipes (good‑sounding starting points)
 

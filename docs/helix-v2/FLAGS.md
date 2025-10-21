@@ -1,4 +1,4 @@
-# Enhanced Helix – Phase 1–7 Flags
+# Enhanced Helix – Phase 1–8 Flags
 
 This document summarizes the humanization and musicality flags introduced across Phases 1–7. Defaults maintain Phase 0 baseline until a flag is set non‑zero.
 
@@ -44,6 +44,12 @@ Phase 7 (ornamentation & articulation):
 - legatoStrength: 0..1. Reduces gaps between successive lead notes; may create slight overlaps and ties on repeated pitches.
 - chordStabArpIntensity: 0..1. Adds short chord stabs or quick arpeggios at section transitions (start of sections) on the chords track.
   UI: Advanced → Algorithm = Enhanced Helix → “Ornamentation & Articulation” group (three sliders; default 0, step 0.05)
+
+Phase 8 (evaluation & auto‑repair):
+- evaluationStrength: 0..1. Enables an evaluation pass that measures musical metrics (no changes by itself).
+- autoRepairStrength: 0..1. Bounded heuristics to improve metrics while preserving feel: chord‑tone snapping on strong beats, density thinning, micro‑quantization (chords/bass), spacing fixes, and register clamping.
+- autoRepairBudgetMs: 0..50. Soft operations budget interpreted deterministically (default 6 ≈ ~4 ops). Used only when autoRepairStrength > 0.
+  UI: Advanced → Algorithm = Enhanced Helix → “Evaluation & Auto‑Repair” group (two sliders + numeric budget)
 
 Simple Mode (global musicality toggle):
 - simpleMode: boolean. When true, the engine prioritizes clarity and human‑like structure over complexity by applying:
@@ -97,4 +103,5 @@ Suggested Phase 7 values:
 - Default algorithm is Enhanced Helix across Generator UI, Play Demo, and Quick Generate.
 - When switching to Advanced mode, if the Duration still equals the preset value, it auto‑sets to 16s (user edits are preserved).
 - In Advanced mode with Enhanced Helix, if the advanced controls are untouched, a style‑aware profile is auto‑applied for the selected style (EDM/Cinematic/Lo‑Fi/Jazz). If you switch styles and your current values still match the previous style profile, the new style profile is applied; otherwise your custom values remain.
- - Phase 7 controls are exposed under “Ornamentation & Articulation” within the Enhanced Helix advanced section.
+- Phase 7 controls are exposed under “Ornamentation & Articulation” within the Enhanced Helix advanced section.
+- Phase 8 controls are exposed under “Evaluation & Auto‑Repair”. With auto‑repair at 0, the evaluation pass is a no‑op on events (version tag still shows v2‑phase8 when evaluationStrength > 0).

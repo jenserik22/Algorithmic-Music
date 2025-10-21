@@ -52,8 +52,11 @@ Phase 7 — Ornamentation/Articulation
 - [x] Lead ornaments (grace/slide/turns); chord stabs/arps; legato/ties
 - [x] UI controls exposed in Generator UI (Advanced → Enhanced Helix → Ornamentation & Articulation)
 
-Phase 8 — Evaluation & Auto‑Repair (flag)
-- [ ] Phrase‑level evaluator; bounded local re‑gen
+Phase 8 — Evaluation & Auto‑Repair
+- [x] Evaluation metrics (strong‑beat chord‑tone rate, onset density/collisions, register outliers)
+- [x] Bounded auto‑repair heuristics (snap chord tones, thin clusters, micro‑quantize, spacing fixes, clamp register)
+- [x] UI controls exposed (Advanced → Enhanced Helix → Evaluation & Auto‑Repair)
+- [x] Unit tests (determinism, no‑op when autoRepair=0, chord‑tone improvement) and docs updated
 
 Phase 9 — Light Adaptive Weighting (opt)
 - [ ] Persist liked‑output n‑grams; bias choices when enabled

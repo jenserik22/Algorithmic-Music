@@ -1,6 +1,6 @@
 # EnhancedHelixEngine Humanization — Refactor Plan/Spec
 
-Status: Active — Phases 0–7 complete; UI for Phase 7 exposed; next Phase 8 (Evaluation & Auto‑Repair)
+Status: Active — Phases 0–8 complete (engine + UI + tests + docs); next Phase 9 (Light Adaptive Weighting)
 
 Scope
 - Make EnhancedHelixEngine sound more human than SoundHelix via phrasing, groove, harmony variety, inter‑track intent.
@@ -69,8 +69,11 @@ Phase 6 — Rhythm Markov & Advanced Fills
 Phase 7 — Ornamentation/Articulation (COMPLETED)
 - Grace/slide/turns (low p); chord stabs/arps at transitions; legato/ties.
 
-Phase 8 — Evaluation & Auto‑Repair (flagged)
-- Evaluate phrases; locally re‑gen out‑of‑band phrases within perf budget.
+Phase 8 — Evaluation & Auto‑Repair (COMPLETED)
+- Metrics: strong‑beat chord‑tone rate (lead), onset density/collisions per 16th, register outliers per track
+- Heuristics (bounded by deterministic ops budget): chord‑tone snapping on strong beats, thin dense clusters, micro‑quantize chords/bass near grid, spacing fixes via Min Gap, clamp register outliers
+- UI: “Evaluation & Auto‑Repair” (2 sliders + budget in ms)
+- Tests: determinism; evaluation‑only no‑op; chord‑tone rate improvement (≥ baseline)
 
 Phase 9 — Light Adaptive Weighting (optional)
 - Persist liked‑output n‑gram stats to bias intervals/rhythm (determinism intact when disabled).
