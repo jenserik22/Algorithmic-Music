@@ -38,6 +38,8 @@ export interface GenerationParams {
   rhythmMarkovStrength?: number; // 0..1 strength of Markov-driven hat/percussion continuity
   // Phase 1 voice-leading and spacing
   chordVoiceLeadingBias?: number; // 0..1 prefer chord inversions with minimal movement
+  // Optional: enable exact chord voice assignment (close-voicing, common-tone snap). When false, bias uses inversion only.
+  enableExactChordVoiceAssignment?: boolean;
   leadMaxLeapSemitones?: number; // limit melodic leaps via octave folding (e.g., 7, 9, 12)
   spaceAllocatorMinGapSecs?: number; // per-track minimum gap to avoid overlaps
   // Humanization extensions

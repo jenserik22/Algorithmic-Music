@@ -38,6 +38,7 @@ type HelixAdvancedProfile = {
   accentMapIntensity: number;
   bassAnticipation: number;
   chordVoiceLeadingBias: number;
+  enableExactChordVoiceAssignment?: boolean;
   leadMaxLeapSemitones: number;
   spaceMinGap: number;
   phrasing?: GenerationParams['phrasing'];
@@ -73,6 +74,7 @@ const ADVANCED_PROFILES: Record<StyleKey, HelixAdvancedProfile> = {
     accentMapIntensity: 0.45,
     bassAnticipation: 0.32,
     chordVoiceLeadingBias: 0.55,
+    enableExactChordVoiceAssignment: false,
     leadMaxLeapSemitones: 9,
     spaceMinGap: 0.012,
     phrasing: 'short',
@@ -98,6 +100,7 @@ const ADVANCED_PROFILES: Record<StyleKey, HelixAdvancedProfile> = {
     accentMapIntensity: 0.12,
     bassAnticipation: 0.18,
     chordVoiceLeadingBias: 0.82,
+    enableExactChordVoiceAssignment: true,
     leadMaxLeapSemitones: 7,
     spaceMinGap: 0.02,
     phrasing: 'long',
@@ -123,6 +126,7 @@ const ADVANCED_PROFILES: Record<StyleKey, HelixAdvancedProfile> = {
     accentMapIntensity: 0.42,
     bassAnticipation: 0.24,
     chordVoiceLeadingBias: 0.48,
+    enableExactChordVoiceAssignment: false,
     leadMaxLeapSemitones: 7,
     spaceMinGap: 0.024,
     phrasing: 'short',
@@ -148,6 +152,7 @@ const ADVANCED_PROFILES: Record<StyleKey, HelixAdvancedProfile> = {
     accentMapIntensity: 0.24,
     bassAnticipation: 0.38,
     chordVoiceLeadingBias: 0.85,
+    enableExactChordVoiceAssignment: true,
     leadMaxLeapSemitones: 12,
     spaceMinGap: 0.015,
     phrasing: 'medium',
@@ -176,6 +181,7 @@ const HUMANIZE_PRESETS: Record<StyleKey, HelixAdvancedProfile> = {
     accentMapIntensity: 0.55,
     bassAnticipation: 0.4,
     chordVoiceLeadingBias: 0.5,
+    enableExactChordVoiceAssignment: false,
     leadMaxLeapSemitones: 9,
     spaceMinGap: 0.012,
     phrasing: 'short',
@@ -209,6 +215,7 @@ const HUMANIZE_PRESETS: Record<StyleKey, HelixAdvancedProfile> = {
     accentMapIntensity: 0.14,
     bassAnticipation: 0.22,
     chordVoiceLeadingBias: 0.86,
+    enableExactChordVoiceAssignment: true,
     leadMaxLeapSemitones: 7,
     spaceMinGap: 0.02,
     phrasing: 'long',
@@ -240,6 +247,7 @@ const HUMANIZE_PRESETS: Record<StyleKey, HelixAdvancedProfile> = {
     accentMapIntensity: 0.48,
     bassAnticipation: 0.26,
     chordVoiceLeadingBias: 0.46,
+    enableExactChordVoiceAssignment: false,
     leadMaxLeapSemitones: 7,
     spaceMinGap: 0.026,
     phrasing: 'short',
@@ -271,6 +279,7 @@ const HUMANIZE_PRESETS: Record<StyleKey, HelixAdvancedProfile> = {
     accentMapIntensity: 0.28,
     bassAnticipation: 0.42,
     chordVoiceLeadingBias: 0.9,
+    enableExactChordVoiceAssignment: true,
     leadMaxLeapSemitones: 12,
     spaceMinGap: 0.015,
     phrasing: 'medium',
@@ -325,6 +334,7 @@ export function GeneratorUI({ onGenerate }: { onGenerate: (x: { algorithm: Algor
   const [bassAnticipation, setBassAnticipation] = useState<number>(0);
   const [rhythmMarkovStrength, setRhythmMarkovStrength] = useState<number>(0);
   const [chordVoiceLeadingBias, setChordVoiceLeadingBias] = useState<number>(0);
+  const [enableExactChordVoiceAssignment, setEnableExactChordVoiceAssignment] = useState<boolean>(false);
   const [leadMaxLeapSemitones, setLeadMaxLeapSemitones] = useState<number>(0);
   const [spaceAllocatorMinGapSecs, setSpaceAllocatorMinGapSecs] = useState<number>(0);
 
@@ -391,6 +401,7 @@ export function GeneratorUI({ onGenerate }: { onGenerate: (x: { algorithm: Algor
     setAccentMapIntensity(profile.accentMapIntensity);
     setBassAnticipation(profile.bassAnticipation);
     setChordVoiceLeadingBias(profile.chordVoiceLeadingBias);
+    setEnableExactChordVoiceAssignment(Boolean(profile.enableExactChordVoiceAssignment));
     setLeadMaxLeapSemitones(profile.leadMaxLeapSemitones);
     setSpaceAllocatorMinGapSecs(profile.spaceMinGap);
     setPhrasing(profile.phrasing);
@@ -503,6 +514,7 @@ export function GeneratorUI({ onGenerate }: { onGenerate: (x: { algorithm: Algor
       accentMapIntensity: accentMapIntensity || undefined,
       bassAnticipation: bassAnticipation || undefined,
       chordVoiceLeadingBias: chordVoiceLeadingBias || undefined,
+      enableExactChordVoiceAssignment: enableExactChordVoiceAssignment || undefined,
       rhythmMarkovStrength: rhythmMarkovStrength || undefined,
       leadMaxLeapSemitones: leadMaxLeapSemitones || undefined,
       spaceAllocatorMinGapSecs: spaceAllocatorMinGapSecs || undefined,
@@ -549,6 +561,7 @@ export function GeneratorUI({ onGenerate }: { onGenerate: (x: { algorithm: Algor
       accentMapIntensity: accentMapIntensity || undefined,
       bassAnticipation: bassAnticipation || undefined,
       chordVoiceLeadingBias: chordVoiceLeadingBias || undefined,
+      enableExactChordVoiceAssignment: enableExactChordVoiceAssignment || undefined,
       rhythmMarkovStrength: rhythmMarkovStrength || undefined,
       leadMaxLeapSemitones: leadMaxLeapSemitones || undefined,
       spaceAllocatorMinGapSecs: spaceAllocatorMinGapSecs || undefined,
@@ -909,6 +922,11 @@ export function GeneratorUI({ onGenerate }: { onGenerate: (x: { algorithm: Algor
                 <div className="space-y-2">
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Chord Voice‑Leading Bias: {chordVoiceLeadingBias.toFixed(2)}</label>
                   <input type="range" min="0" max="1" step="0.05" value={chordVoiceLeadingBias} onChange={e=>setChordVoiceLeadingBias(Number(e.target.value))} className="w-full" />
+                </div>
+                <div className="flex items-center gap-2 pt-1">
+                  <input id="exactVoicingToggle" type="checkbox" checked={enableExactChordVoiceAssignment} onChange={e=>setEnableExactChordVoiceAssignment(e.target.checked)}
+                    className="h-4 w-4 text-blue-600 border-gray-300 rounded" />
+                  <label htmlFor="exactVoicingToggle" className="text-sm text-gray-700 dark:text-gray-300" title="Preserves common tones and assigns each voice to the nearest chord tone; recommended for cinematic/jazz; requires Voice‑Leading Bias > 0.">Enable exact close‑voicing (preserve common tones)</label>
                 </div>
                 <div className="space-y-2">
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Lead Max Leap (semitones)</label>
