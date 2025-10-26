@@ -59,7 +59,10 @@ Phase 8 — Evaluation & Auto‑Repair
 - [x] Unit tests (determinism, no‑op when autoRepair=0, chord‑tone improvement) and docs updated
 
 Phase 9 — Light Adaptive Weighting (opt)
-- [ ] Persist liked‑output n‑grams; bias choices when enabled
+- [x] Bias profile resolved (by id or injected) with optional strength mix
+- [x] Lead interval and hi‑hat placement biased when enabled; deterministic when off
+- [x] UI controls exposed (Advanced → Enhanced Helix → Adaptive Bias [Phase 9])
+- [x] Unit tests (determinism, no‑op w/o profile or strength=0, measurable bias effect) and docs updated
 
 Release Gates
 - [ ] Flags default off, A/B proven

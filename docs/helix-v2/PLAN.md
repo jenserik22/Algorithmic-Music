@@ -1,6 +1,6 @@
 # EnhancedHelixEngine Humanization — Refactor Plan/Spec
 
-Status: Active — Phases 0–8 complete (engine + UI + tests + docs); next Phase 9 (Light Adaptive Weighting)
+Status: Active — Phases 0–9 complete (engine + UI + tests + docs)
 
 Scope
 - Make EnhancedHelixEngine sound more human than SoundHelix via phrasing, groove, harmony variety, inter‑track intent.
@@ -75,8 +75,12 @@ Phase 8 — Evaluation & Auto‑Repair (COMPLETED)
 - UI: “Evaluation & Auto‑Repair” (2 sliders + budget in ms)
 - Tests: determinism; evaluation‑only no‑op; chord‑tone rate improvement (≥ baseline)
 
-Phase 9 — Light Adaptive Weighting (optional)
-- Persist liked‑output n‑gram stats to bias intervals/rhythm (determinism intact when disabled).
+Phase 9 — Light Adaptive Weighting (COMPLETED, optional)
+- Optional, deterministic when disabled. Adds tiny adaptive biases to lead interval steps and hi‑hat placement.
+- Params: adaptiveWeightingStrength (0..1), adaptiveProfileId (optional). Advanced callers/tests may pass adaptiveProfile directly.
+- UI: “Adaptive Bias (Phase 9)” group (slider + optional profile id); default off.
+- Version tag: v2‑phase9 when active.
+- Tests: determinism with fixed profile, no‑op when strength=0 or no profile, measurable bias effect vs baseline.
 
 Acceptance Criteria per Phase
 - New tests pass; baselines unchanged with flags off.

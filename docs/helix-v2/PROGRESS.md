@@ -1,6 +1,6 @@
 # Helix V2 Humanization — Progress Log
 
-Status: Phases 1–8 completed; all tests pass, build succeeds; Phase 7 + 8 UI controls exposed in Generator UI
+Status: Phases 1–9 completed; all tests pass, build succeeds; Phase 7 + 8 + 9 UI controls exposed in Generator UI
 Branch: feat/helix-humanize-v2
 
 How to read this file
@@ -171,3 +171,11 @@ Log
 - Tests: added enhanced-helix.phase8.test.ts covering determinism, evaluation‑only no‑op on events, and strong‑beat chord‑tone rate improvement ≥ baseline
 - Docs: Updated FLAGS.md (Phase 8 flags + UI location), USER_GUIDE.md (new section), PLAN.md (Phase 8 marked complete), CHECKLIST.md (Phase 8 items checked)
 - Validation: Typecheck OK; full test suite green; build OK
+
+## [2025‑10‑26] PHASE 9 COMPLETE — Adaptive Bias (Light Adaptive Weighting)
+- Engine: Added optional adaptive weighting to bias lead interval steps and hi‑hat placement using a tiny profile; deterministic when disabled. Version tag escalates to `v2-phase9` when active.
+- Types: Added `AdaptiveBiasProfile` and params `adaptiveWeightingStrength`, `adaptiveProfileId` (and `adaptiveProfile` for direct injection/tests).
+- UI: New “Adaptive Bias (Phase 9)” group with slider and optional Profile Id.
+- Tests: `enhanced-helix.phase9.test.ts` covering determinism, no‑op when strength=0 or no profile, and increased favored positions/intervals vs baseline.
+- Docs: Updated PLAN, CHECKLIST, FLAGS, USER_GUIDE, PROGRESS to include Phase 9.
+- Validation: Typecheck OK; full unit tests green; vite build OK.

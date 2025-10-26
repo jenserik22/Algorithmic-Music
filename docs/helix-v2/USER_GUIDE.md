@@ -1,4 +1,4 @@
-# Enhanced Helix — User Guide (Phase 1–8 Settings)
+# Enhanced Helix — User Guide (Phase 1–9 Settings)
 
 This guide explains the new Enhanced Helix settings and provides recommended values to get musical, human‑sounding results quickly. All settings are optional: leaving them unset preserves the original baseline.
 
@@ -9,6 +9,7 @@ This guide explains the new Enhanced Helix settings and provides recommended val
 - Individual controls under "Enhanced Helix" section, including:
   - Ornamentation & Articulation → sliders for Ornamentation, Legato Strength, Chord Stab/Arp Intensity (default 0, step 0.05)
   - Evaluation & Auto‑Repair → sliders for Evaluation Strength and Auto‑Repair Strength, plus a numeric Auto‑Repair Budget (ms)
+  - Adaptive Bias (Phase 9) → slider for Adaptive Weighting (0..1) and optional Profile Id field
 
 ## Defaults & mode behavior
 - Default algorithm: Enhanced Helix is the default for Generator UI, Play Demo, and Quick Generate.
@@ -153,6 +154,18 @@ This guide explains the new Enhanced Helix settings and provides recommended val
   - Soft operations budget (0..50, default 6 ≈ ~4 ops), interpreted deterministically.
   - Only used when Auto‑Repair Strength > 0.
 
+### Adaptive Bias (Phase 9)
+
+- Adaptive Weighting (0..1)
+  - When > 0 and a valid adaptive profile is present (provided by the app/runtime), subtly biases:
+    - Lead interval steps toward preferred small semitone movements learned from liked outputs
+    - Hi‑hat placements toward favored 16th positions per bar
+  - 0 keeps baseline behavior identical to phases ≤ 8. With a fixed profile and seed, results are deterministic.
+
+- Profile Id (optional)
+  - If set, the app attempts to load a stored profile for biasing. If unset or no valid profile exists, the pass is a no‑op.
+  - Advanced/test usage may inject a profile directly (not exposed in UI).
+
 ## Quick recipes (good‑sounding starting points)
 
 - EDM:
@@ -193,4 +206,4 @@ This guide explains the new Enhanced Helix settings and provides recommended val
 
 ## Notes
 - All features are optional and backward‑compatible. With all values off/empty, Enhanced Helix matches the previous baseline.
-- When Phase 2 flags are used, the engine version tag shows `v2-phase2`. With any Phase 3 flag, it shows `v2-phase3`. With any Phase 4 flag, it shows `v2-phase4`. With any Phase 5 flag, it shows `v2-phase5`. With any Phase 7 flag, it shows `v2-phase7`.
+- Version tag escalation: `v2-phase2` (Phase 2), `v2-phase3` (Phase 3), `v2-phase4` (Phase 4), `v2-phase5` (Phase 5), `v2-phase7` (Phase 7), `v2-phase8` (Phase 8), `v2-phase9` (Phase 9).

@@ -1,6 +1,6 @@
-# Enhanced Helix – Phase 1–8 Flags
+# Enhanced Helix – Phase 1–9 Flags
 
-This document summarizes the humanization and musicality flags introduced across Phases 1–7. Defaults maintain Phase 0 baseline until a flag is set non‑zero.
+This document summarizes the humanization and musicality flags introduced across Phases 1–9. Defaults maintain Phase 0 baseline until a flag is set non‑zero.
 
 - grooveTemplate: one of `straight (empty)`, `shuffle`, `mpc62`, `funk`. Applies correlated micro‑timing.
 - humanizeDistribution: 'uniform' | 'gaussian'. Shapes jitter distribution; gaussian concentrates around center with rare extremes.
@@ -50,6 +50,11 @@ Phase 8 (evaluation & auto‑repair):
 - autoRepairStrength: 0..1. Bounded heuristics to improve metrics while preserving feel: chord‑tone snapping on strong beats, density thinning, micro‑quantization (chords/bass), spacing fixes, and register clamping.
 - autoRepairBudgetMs: 0..50. Soft operations budget interpreted deterministically (default 6 ≈ ~4 ops). Used only when autoRepairStrength > 0.
   UI: Advanced → Algorithm = Enhanced Helix → “Evaluation & Auto‑Repair” group (two sliders + numeric budget)
+
+Phase 9 (adaptive bias — optional):
+- adaptiveWeightingStrength: 0..1. Mixes uniform choices with a tiny learned bias profile; 0 = off (no change), 1 = follow profile strongly.
+- adaptiveProfileId: string (optional). Identifier to resolve a stored adaptive profile (persisted externally; engine reads only).
+  UI: Advanced → Algorithm = Enhanced Helix → “Adaptive Bias (Phase 9)” group (slider + optional profile id). When strength is 0 or no valid profile is present, behavior and determinism match phases ≤ 8. When active, engine versionTag is v2‑phase9.
 
 Simple Mode (global musicality toggle):
 - simpleMode: boolean. When true, the engine prioritizes clarity and human‑like structure over complexity by applying:
@@ -105,3 +110,4 @@ Suggested Phase 7 values:
 - In Advanced mode with Enhanced Helix, if the advanced controls are untouched, a style‑aware profile is auto‑applied for the selected style (EDM/Cinematic/Lo‑Fi/Jazz). If you switch styles and your current values still match the previous style profile, the new style profile is applied; otherwise your custom values remain.
 - Phase 7 controls are exposed under “Ornamentation & Articulation” within the Enhanced Helix advanced section.
 - Phase 8 controls are exposed under “Evaluation & Auto‑Repair”. With auto‑repair at 0, the evaluation pass is a no‑op on events (version tag still shows v2‑phase8 when evaluationStrength > 0).
+ - Phase 9 controls are exposed under “Adaptive Bias (Phase 9)”. With adaptiveWeightingStrength = 0 or without a valid profile, the pass is a no‑op and version tag does not escalate.
