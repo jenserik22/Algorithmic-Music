@@ -1,5 +1,6 @@
-import type { Engine, EngineOutput, GenerationParams, NoteEvent, LfoSpec } from './types';
+import type { Engine, EngineOutput, GenerationParams, NoteEvent, LfoSpec, AdaptiveBiasProfile } from './types';
 import { mulberry32, gaussianJitter } from '@/lib/music/seededRandom';
+import { getAdaptiveProfile } from './adaptiveMemory';
 
 // Enhanced song structures with more sophisticated arrangements
 type EnhancedSongConfig = {
@@ -307,6 +308,54 @@ export const EnhancedHelixEngine: Engine = {
     const scale = SCALES[config.scale];
     const complexity = params.complexityLevel ?? 'intermediate';
     const variation = Math.max(0, Math.min(1, params.variation ?? 0.4));
+    // Phase 9: resolve adaptive profile
+    const adaptiveStrength = Math.max(0, Math.min(1, params.adaptiveWeightingStrength ?? 0));
+    const resolvedProfile: AdaptiveBiasProfile | undefined = (() => {
+      if (params.adaptiveProfile && (Object.keys(params.adaptiveProfile.leadInterval2 ?? {}).length > 0 || (params.adaptiveProfile.hatPos16?.length ?? 0) > 0)) {
+        return params.adaptiveProfile;
+      }
+      if (params.adaptiveProfileId) {
+        try { return getAdaptiveProfile(params.adaptiveProfileId) ?? undefined; } catch { return undefined; }
+      }
+      return undefined;
+    })();
+    const hasProfileSignals = Boolean(resolvedProfile && (
+      (resolvedProfile.leadInterval2 && Object.keys(resolvedProfile.leadInterval2).length > 0) ||
+      (resolvedProfile.hatPos16 && resolvedProfile.hatPos16.length > 0)
+    ));
+    const isPhase9Active = adaptiveStrength > 0 && hasProfileSignals;
+
+    const normalizedHatBias = (p?: AdaptiveBiasProfile): number[] | undefined => {
+      if (!p?.hatPos16 || p.hatPos16.length === 0) return undefined;
+      const arr = p.hatPos16.slice(0, 16);
+      while (arr.length < 16) arr.push(0);
+      const max = arr.reduce((a,b)=>Math.max(a, b ?? 0), 0);
+      if (max <= 0) return undefined;
+      return arr.map(x => {
+        const v = (x ?? 0) / max; // 0..1
+        return Math.max(0, Math.min(1, Number.isFinite(v) ? v : 0));
+      });
+    };
+    const hatBias16 = isPhase9Active ? normalizedHatBias(resolvedProfile) : undefined;
+
+    const weightedIntervalPick = (range: number): number => {
+      if (!isPhase9Active || !resolvedProfile?.leadInterval2) {
+        return Math.floor(rand() * (range * 2 + 1)) - range;
+      }
+      const eps = 1e-6;
+      const ks: number[] = [];
+      const ws: number[] = [];
+      for (let d = -range; d <= range; d++) {
+        const base = 1;
+        const bRaw = resolvedProfile.leadInterval2[String(Math.max(-6, Math.min(6, d)))] ?? 0;
+        const w = (1 - adaptiveStrength) * base + adaptiveStrength * (bRaw > 0 ? bRaw : 0);
+        ks.push(d); ws.push(w + eps);
+      }
+      let sum = 0; for (const w of ws) sum += w;
+      let r = rand() * sum;
+      for (let i = 0; i < ws.length; i++) { r -= ws[i]; if (r <= 0) return ks[i]; }
+      return ks[ks.length - 1];
+    };
     
     const scalePitch = (deg: number, octave: number) => rootC4 + scale[(deg % 7 + 7) % 7] + 12 * octave;
     const bars = Math.max(1, Math.floor(params.durationSecs / (4 * beat)));
@@ -483,9 +532,8 @@ export const EnhancedHelixEngine: Engine = {
     
     const leadMotif: number[] = [];
     let currentDegree = Math.floor(rand() * 7);
-    
     for (let i = 0; i < motifLength; i++) {
-      const intervalJump = Math.floor(rand() * (intervalRange * 2 + 1)) - intervalRange;
+      const intervalJump = weightedIntervalPick(intervalRange);
       currentDegree = (currentDegree + intervalJump + 7) % 7;
       leadMotif.push(currentDegree);
     }
@@ -537,7 +585,8 @@ export const EnhancedHelixEngine: Engine = {
       
       if (section.instruments.includes('drums')) {
         generateDrumPattern(events, currentTime, sectionDuration, section, config, {
-          rand, roll, humanizeTime, humanizeVelocity, applySwing, beat, sixteenth, choose, finalizeTime, params
+          rand, roll, humanizeTime, humanizeVelocity, applySwing, beat, sixteenth, choose, finalizeTime, params,
+          phase9: isPhase9Active ? { hatBias: hatBias16, s: adaptiveStrength } : undefined,
         });
       }
       
@@ -1283,6 +1332,7 @@ export const EnhancedHelixEngine: Engine = {
         lfos: makeEnhancedLfos(params),
         sidechain: (scStrength > 0) ? { pulses: events.filter(e => e.track === 'drums' && e.pitch === 36).map(e => e.time), strength: scStrength } : undefined,
         versionTag: (
+          isPhase9Active ? 'v2-phase9' : (
           isPhase8Active ? 'v2-phase8' : (
           isPhase7Active ? 'v2-phase7' : (
             (dynStr > 0 || regLift > 0 || scStrength > 0 || (params.extendedLfoTargets ?? 0) > 0)
@@ -1300,7 +1350,7 @@ export const EnhancedHelixEngine: Engine = {
                   params.leadMaxLeapSemitones ||
                   params.spaceAllocatorMinGapSecs
                 ) ? 'v2-phase1' : 'v2-sortfix'
-              )))))
+              ))))))
         ),
       },
     };
@@ -1839,6 +1889,8 @@ function generateDrumPattern(
   utils: any
 ) {
   const { rand, roll, humanizeTime, humanizeVelocity, applySwing, beat, sixteenth, choose, finalizeTime, params } = utils;
+  const s9 = Math.max(0, Math.min(1, utils?.phase9?.s ?? 0));
+  const hatBias: number[] | undefined = utils?.phase9?.hatBias;
   const pattern = config.rhythmPattern;
   const bars = Math.floor(duration / (4 * beat));
   const rmk = Math.max(0, Math.min(1, params?.rhythmMarkovStrength ?? 0));
@@ -1947,7 +1999,9 @@ function generateDrumPattern(
         const p11Adj = Math.max(p11, adjacencyBoost);
         const markovPresence = lastHat ? p11Adj : p01;
         const p = rmk > 0 ? ((1 - rmk) * basePresence + rmk * markovPresence) : basePresence;
-        if (roll(p)) {
+        const hb = hatBias && hatBias[i] != null ? hatBias[i] : 0.5;
+        const pBiased = Math.max(0, Math.min(1, (1 - s9) * p + s9 * hb));
+        if (roll(pBiased)) {
           const isAccent = i % 4 === 0;
           let velBase = (isAccent ? 0.6 : 0.4) + section.energy * 0.1;
           const accent = Math.max(0, Math.min(1, params?.accentMapIntensity ?? 0));

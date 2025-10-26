@@ -1,5 +1,13 @@
 export type Complexity = 'simple' | 'intermediate' | 'full' | 'high';
 
+export type AdaptiveBiasProfile = {
+  // Lead interval bias histogram. Keys are integer steps (e.g., "-4".."+4").
+  // Values are non-negative counts; higher => stronger preference.
+  leadInterval2?: Record<string, number>;
+  // Per-16th hat bias within a 4/4 bar; length 16 numbers in [0..1] or counts.
+  hatPos16?: number[];
+};
+
 export interface GenerationParams {
   seed: number;
   bpm: number;
@@ -60,6 +68,10 @@ export interface GenerationParams {
   evaluationStrength?: number; // 0..1 weight of evaluation pass (measures metrics; no changes if autoRepairStrength is 0)
   autoRepairStrength?: number; // 0..1 strength of bounded repair heuristics (pitch snap, thinning, micro-quantize)
   autoRepairBudgetMs?: number; // soft budget for repair ops (interpreted deterministically)
+  // Phase 9 light adaptive weighting (optional; default neutral)
+  adaptiveWeightingStrength?: number; // 0..1; mixes uniform choices with learned profile
+  adaptiveProfileId?: string; // optional id to resolve a stored bias profile
+  adaptiveProfile?: AdaptiveBiasProfile; // direct injection of bias profile (tests/advanced UI)
 }
 
 export interface NoteEvent {

@@ -357,6 +357,9 @@ export function GeneratorUI({ onGenerate }: { onGenerate: (x: { algorithm: Algor
   const [evaluationStrength, setEvaluationStrength] = useState<number>(0);
   const [autoRepairStrength, setAutoRepairStrength] = useState<number>(0);
   const [autoRepairBudgetMs, setAutoRepairBudgetMs] = useState<number>(6);
+  // Phase 9 adaptive weighting (Enhanced Helix only)
+  const [adaptiveWeightingStrength, setAdaptiveWeightingStrength] = useState<number>(0);
+  const [adaptiveProfileId, setAdaptiveProfileId] = useState<string>('');
 
   // sync state when preset changes
   React.useEffect(() => {
@@ -520,6 +523,9 @@ export function GeneratorUI({ onGenerate }: { onGenerate: (x: { algorithm: Algor
       evaluationStrength: evaluationStrength || undefined,
       autoRepairStrength: autoRepairStrength || undefined,
       autoRepairBudgetMs: autoRepairStrength > 0 ? autoRepairBudgetMs : undefined,
+      // Phase 9
+      adaptiveWeightingStrength: adaptiveWeightingStrength > 0 ? adaptiveWeightingStrength : undefined,
+      adaptiveProfileId: adaptiveProfileId.trim() ? adaptiveProfileId.trim() : undefined,
     };
     onGenerate({ algorithm, params });
   };
@@ -559,6 +565,8 @@ export function GeneratorUI({ onGenerate }: { onGenerate: (x: { algorithm: Algor
       evaluationStrength: evaluationStrength || undefined,
       autoRepairStrength: autoRepairStrength || undefined,
       autoRepairBudgetMs: autoRepairStrength > 0 ? autoRepairBudgetMs : undefined,
+      adaptiveWeightingStrength: adaptiveWeightingStrength > 0 ? adaptiveWeightingStrength : undefined,
+      adaptiveProfileId: adaptiveProfileId.trim() ? adaptiveProfileId.trim() : undefined,
     };
     const jittered = { ...baseParams, seed: baseParams.seed + Math.floor(Math.random() * 1000) };
     onGenerate({ algorithm, params: jittered });
@@ -1003,6 +1011,20 @@ export function GeneratorUI({ onGenerate }: { onGenerate: (x: { algorithm: Algor
                 <div className="space-y-2">
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Evaluation Strength: {evaluationStrength.toFixed(2)}</label>
                   <input type="range" min="0" max="1" step="0.05" value={evaluationStrength} onChange={e=>setEvaluationStrength(Number(e.target.value))} className="w-full" />
+                </div>
+
+                {/* Phase 9: Adaptive Bias */}
+                <div className="col-span-2 pt-2">
+                  <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200">Adaptive Bias (Phase 9)</h3>
+                </div>
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Adaptive Weighting: {adaptiveWeightingStrength.toFixed(2)}</label>
+                  <input type="range" min="0" max="1" step="0.05" value={adaptiveWeightingStrength} onChange={e=>setAdaptiveWeightingStrength(Number(e.target.value))} className="w-full" />
+                </div>
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Profile Id (optional)</label>
+                  <input type="text" value={adaptiveProfileId} onChange={e=>setAdaptiveProfileId(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white" />
                 </div>
                 <div className="space-y-2">
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Auto-Repair Strength: {autoRepairStrength.toFixed(2)}</label>
