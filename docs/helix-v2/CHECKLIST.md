@@ -11,12 +11,12 @@ Phase 1 — Quick Wins
 - [x] Lead chord‑tone targeting (strong beats)
 - [x] Groove templates + correlated microtiming per track
 - [x] Drum accent maps
-- [ ] Ghost notes
-- [ ] Structured last‑bar fills
+- [x] Ghost notes
+- [x] Structured last‑bar fills
 - [x] Chord voice‑leading constraints (inversions biased by minimal movement)
-- [ ] Optional 7ths/inversions by energy
+- [~] Optional 7ths/inversions by energy
 - [x] Bass anticipations (& of 4)
-- [ ] Approach tones
+- [x] Approach tones
 - [ ] Kick alignment
 - [x] Space allocator (simul‑onset limiter)
 

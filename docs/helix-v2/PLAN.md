@@ -18,6 +18,7 @@ Goals & Success Criteria
 Non‑Breaking Strategy
 - Add optional GenerationParams (all default to neutral):
   - grooveTemplate?: 'straight' | 'shuffle' | 'mpc62' | 'funk'
+  - swingRatio?: 0.55..0.75 (effective only with shuffle)
   - phrasing?: 'short' | 'medium' | 'long'
   - cadenceStrength?: 0–1
   - ornamentation?: 0–1
@@ -25,6 +26,7 @@ Non‑Breaking Strategy
   - progressionVar?: 0–1
   - fillIntensity?: 0–1
   - humanizeTime?: 0–1 (correlated); humanizeVel?: 0–1
+  - rushingDraggingStrength?: 0..1 (slow, mean‑zero onset drift after groove/humanize)
 - meta.engineVersion = 'enhanced-helix-v2' when features used.
 
 Branching, CI, Rollout
@@ -89,6 +91,7 @@ Acceptance Criteria per Phase
 
 Risks & Mitigations
 - Over‑humanization timing: clamp microtiming by groove template and section energy.
+ - Rushing/Dragging drift: keep mean‑zero and tightly clamped (≈±10–20ms by style); reduce effect on drums and strong beats.
 - Harmony drift: gate substitutions by progressionVar + voice‑leading checks.
 - Performance regressions: add perf guards; bounded retries.
 

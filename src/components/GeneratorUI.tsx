@@ -318,6 +318,8 @@ export function GeneratorUI({ onGenerate }: { onGenerate: (x: { algorithm: Algor
   const [grooveTemplate, setGrooveTemplate] = useState<GenerationParams['grooveTemplate'] | undefined>(undefined);
   const [humanizeTimeAmt, setHumanizeTimeAmt] = useState<number>(0);
   const [humanizeVelAmt, setHumanizeVelAmt] = useState<number>(0);
+  const [rushingDraggingStrength, setRushingDraggingStrength] = useState<number>(0);
+  const [swingRatio, setSwingRatio] = useState<number | undefined>(undefined);
   const [leadChordToneBias, setLeadChordToneBias] = useState<number>(0);
   const [accentMapIntensity, setAccentMapIntensity] = useState<number>(0);
   const [bassAnticipation, setBassAnticipation] = useState<number>(0);
@@ -495,6 +497,8 @@ export function GeneratorUI({ onGenerate }: { onGenerate: (x: { algorithm: Algor
       humanizeDistribution: humanizeDistribution,
       humanizeTime: humanizeTimeAmt || undefined,
       humanizeVel: humanizeVelAmt || undefined,
+      rushingDraggingStrength: rushingDraggingStrength || undefined,
+      swingRatio: grooveTemplate === 'shuffle' ? swingRatio : undefined,
       leadChordToneBias: leadChordToneBias || undefined,
       accentMapIntensity: accentMapIntensity || undefined,
       bassAnticipation: bassAnticipation || undefined,
@@ -539,6 +543,8 @@ export function GeneratorUI({ onGenerate }: { onGenerate: (x: { algorithm: Algor
       humanizeDistribution: humanizeDistribution,
       humanizeTime: humanizeTimeAmt || undefined,
       humanizeVel: humanizeVelAmt || undefined,
+      rushingDraggingStrength: rushingDraggingStrength || undefined,
+      swingRatio: grooveTemplate === 'shuffle' ? swingRatio : undefined,
       leadChordToneBias: leadChordToneBias || undefined,
       accentMapIntensity: accentMapIntensity || undefined,
       bassAnticipation: bassAnticipation || undefined,
@@ -867,9 +873,20 @@ export function GeneratorUI({ onGenerate }: { onGenerate: (x: { algorithm: Algor
                   <input type="range" min="0" max="1" step="0.05" value={humanizeTimeAmt} onChange={e=>setHumanizeTimeAmt(Number(e.target.value))} className="w-full" />
                 </div>
 
+                {grooveTemplate === 'shuffle' && (
+                  <div className="space-y-2">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Swing Ratio: {(swingRatio ?? 0.66).toFixed(2)}</label>
+                    <input type="range" min="0.55" max="0.75" step="0.01" value={swingRatio ?? 0.66} onChange={e=>setSwingRatio(Number(e.target.value))} className="w-full" />
+                  </div>
+                )}
+
                 <div className="space-y-2">
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Humanize Velocity: {humanizeVelAmt.toFixed(2)}</label>
                   <input type="range" min="0" max="1" step="0.05" value={humanizeVelAmt} onChange={e=>setHumanizeVelAmt(Number(e.target.value))} className="w-full" />
+                </div>
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Rushing/Dragging: {rushingDraggingStrength.toFixed(2)}</label>
+                  <input type="range" min="0" max="1" step="0.05" value={rushingDraggingStrength} onChange={e=>setRushingDraggingStrength(Number(e.target.value))} className="w-full" />
                 </div>
                 <div className="space-y-2">
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Lead Chord‑Tone Bias: {leadChordToneBias.toFixed(2)}</label>

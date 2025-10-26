@@ -179,3 +179,13 @@ Log
 - Tests: `enhanced-helix.phase9.test.ts` covering determinism, no‑op when strength=0 or no profile, and increased favored positions/intervals vs baseline.
 - Docs: Updated PLAN, CHECKLIST, FLAGS, USER_GUIDE, PROGRESS to include Phase 9.
 - Validation: Typecheck OK; full unit tests green; vite build OK.
+
+## [2025‑10‑26] HUMANIZATION ENHANCEMENTS — Swing Ratio + Rushing/Dragging
+- Flags (types.ts): added `swingRatio` (effective only when grooveTemplate='shuffle') and `rushingDraggingStrength` (0..1 slow, mean‑zero onset drift after groove/humanize)
+- Engine (enhanced-helix.ts):
+  - Shuffle groove now scales odd‑16th delays by swingRatio (typical ≈0.66)
+  - Applied seed‑deterministic, tightly clamped drift to onsets; reduced on drums (kicks nearly fixed) to preserve backbeat
+- UI (GeneratorUI):
+  - New controls under Humanization: Swing Ratio (visible only for shuffle) and Rushing/Dragging
+- Tests: `enhancedHelix.rushingDragging.test.ts` covers determinism at 0, measurable onset drift when > 0, and no‑op swingRatio outside shuffle; full suite green
+- Docs: Updated FLAGS.md and USER_GUIDE.md; PLAN.md lists new params and mitigations

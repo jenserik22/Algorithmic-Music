@@ -6,6 +6,8 @@ This document summarizes the humanization and musicality flags introduced across
 - humanizeDistribution: 'uniform' | 'gaussian'. Shapes jitter distribution; gaussian concentrates around center with rare extremes.
 - humanizeTime: 0..1. Micro‑timing randomization amount.
 - humanizeVel: 0..1. Velocity randomization amount.
+- swingRatio: 0.55..0.75. Effective only when grooveTemplate='shuffle'. Controls offbeat delay depth (typical ≈0.66).
+- rushingDraggingStrength: 0..1. Slow, mean‑zero onset drift applied after groove/humanize; reduced on drums; deterministic when 0.
 - leadChordToneBias: 0..1. Probability bias for placing the lead on chord tones on strong beats.
 - accentMapIntensity: 0..1. Hi‑hat/backbeat accent shaping.
 - bassAnticipation: 0..1. Chance for bass to anticipate bar endings ("& of 4").
@@ -111,3 +113,4 @@ Suggested Phase 7 values:
 - Phase 7 controls are exposed under “Ornamentation & Articulation” within the Enhanced Helix advanced section.
 - Phase 8 controls are exposed under “Evaluation & Auto‑Repair”. With auto‑repair at 0, the evaluation pass is a no‑op on events (version tag still shows v2‑phase8 when evaluationStrength > 0).
  - Phase 9 controls are exposed under “Adaptive Bias (Phase 9)”. With adaptiveWeightingStrength = 0 or without a valid profile, the pass is a no‑op and version tag does not escalate.
+ - Humanization extras: “Swing Ratio” appears only when Groove Template is shuffle; “Rushing/Dragging” is always available (default 0).

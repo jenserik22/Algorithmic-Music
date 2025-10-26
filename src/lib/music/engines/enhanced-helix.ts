@@ -414,8 +414,13 @@ export const EnhancedHelixEngine: Engine = {
       const r = Math.max(0, Math.min(1, extraTimeHumanize || 1));
       switch (grooveTemplate) {
         case 'shuffle':
-          // Delay odd 16ths
-          return (pos16 % 2 === 1 ? 0.35 * r : 0) * sixteenth;
+          // Delay odd 16ths; allow optional swingRatio (0.55..0.75) to scale delay amount
+          {
+            const sr = typeof params.swingRatio === 'number' ? Math.max(0.5, Math.min(0.75, params.swingRatio)) : undefined;
+            const scale = sr ? Math.max(0, Math.min(1, (sr - 0.5) / 0.25)) : 1;
+            const base = 0.35 * scale;
+            return (pos16 % 2 === 1 ? base * r : 0) * sixteenth;
+          }
         case 'mpc62':
           // Late 8th offbeats, slight late 16th pickups
           if (pos16 % 4 === 2) return 0.24 * r * sixteenth;
@@ -1027,6 +1032,52 @@ export const EnhancedHelixEngine: Engine = {
               if (d < bestD) { bestD = d; best = cand; }
             }
             e.pitch = best;
+          }
+        }
+      }
+    }
+
+    // Rushing/Dragging drift: apply low-frequency, mean-zero onset drift after spacing adjustments
+    {
+      const rd = Math.max(0, Math.min(1, params.rushingDraggingStrength ?? 0));
+      if (rd > 0) {
+        const barDur = 4 * beat;
+        const phi = rand() * Math.PI * 2; // deterministic phase from seed
+        const freq = 1 / (barDur * 4); // slow drift: one cycle per 4 bars
+        const styleAmp = ((): number => {
+          switch (style) {
+            case 'lofi': return 0.020; // 20ms max
+            case 'jazz': return 0.016; // 16ms
+            default: return 0.012;     // 12ms for edm/cinematic
+          }
+        })();
+        const amp = styleAmp * rd; // seconds
+        const trackScale = (e: NoteEvent): number => {
+          if (e.track === 'drums') {
+            // keep backbeat anchors tighter; kicks almost fixed
+            if (e.pitch === 36) return 0.15; // kick
+            if (e.pitch === 38) return 0.25; // snare
+            return 0.5; // hats/other
+          }
+          return 1.0;
+        };
+        for (const e of events) {
+          const drift = amp * Math.sin(2 * Math.PI * freq * e.time + phi) * trackScale(e);
+          e.time = Math.max(0, e.time + drift);
+        }
+        // Re-sort and enforce non-decreasing times
+        events.sort((a, b) => {
+          const dt = a.time - b.time;
+          if (dt !== 0) return dt;
+          const dp = (a.pitch ?? 0) - (b.pitch ?? 0);
+          if (dp !== 0) return dp;
+          const ta = a.track ?? '';
+          const tb = b.track ?? '';
+          return ta.localeCompare(tb);
+        });
+        for (let i = 1; i < events.length; i++) {
+          if (events[i].time < events[i - 1].time) {
+            events[i].time = events[i - 1].time;
           }
         }
       }

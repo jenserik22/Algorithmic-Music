@@ -10,6 +10,7 @@ This guide explains the new Enhanced Helix settings and provides recommended val
   - Ornamentation & Articulation → sliders for Ornamentation, Legato Strength, Chord Stab/Arp Intensity (default 0, step 0.05)
   - Evaluation & Auto‑Repair → sliders for Evaluation Strength and Auto‑Repair Strength, plus a numeric Auto‑Repair Budget (ms)
   - Adaptive Bias (Phase 9) → slider for Adaptive Weighting (0..1) and optional Profile Id field
+  - Humanization → Swing Ratio (only when Groove Template is shuffle) and Rushing/Dragging strength
 
 ## Defaults & mode behavior
 - Default algorithm: Enhanced Helix is the default for Generator UI, Play Demo, and Quick Generate.
@@ -43,9 +44,17 @@ This guide explains the new Enhanced Helix settings and provides recommended val
   - Adds correlated timing variation per track. Higher = looser, more "live" feel.
   - Start 0.10–0.25. Keep lower for tight EDM; higher for Lo‑Fi/Jazz.
 
+- Swing Ratio (shuffle only)
+  - Fine‑tunes the shuffle feel by delaying offbeats. Range 0.55–0.75 (typical ≈0.66). Visible only when Groove Template = shuffle.
+  - Use lower values for lighter swing; higher for deeper shuffle.
+
 - Humanize Velocity (0..1)
   - Varies note intensity dynamically. Higher values emphasize accents and de‑quantize feel.
   - Start 0.15–0.35. Back off if dynamics feel erratic.
+
+- Rushing/Dragging (0..1)
+  - Introduces slow, mean‑zero drift in note onsets (players subtly rush or drag). Applied after groove/humanize; reduced on drums; seed‑deterministic.
+  - Keep modest (0.1–0.4). Drums remain tight; strong beats stay clear.
 
 - Lead Chord‑Tone Bias (0..1)
   - Pushes lead notes on strong beats toward chord tones (root/3rd/5th). Weak beats remain more free.
@@ -199,6 +208,7 @@ This guide explains the new Enhanced Helix settings and provides recommended val
 ## Tips for better results
 - Start from a preset, then tweak one control at a time.
 - Keep Humanize Time moderate if you also use strong groove templates.
+- For shuffle feels, adjust Swing Ratio sparingly; combine with modest Rushing/Dragging for organic movement without smearing the backbeat.
 - Increase Lead Chord‑Tone Bias for clearer harmony; reduce for more exploratory melodies.
 - Use Phrasing + Cadence to add musical sentences and closure.
 - Keep Min Gap > 0 to avoid overlaps when density is high.

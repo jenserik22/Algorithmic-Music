@@ -138,3 +138,33 @@ export function backbeatConsistency(out: EngineOutput, bpm: number): number {
   }
   return ok / total;
 }
+
+// Drift score: median absolute bar-average onset offset (in seconds) vs quantized 16th grid.
+// Intuition: slow rushing/dragging produces a consistent signed offset within a bar that averages away random jitter.
+export function driftScore(out: EngineOutput, bpm: number): number {
+  const events = out.events;
+  if (!events.length) return 0;
+  const beat = 60 / bpm;
+  const sixteenth = beat / 4;
+  const byBar = new Map<number, number[]>();
+  for (const e of events) {
+    const bar = Math.floor(e.time / (4 * beat));
+    const tGrid = Math.round(e.time / sixteenth) * sixteenth;
+    const offset = e.time - tGrid; // signed
+    const arr = byBar.get(bar) ?? [];
+    arr.push(offset);
+    byBar.set(bar, arr);
+  }
+  const avgs: number[] = [];
+  for (const arr of byBar.values()) {
+    if (arr.length === 0) continue;
+    const m = arr.reduce((a, b) => a + b, 0) / arr.length;
+    avgs.push(m);
+  }
+  if (avgs.length <= 1) return 0;
+  const diffs: number[] = [];
+  for (let i = 1; i < avgs.length; i++) diffs.push(Math.abs(avgs[i] - avgs[i - 1]));
+  diffs.sort((a, b) => a - b);
+  const mid = Math.floor(diffs.length / 2);
+  return diffs.length % 2 ? diffs[mid] : (diffs[mid - 1] + diffs[mid]) / 2;
+}
