@@ -1106,12 +1106,17 @@ export const EnhancedHelixEngine: Engine = {
       }
     };
 
-    if (dynStr > 0 || regLift > 0 || scStrength > 0) {
+    if (dynStr > 0 || regLift > 0 || scStrength > 0 || params.phrasing) {
       // Build quick index of section by time
       const findSection = (t: number) => sectionTimeline.find(s => t >= s.start && t < s.start + s.duration) ?? sectionTimeline[sectionTimeline.length - 1];
       // Collect kick pulses for sidechain metadata
       const kickTimes = events.filter(e => e.track === 'drums' && e.pitch === 36).map(e => e.time);
       const beatDur = beat;
+      // Phrase envelope config
+      const phrBars = params?.phrasing ? (params.phrasing === 'short' ? 2 : params.phrasing === 'medium' ? 4 : 8) : 0;
+      const phraseLenSec = phrBars > 0 ? phrBars * 4 * beat : 0;
+      const extraTimeHumanize = Math.max(0, Math.min(1, params.humanizeTime ?? 0));
+      const extraVelHumanize = Math.max(0, Math.min(1, params.humanizeVel ?? 0));
       for (const e of events) {
         // Section envelope for velocity and note length
         if (dynStr > 0) {
@@ -1121,6 +1126,32 @@ export const EnhancedHelixEngine: Engine = {
           e.velocity = Math.max(0.1, Math.min(1, e.velocity * f));
           // Note length scaling a bit milder
           e.duration = Math.max(0.02, e.duration * (1 + (f - 1) * 0.6));
+        }
+        // Phrase dynamics: gentle ramp within phrase (velocity) and mild taper (lead only)
+        if (phraseLenSec > 0) {
+          const sec = findSection(e.time);
+          const phraseStart = Math.floor(e.time / phraseLenSec) * phraseLenSec;
+          const pos01 = Math.max(0, Math.min(1, (e.time - phraseStart) / phraseLenSec));
+          const ramp = (pos01 * 2) - 1; // -1..+1
+          const drumScale = e.track === 'drums' ? 0.5 : 1.0;
+          const velAmp = (10 / 127) * (sec.energy ?? 1) * drumScale; // ±10 MIDI scaled by section energy
+          e.velocity = Math.max(0.1, Math.min(1, e.velocity * (1 + ramp * velAmp)));
+          if (e.track === 'lead') {
+            const lenScale = 0.95 + 0.10 * pos01; // 0.95→1.05
+            e.duration = Math.max(0.02, e.duration * lenScale);
+          }
+        }
+        // Off-beat humanization emphasis: slightly more time/vel variance on off-beats (when humanize is active)
+        if ((params.grooveTemplate || extraTimeHumanize > 0 || extraVelHumanize > 0)) {
+          const pos16Approx = Math.round((e.time / (beat / 4)) % 16);
+          const isOff16 = (pos16Approx % 2) === 1;
+          if (isOff16) {
+            const trackScale = (e.track === 'lead' || e.track === 'drums') ? 1.0 : 0.5;
+            const dt = (rand() - 0.5) * 0.01 * extraTimeHumanize * trackScale; // up to ±10ms
+            if (extraTimeHumanize > 0) e.time = Math.max(0, e.time + dt);
+            const dv = (rand() - 0.5) * 0.08 * extraVelHumanize * trackScale;
+            if (extraVelHumanize > 0) e.velocity = Math.max(0.1, Math.min(1, e.velocity * (1 + dv)));
+          }
         }
         // Gentle register lift near climax on lead
         if (regLift > 0 && e.track === 'lead') {
@@ -1447,7 +1478,7 @@ function generateLeadLine(
   const chordBiasGlobal = Math.max(0, Math.min(1, params?.leadChordToneBias ?? 0));
   // Phase 2: phrasing & cadence settings
   const cadenceStrength = Math.max(0, Math.min(1, params?.cadenceStrength ?? 0));
-  const phraseBars = params?.phrasing ? (params.phrasing === 'short' ? 2 : 4) : (cadenceStrength > 0 ? 4 : undefined);
+  const phraseBars = params?.phrasing ? (params.phrasing === 'short' ? 2 : (params.phrasing === 'medium' ? 4 : 8)) : (cadenceStrength > 0 ? 4 : undefined);
   const phraseLen16 = phraseBars ? phraseBars * 16 : 0;
   const sectionBars = Math.max(1, Math.floor(duration / (4 * beat)));
   const phrasesInSection = phraseBars ? Math.max(1, Math.floor(sectionBars / phraseBars)) : 0;

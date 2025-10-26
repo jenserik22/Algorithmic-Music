@@ -1,6 +1,6 @@
 # Helix v2 — Post‑Phase 9 Spec: Addressing User Concerns
 
-Status: Approved plan — pending implementation (feature‑flagged, deterministic)
+Status: Implemented (feature‑gated, deterministic) — exact close‑voicing integrated; UI checkbox and presets wired; tests passing
 
 ## Decisions
 - Default voices: triads → 3 voices; 7th chords → 4 voices. If more voices needed, deterministically double root (then fifth) downward; if fewer, drop extensions first; always keep 3rd and 7th when present.
@@ -10,6 +10,7 @@ Status: Approved plan — pending implementation (feature‑flagged, determinist
 - Engine: voice leading assignment for chords; seeded RNG threading already in place; light role‑aware chord note durations.
 - Utils: new `voiceLeading.ts` with deterministic close‑voicing builder/assignment.
 - Tests: voice‑leading correctness (no crossing, minimal movement, chord‑tone only), determinism, and bounds.
+- UI: Advanced toggle for exact close‑voicing with tooltip; presets enable for cinematic/jazz, off for EDM/lo‑fi.
 - Docs: this spec + checklist.
 
 ## Voice Leading (Exact Assignment)
