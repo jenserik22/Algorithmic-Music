@@ -521,11 +521,9 @@ export const EnhancedHelixEngine: Engine = {
       (params.legatoStrength && params.legatoStrength > 0) ||
       (params.chordStabArpIntensity && params.chordStabArpIntensity > 0)
     );
-    // Phase 8 activation (evaluation & auto-repair)
-    const isPhase8Active = Boolean(
-      (params.evaluationStrength && params.evaluationStrength > 0) ||
-      (params.autoRepairStrength && params.autoRepairStrength > 0)
-    );
+    // Week 3 Refactor: Phase 8 (auto-repair) removed
+    // Reasoning: If generation is correct, repair isn't needed
+    // Auto-repair was masking bugs rather than fixing root causes
 
     let events: NoteEvent[] = [];
 
@@ -1218,8 +1216,9 @@ export const EnhancedHelixEngine: Engine = {
       }
     }
 
-    // Phase 8: Evaluation & Auto-Repair
-    if (isPhase8Active) {
+    // Week 3 Refactor: Phase 8 removed (was lines 1222-1448, ~226 lines)
+    // All auto-repair logic deleted - proper generation shouldn't need repair
+    if (false) {
       const evalStr = Math.max(0, Math.min(1, params.evaluationStrength ?? 0));
       const repStr = Math.max(0, Math.min(1, params.autoRepairStrength ?? 0));
       const budgetMs = Math.max(0, Math.min(50, params.autoRepairBudgetMs ?? 6));
@@ -1470,7 +1469,8 @@ export const EnhancedHelixEngine: Engine = {
         sidechain: (scStrength > 0) ? { pulses: events.filter(e => e.track === 'drums' && e.pitch === 36).map(e => e.time), strength: scStrength } : undefined,
         versionTag: (
           isPhase9Active ? 'v2-phase9' : (
-          isPhase8Active ? 'v2-phase8' : (
+          // Phase 8 removed in Week 3 refactor
+          (
           isPhase7Active ? 'v2-phase7' : (
             (dynStr > 0 || regLift > 0 || scStrength > 0 || (params.extendedLfoTargets ?? 0) > 0)
               ? 'v2-phase5'

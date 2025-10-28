@@ -70,10 +70,7 @@ export interface GenerationParams {
   ornamentation?: number; // 0..1 overall ornament probability (grace/slide/turns)
   legatoStrength?: number; // 0..1 reduce gaps / slight overlaps between successive lead notes
   chordStabArpIntensity?: number; // 0..1 add short chord stabs/arps at section transitions
-  // Phase 8 evaluation & auto-repair (default neutral)
-  evaluationStrength?: number; // 0..1 weight of evaluation pass (measures metrics; no changes if autoRepairStrength is 0)
-  autoRepairStrength?: number; // 0..1 strength of bounded repair heuristics (pitch snap, thinning, micro-quantize)
-  autoRepairBudgetMs?: number; // soft budget for repair ops (interpreted deterministically)
+  // Phase 8 removed in Week 3 refactor (auto-repair no longer needed with correct generation)
   // Phase 9 light adaptive weighting (optional; default neutral)
   adaptiveWeightingStrength?: number; // 0..1; mixes uniform choices with learned profile
   adaptiveProfileId?: string; // optional id to resolve a stored bias profile
