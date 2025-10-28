@@ -145,6 +145,85 @@ const ENHANCED_TEMPLATES: Record<NonNullable<GenerationParams['style']>, Enhance
     },
     register: { lead: [62, 86], bass: [28, 52], chords: [52, 76] },
   },
+  
+  techno: {
+    sections: [
+      { name: 'intro', bars: 4, density: 0.4, energy: 0.3, instruments: ['bass', 'drums'] },
+      { name: 'buildup', bars: 4, density: 0.7, energy: 0.6, instruments: ['lead', 'bass', 'drums'], riserBefore: true },
+      { name: 'main', bars: 16, density: 1.0, energy: 1.0, instruments: ['lead', 'chords', 'bass', 'drums', 'fx'], crash: true, fill: true },
+      { name: 'breakdown', bars: 4, density: 0.5, energy: 0.4, instruments: ['chords', 'fx'] },
+      { name: 'drop', bars: 8, density: 1.0, energy: 1.0, instruments: ['lead', 'chords', 'bass', 'drums', 'fx'], crash: true },
+      { name: 'outro', bars: 4, density: 0.4, energy: 0.3, instruments: ['bass', 'drums'] },
+    ],
+    scale: 'aeolian',
+    chordProgression: [
+      { degree: 0, quality: 'minor' },     // i
+      { degree: 4, quality: 'minor' },     // iv
+      { degree: 0, quality: 'minor' },     // i
+      { degree: 6, quality: 'major' },     // VI
+    ],
+    rhythmPattern: {
+      kick: [0, 4, 8, 12],
+      snare: [4, 12],
+      hats: [2, 6, 10, 14],
+      ghostNotes: [1, 5, 9, 13],
+      swing: 0.05,
+    },
+    register: { lead: [60, 84], bass: [24, 48], chords: [48, 72] },
+  },
+  
+  rock: {
+    sections: [
+      { name: 'intro', bars: 4, density: 0.5, energy: 0.4, instruments: ['lead', 'chords', 'bass', 'drums'] },
+      { name: 'verse', bars: 8, density: 0.6, energy: 0.5, instruments: ['lead', 'chords', 'bass', 'drums'] },
+      { name: 'chorus', bars: 8, density: 0.9, energy: 0.9, instruments: ['lead', 'chords', 'bass', 'drums'], crash: true, fill: true },
+      { name: 'verse2', bars: 8, density: 0.6, energy: 0.5, instruments: ['lead', 'chords', 'bass', 'drums'] },
+      { name: 'bridge', bars: 8, density: 0.7, energy: 0.7, instruments: ['lead', 'chords', 'bass', 'drums'], riserBefore: true },
+      { name: 'chorus2', bars: 8, density: 1.0, energy: 1.0, instruments: ['lead', 'chords', 'bass', 'drums', 'fx'], crash: true, fill: true },
+      { name: 'outro', bars: 4, density: 0.5, energy: 0.4, instruments: ['chords', 'bass', 'drums'] },
+    ],
+    scale: 'ionian',
+    chordProgression: [
+      { degree: 0, quality: 'major' },     // I
+      { degree: 5, quality: 'minor' },     // vi
+      { degree: 3, quality: 'major' },     // IV
+      { degree: 4, quality: 'major' },     // V
+    ],
+    rhythmPattern: {
+      kick: [0, 8],
+      snare: [4, 12],
+      hats: [2, 6, 10, 14],
+      ghostNotes: [3, 7, 11, 15],
+      swing: 0.08,
+    },
+    register: { lead: [64, 88], bass: [28, 52], chords: [52, 76] },
+  },
+  
+  ambient: {
+    sections: [
+      { name: 'emergence', bars: 8, density: 0.2, energy: 0.1, instruments: ['fx'] },
+      { name: 'texture1', bars: 16, density: 0.3, energy: 0.2, instruments: ['chords', 'fx'] },
+      { name: 'development', bars: 16, density: 0.5, energy: 0.4, instruments: ['lead', 'chords', 'bass', 'fx'] },
+      { name: 'climax', bars: 8, density: 0.7, energy: 0.6, instruments: ['lead', 'chords', 'bass', 'fx'], crash: true },
+      { name: 'resolution', bars: 16, density: 0.3, energy: 0.2, instruments: ['chords', 'fx'] },
+      { name: 'fade', bars: 8, density: 0.1, energy: 0.1, instruments: ['fx'] },
+    ],
+    scale: 'dorian',
+    chordProgression: [
+      { degree: 0, quality: 'minor7' },    // im7
+      { degree: 6, quality: 'major7' },    // VIImaj7
+      { degree: 3, quality: 'major7' },    // IVmaj7
+      { degree: 0, quality: 'minor7' },    // im7
+    ],
+    rhythmPattern: {
+      kick: [0],
+      snare: [8],
+      hats: [4, 12],
+      ghostNotes: [2, 6, 10, 14],
+      swing: 0.0,
+    },
+    register: { lead: [60, 84], bass: [28, 52], chords: [48, 72] },
+  },
 };
 
 // Enhanced scales with more modes
