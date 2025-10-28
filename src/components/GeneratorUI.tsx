@@ -260,7 +260,7 @@ export function GeneratorUI({ onGenerate }: { onGenerate: (x: { algorithm: Algor
   const [presetKey, setPresetKey] = useState<keyof typeof PRESETS>('upbeat');
   const [algorithm, setAlgorithm] = useState<Algorithm>('enhanced_helix');
   const base = useMemo(() => PRESETS[presetKey].params, [presetKey]);
-  const [seed] = useState<number>(1);
+  const [seed, setSeed] = useState<number>(Math.floor(Math.random() * 1000000));
 
   const [bpm, setBpm] = useState<number>(base.bpm);
   const [keySig, setKeySig] = useState<string>(base.key);
@@ -467,8 +467,12 @@ export function GeneratorUI({ onGenerate }: { onGenerate: (x: { algorithm: Algor
   }, [mode, algorithm, style, grooveTemplate, humanizeTimeAmt, humanizeVelAmt, leadChordToneBias, accentMapIntensity, bassAnticipation, chordVoiceLeadingBias, leadMaxLeapSemitones, spaceAllocatorMinGapSecs, phrasing, cadenceStrength, harmonicRhythmVariance, harmonicComplexity, pedalToneStrength, callResponseIntensity, bassEchoProbability, densityGateStrength, dynamicsShape, dynamicsStrength, registerLiftStrength, extendedLfoTargets, sidechainStrength, applyAdvancedDefaults]);
 
   const handleGenerate = () => {
+    // In Simple Mode, always randomize seed for variety
+    // In Advanced Mode, use the user's seed (they can control it)
+    const finalSeed = mode === 'simple' ? Math.floor(Math.random() * 1000000) : seed;
+    
     const params: GenerationParams = { 
-      seed: seed + Math.floor(Math.random() * 1000), // randomize seed each time
+      seed: finalSeed,
       bpm, key: keySig, timeSignature, durationSecs, density, 
       style, variation, fillRate, complexityLevel, motion, brightness,
       simpleMode: mode === 'simple' ? true : undefined,
@@ -809,6 +813,38 @@ export function GeneratorUI({ onGenerate }: { onGenerate: (x: { algorithm: Algor
 
           {/* Enhanced Helix Humanization (Phase 1 flags) */}
           {algorithm === 'enhanced_helix' && (
+            <>
+            {/* Random Seed Control */}
+            <div className="col-span-2 bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-lg p-4 mb-4">
+              <div className="flex items-center justify-between mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                  <LabelWithTooltip 
+                    label="Random Seed" 
+                    tooltip="Controls the exact output. Same seed + same parameters = identical track. Change seed for different variations." 
+                  />
+                </label>
+                <button
+                  type="button"
+                  onClick={() => setSeed(Math.floor(Math.random() * 1000000))}
+                  className="px-3 py-1 text-xs rounded bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 hover:bg-blue-200 dark:hover:bg-blue-900 transition-colors"
+                >
+                  🎲 Randomize
+                </button>
+              </div>
+              <input
+                type="number"
+                value={seed}
+                onChange={(e) => setSeed(Number(e.target.value))}
+                min="0"
+                max="999999"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                placeholder="Random seed number"
+              />
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                Current: {seed} • Save this number to recreate the exact same track later
+              </p>
+            </div>
+
             <div className="col-span-2 space-y-4 pt-4 border-t border-gray-200 dark:border-gray-600">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
@@ -1063,6 +1099,7 @@ export function GeneratorUI({ onGenerate }: { onGenerate: (x: { algorithm: Algor
                 </div>
               </div>
             </div>
+            </>
           )}
         </div>
         </>
