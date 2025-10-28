@@ -1241,7 +1241,9 @@ export function GeneratorUI({ onGenerate }: { onGenerate: (x: { algorithm: Algor
                   </select>
                 </div>
                 <div className="space-y-2">
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Dynamics Strength: {dynamicsStrength.toFixed(2)}</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    <LabelWithTooltip label={`Dynamics Strength: ${dynamicsStrength.toFixed(2)}`} tooltip="Intensity of volume changes. 0=flat dynamics, 0.5=natural expression, 1=dramatic contrast." />
+                  </label>
                   <input type="range" min="0" max="1" step="0.05" value={dynamicsStrength} onChange={e=>setDynamicsStrength(Number(e.target.value))} className="w-full" />
                 </div>
                 <div className="space-y-2">
