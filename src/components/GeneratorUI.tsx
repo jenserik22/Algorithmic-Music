@@ -541,6 +541,12 @@ export function GeneratorUI({ onGenerate }: { onGenerate: (x: { algorithm: Algor
     } else if (lastAdvancedStyleRef.current && lastAdvancedStyleRef.current !== style) {
       // If current values still match previous style profile, switch to new style profile
       const prev = ADVANCED_PROFILES[lastAdvancedStyleRef.current];
+      // Safety check: ensure prev exists (in case of invalid style key)
+      if (!prev) {
+        applyAdvancedDefaults(style);
+        lastAdvancedStyleRef.current = style;
+        return;
+      }
       const floatEq = (a: number, b: number) => Math.abs(a - b) < 1e-3;
       const matchesPrev =
         (grooveTemplate ?? null) === (prev.grooveTemplate ?? null) &&
