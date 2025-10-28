@@ -309,7 +309,17 @@ export const EnhancedHelixEngine: Engine = {
     const sixteenth = beat / 4;
     const keySemi = KEY_TO_SEMITONE[params.key] ?? 0;
     const rootC4 = 60 + keySemi;
-    const scale = SCALES[config.scale];
+    
+    // CRITICAL FIX: Respect user's key choice (major vs minor)
+    // If key ends with 'm' or 'min', use aeolian (minor), otherwise use template's scale
+    const isMinorKey = params.key.toLowerCase().endsWith('m');
+    let scaleMode = config.scale;
+    if (isMinorKey && scaleMode === 'ionian') {
+      scaleMode = 'aeolian'; // User wants minor, override to minor
+    } else if (!isMinorKey && scaleMode === 'aeolian') {
+      scaleMode = 'ionian'; // User wants major, override to major
+    }
+    const scale = SCALES[scaleMode];
     const complexity = params.complexityLevel ?? 'intermediate';
     const variation = Math.max(0, Math.min(1, params.variation ?? 0.4));
     
@@ -1462,7 +1472,17 @@ export const EnhancedHelixEngine: Engine = {
     }
 
     // CRITICAL FIX: Remove any events that start beyond duration limit
+    console.log('[DEBUG] BEFORE FILTER:', {
+      requestedDuration: params.durationSecs,
+      eventCount: events.length,
+      maxEventTime: events.length > 0 ? Math.max(...events.map(e => e.time + e.duration)) : 0
+    });
     events = events.filter(e => e.time < params.durationSecs);
+    console.log('[DEBUG] AFTER FILTER:', {
+      requestedDuration: params.durationSecs,
+      eventCount: events.length,
+      maxEventTime: events.length > 0 ? Math.max(...events.map(e => e.time + e.duration)) : 0
+    });
 
     // Clamp durations that extend past limit
     for (const e of events) {

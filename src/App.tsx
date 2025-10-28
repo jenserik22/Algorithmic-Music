@@ -49,7 +49,18 @@ export default function App() {
 
   const onGenerate = async ({ algorithm, params }: { algorithm: AlgorithmName; params: GenerationParams }) => {
     try {
+      console.log('[DEBUG] App.onGenerate() received params:', {
+        algorithm,
+        durationSecs: params.durationSecs,
+        bpm: params.bpm,
+        key: params.key,
+        style: params.style
+      });
       const out = await generate(algorithm, params);
+      console.log('[DEBUG] App.onGenerate() got output:', {
+        eventCount: out.events.length,
+        maxTime: out.events.length > 0 ? Math.max(...out.events.map(e => e.time + e.duration)) : 0
+      });
       
       // Some engines (like Enhanced Helix, Enhanced Cellular, Enhanced Markov) already generate complete arrangements
       // Others need the arranger to add chords, bass, drums, etc.
