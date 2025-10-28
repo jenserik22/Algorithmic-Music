@@ -396,9 +396,10 @@ export function GeneratorUI({ onGenerate }: { onGenerate: (x: { algorithm: Algor
     setRegisterLiftStrength(profile.registerLiftStrength);
     setExtendedLfoTargets(profile.extendedLfoTargets);
     setSidechainStrength(profile.sidechainStrength);
-    if (profile.ornamentation !== undefined) setOrnamentation(profile.ornamentation);
-    if (profile.legatoStrength !== undefined) setLegatoStrength(profile.legatoStrength);
-    if (profile.chordStabArpIntensity !== undefined) setChordStabArpIntensity(profile.chordStabArpIntensity);
+    // Phase 7: Always set ornamentation parameters (use defaults if not in profile)
+    setOrnamentation(profile.ornamentation ?? 0.5);
+    setLegatoStrength(profile.legatoStrength ?? 0.4);
+    setChordStabArpIntensity(profile.chordStabArpIntensity ?? 0.6);
   }, []);
 
   const applyAdvancedDefaults = React.useCallback((sty: StyleKey) => {
