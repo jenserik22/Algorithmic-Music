@@ -26,6 +26,16 @@
 
 **That's it!** Simple Mode uses carefully tuned defaults for each style.
 
+### 🎲 Random Seed (Reproducibility)
+
+Every generation uses a random "seed" number that determines the exact output. The UI automatically generates a new random seed each time you click "Generate Music."
+
+**Why it matters:**
+- **Same seed = Same output** - Perfect for reproducing a track you liked
+- **Different seed = Different variation** - Same parameters, different melody/rhythm
+
+**Note:** The seed is managed automatically by the UI. The current seed is not displayed, but each generation creates unique results. To recreate a track exactly, you would need to save the MIDI file.
+
 ---
 
 ## Simple Mode
@@ -436,6 +446,20 @@ The modern algorithm with all features:
 5. Reduce **Drum Accent** → 0.20
 6. Generate → Explore
 
+### Reproducibility & Variations
+
+**Want to recreate a track?**
+- Each generation uses a random seed number for uniqueness
+- The seed is **not displayed** in the UI currently
+- **Best practice:** Download MIDI files you like immediately
+- **Future feature:** Display and set seed in Advanced Mode
+
+**Want variations on the same theme?**
+- Keep all parameters the same
+- Click "Generate Music" again for a new variation
+- Each generation uses a different random seed automatically
+- Similar style, but different melody/rhythm each time
+
 ### Troubleshooting
 
 **Problem:** Music sounds too robotic
@@ -493,13 +517,19 @@ A: 5-30 seconds depending on duration and parameters.
 A: Yes! Download the MIDI and import into any DAW.
 
 **Q: Why does my track sound different each time?**
-A: Humanization adds randomness. For more consistency, reduce humanization parameters.
+A: Each generation uses a different random seed for uniqueness. The seed determines the exact melody, rhythm, and note choices. This is intentional - you get fresh variations every time!
+
+**Q: How do I recreate the exact same track?**
+A: Currently, the random seed is not displayed in the UI. The best way is to download the MIDI file immediately. A future update may add seed display/input in Advanced Mode.
 
 **Q: What's the best style for [use case]?**
 A: See the [Style Comparison Table](#style-comparison-table) above.
 
 **Q: Can I create my own style presets?**
 A: Not in the UI yet, but you can save your Advanced Mode settings manually.
+
+**Q: What is a "seed" and why does it matter?**
+A: A seed is a number that controls the random generation. Same seed + same parameters = identical output every time. Different seed = different variation. Think of it like a recipe number - recipe #12345 always makes the same dish!
 
 ---
 
