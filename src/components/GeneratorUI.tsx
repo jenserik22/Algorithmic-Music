@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import type { GenerationParams, Complexity } from '@/lib/music/engines/types';
 import { MusicIcon, RefreshIcon } from '@/components/icons';
+import { LabelWithTooltip } from '@/components/Tooltip';
 
 type Algorithm = 'stochastic' | 'markov' | 'cellular_automata' | 'l_system' | 'generative_grammar' | 'euclidean' | 'helix' | 'enhanced_helix' | 'enhanced_cellular' | 'enhanced_markov';
 
@@ -27,7 +28,7 @@ const ALGORITHM_INFO: Record<Algorithm, { name: string; description: string }> =
 };
 
 // Style-aware advanced defaults for Enhanced Helix
-type StyleKey = 'edm' | 'cinematic' | 'lofi' | 'jazz';
+type StyleKey = 'edm' | 'cinematic' | 'lofi' | 'jazz' | 'techno' | 'rock' | 'ambient';
 
 type HelixAdvancedProfile = {
   grooveTemplate?: GenerationParams['grooveTemplate'];
@@ -58,10 +59,6 @@ type HelixAdvancedProfile = {
   ornamentation?: number;
   legatoStrength?: number;
   chordStabArpIntensity?: number;
-  // Phase 8 (optional in profiles)
-  evaluationStrength?: number;
-  autoRepairStrength?: number;
-  autoRepairBudgetMs?: number;
 };
 
 const ADVANCED_PROFILES: Record<StyleKey, HelixAdvancedProfile> = {
@@ -169,138 +166,92 @@ const ADVANCED_PROFILES: Record<StyleKey, HelixAdvancedProfile> = {
     extendedLfoTargets: 0.24,
     sidechainStrength: 0.2,
   },
-};
-
-const HUMANIZE_PRESETS: Record<StyleKey, HelixAdvancedProfile> = {
-  edm: {
+  techno: {
     grooveTemplate: 'mpc62',
     humanizeDistribution: 'uniform',
-    humanizeTime: 0.18,
-    humanizeVel: 0.38,
-    leadChordToneBias: 0.68,
-    accentMapIntensity: 0.55,
-    bassAnticipation: 0.4,
-    chordVoiceLeadingBias: 0.5,
+    humanizeTime: 0.08,
+    humanizeVel: 0.18,
+    leadChordToneBias: 0.35,
+    accentMapIntensity: 0.65,
+    bassAnticipation: 0.48,
+    chordVoiceLeadingBias: 0.38,
     enableExactChordVoiceAssignment: false,
-    leadMaxLeapSemitones: 9,
-    spaceMinGap: 0.012,
+    leadMaxLeapSemitones: 5,
+    spaceMinGap: 0.008,
     phrasing: 'short',
-    cadenceStrength: 0.6,
-    harmonicRhythmVariance: 0.58,
-    harmonicComplexity: 0.28,
-    pedalToneStrength: 0.12,
-    callResponseIntensity: 0.7,
-    bassEchoProbability: 0.38,
-    densityGateStrength: 0.5,
+    cadenceStrength: 0.42,
+    harmonicRhythmVariance: 0.68,
+    harmonicComplexity: 0.22,
+    pedalToneStrength: 0.65,
+    callResponseIntensity: 0.52,
+    bassEchoProbability: 0.45,
+    densityGateStrength: 0.58,
     dynamicsShape: 'swell',
-    dynamicsStrength: 0.62,
-    registerLiftStrength: 0.28,
-    extendedLfoTargets: 0.4,
-    sidechainStrength: 0.72,
-    // Phase 7
-    ornamentation: 0.5,
-    legatoStrength: 0.4,
-    chordStabArpIntensity: 0.6,
-    // Phase 8
-    evaluationStrength: 0.5,
-    autoRepairStrength: 0.4,
-    autoRepairBudgetMs: 6,
-  },
-  cinematic: {
-    grooveTemplate: undefined,
-    humanizeDistribution: 'uniform',
-    humanizeTime: 0.12,
-    humanizeVel: 0.22,
-    leadChordToneBias: 0.76,
-    accentMapIntensity: 0.14,
-    bassAnticipation: 0.22,
-    chordVoiceLeadingBias: 0.86,
-    enableExactChordVoiceAssignment: true,
-    leadMaxLeapSemitones: 7,
-    spaceMinGap: 0.02,
-    phrasing: 'long',
-    cadenceStrength: 0.94,
-    harmonicRhythmVariance: 0.26,
-    harmonicComplexity: 0.48,
-    pedalToneStrength: 0.62,
-    callResponseIntensity: 0.38,
-    bassEchoProbability: 0.24,
-    densityGateStrength: 0.32,
-    dynamicsShape: 'rise',
-    dynamicsStrength: 0.6,
-    registerLiftStrength: 0.42,
-    extendedLfoTargets: 0.26,
-    sidechainStrength: 0.22,
-    ornamentation: 0.35,
-    legatoStrength: 0.5,
-    chordStabArpIntensity: 0.3,
-    evaluationStrength: 0.4,
-    autoRepairStrength: 0.35,
-    autoRepairBudgetMs: 6,
-  },
-  lofi: {
-    grooveTemplate: 'shuffle',
-    humanizeDistribution: 'gaussian',
-    humanizeTime: 0.32,
-    humanizeVel: 0.36,
-    leadChordToneBias: 0.38,
-    accentMapIntensity: 0.48,
-    bassAnticipation: 0.26,
-    chordVoiceLeadingBias: 0.46,
-    enableExactChordVoiceAssignment: false,
-    leadMaxLeapSemitones: 7,
-    spaceMinGap: 0.026,
-    phrasing: 'short',
-    cadenceStrength: 0.48,
-    harmonicRhythmVariance: 0.5,
-    harmonicComplexity: 0.24,
-    pedalToneStrength: 0.36,
-    callResponseIntensity: 0.32,
-    bassEchoProbability: 0.34,
-    densityGateStrength: 0.24,
-    dynamicsShape: 'fall',
-    dynamicsStrength: 0.36,
+    dynamicsStrength: 0.48,
     registerLiftStrength: 0.22,
-    extendedLfoTargets: 0.2,
-    sidechainStrength: 0.28,
-    ornamentation: 0.4,
-    legatoStrength: 0.6,
-    chordStabArpIntensity: 0.2,
-    evaluationStrength: 0.5,
-    autoRepairStrength: 0.3,
-    autoRepairBudgetMs: 6,
+    extendedLfoTargets: 0.55,
+    sidechainStrength: 0.78,
+    ornamentation: 0.3,
+    legatoStrength: 0.2,
+    chordStabArpIntensity: 0.75,
   },
-  jazz: {
-    grooveTemplate: 'shuffle',
+  rock: {
+    grooveTemplate: 'straight',
     humanizeDistribution: 'gaussian',
-    humanizeTime: 0.2,
-    humanizeVel: 0.28,
-    leadChordToneBias: 0.7,
-    accentMapIntensity: 0.28,
-    bassAnticipation: 0.42,
-    chordVoiceLeadingBias: 0.9,
-    enableExactChordVoiceAssignment: true,
+    humanizeTime: 0.22,
+    humanizeVel: 0.32,
+    leadChordToneBias: 0.52,
+    accentMapIntensity: 0.62,
+    bassAnticipation: 0.35,
+    chordVoiceLeadingBias: 0.48,
+    enableExactChordVoiceAssignment: false,
     leadMaxLeapSemitones: 12,
-    spaceMinGap: 0.015,
+    spaceMinGap: 0.018,
     phrasing: 'medium',
-    cadenceStrength: 0.62,
-    harmonicRhythmVariance: 0.42,
-    harmonicComplexity: 0.58,
-    pedalToneStrength: 0.28,
-    callResponseIntensity: 0.66,
-    bassEchoProbability: 0.28,
-    densityGateStrength: 0.34,
+    cadenceStrength: 0.72,
+    harmonicRhythmVariance: 0.52,
+    harmonicComplexity: 0.32,
+    pedalToneStrength: 0.48,
+    callResponseIntensity: 0.58,
+    bassEchoProbability: 0.38,
+    densityGateStrength: 0.42,
     dynamicsShape: 'swell',
-    dynamicsStrength: 0.46,
-    registerLiftStrength: 0.4,
-    extendedLfoTargets: 0.26,
-    sidechainStrength: 0.24,
-    ornamentation: 0.5,
-    legatoStrength: 0.5,
-    chordStabArpIntensity: 0.25,
-    evaluationStrength: 0.5,
-    autoRepairStrength: 0.35,
-    autoRepairBudgetMs: 6,
+    dynamicsStrength: 0.68,
+    registerLiftStrength: 0.38,
+    extendedLfoTargets: 0.28,
+    sidechainStrength: 0.35,
+    ornamentation: 0.45,
+    legatoStrength: 0.3,
+    chordStabArpIntensity: 0.65,
+  },
+  ambient: {
+    grooveTemplate: undefined,
+    humanizeDistribution: 'gaussian',
+    humanizeTime: 0.15,
+    humanizeVel: 0.22,
+    leadChordToneBias: 0.82,
+    accentMapIntensity: 0.08,
+    bassAnticipation: 0.12,
+    chordVoiceLeadingBias: 0.92,
+    enableExactChordVoiceAssignment: true,
+    leadMaxLeapSemitones: 5,
+    spaceMinGap: 0.035,
+    phrasing: 'long',
+    cadenceStrength: 0.28,
+    harmonicRhythmVariance: 0.18,
+    harmonicComplexity: 0.38,
+    pedalToneStrength: 0.78,
+    callResponseIntensity: 0.18,
+    bassEchoProbability: 0.15,
+    densityGateStrength: 0.15,
+    dynamicsShape: 'rise',
+    dynamicsStrength: 0.42,
+    registerLiftStrength: 0.32,
+    extendedLfoTargets: 0.45,
+    sidechainStrength: 0.12,
+    ornamentation: 0.25,
+    legatoStrength: 0.75,
+    chordStabArpIntensity: 0.15,
   },
 };
 
@@ -309,7 +260,7 @@ export function GeneratorUI({ onGenerate }: { onGenerate: (x: { algorithm: Algor
   const [presetKey, setPresetKey] = useState<keyof typeof PRESETS>('upbeat');
   const [algorithm, setAlgorithm] = useState<Algorithm>('enhanced_helix');
   const base = useMemo(() => PRESETS[presetKey].params, [presetKey]);
-  const [seed] = useState<number>(1);
+  const [seed, setSeed] = useState<number>(Math.floor(Math.random() * 1000000));
 
   const [bpm, setBpm] = useState<number>(base.bpm);
   const [keySig, setKeySig] = useState<string>(base.key);
@@ -365,10 +316,6 @@ export function GeneratorUI({ onGenerate }: { onGenerate: (x: { algorithm: Algor
   const [legatoStrength, setLegatoStrength] = useState<number>(0);
   const [chordStabArpIntensity, setChordStabArpIntensity] = useState<number>(0);
 
-  // Phase 8 evaluation & auto-repair (Enhanced Helix only)
-  const [evaluationStrength, setEvaluationStrength] = useState<number>(0);
-  const [autoRepairStrength, setAutoRepairStrength] = useState<number>(0);
-  const [autoRepairBudgetMs, setAutoRepairBudgetMs] = useState<number>(6);
   // Phase 9 adaptive weighting (Enhanced Helix only)
   const [adaptiveWeightingStrength, setAdaptiveWeightingStrength] = useState<number>(0);
   const [adaptiveProfileId, setAdaptiveProfileId] = useState<string>('');
@@ -392,7 +339,12 @@ export function GeneratorUI({ onGenerate }: { onGenerate: (x: { algorithm: Algor
   // --- Advanced defaults application for Enhanced Helix ---
   const lastAdvancedStyleRef = React.useRef<StyleKey | null>(null);
 
-  const applyHelixProfile = React.useCallback((profile: HelixAdvancedProfile) => {
+  const applyHelixProfile = React.useCallback((profile: HelixAdvancedProfile | undefined) => {
+    // Safety check: if profile is undefined, bail out
+    if (!profile) {
+      console.error('[applyHelixProfile] Received undefined profile');
+      return;
+    }
     setGrooveTemplate(profile.grooveTemplate);
     if (profile.humanizeDistribution) setHumanizeDistribution(profile.humanizeDistribution);
     setHumanizeTimeAmt(profile.humanizeTime);
@@ -417,22 +369,33 @@ export function GeneratorUI({ onGenerate }: { onGenerate: (x: { algorithm: Algor
     setRegisterLiftStrength(profile.registerLiftStrength);
     setExtendedLfoTargets(profile.extendedLfoTargets);
     setSidechainStrength(profile.sidechainStrength);
-    if (profile.ornamentation !== undefined) setOrnamentation(profile.ornamentation);
-    if (profile.legatoStrength !== undefined) setLegatoStrength(profile.legatoStrength);
-    if (profile.chordStabArpIntensity !== undefined) setChordStabArpIntensity(profile.chordStabArpIntensity);
-    if (profile.evaluationStrength !== undefined) setEvaluationStrength(profile.evaluationStrength);
-    if (profile.autoRepairStrength !== undefined) setAutoRepairStrength(profile.autoRepairStrength);
-    if (profile.autoRepairBudgetMs !== undefined) setAutoRepairBudgetMs(profile.autoRepairBudgetMs);
+    // Phase 7: Always set ornamentation parameters (use defaults if not in profile)
+    setOrnamentation(profile.ornamentation ?? 0.5);
+    setLegatoStrength(profile.legatoStrength ?? 0.4);
+    setChordStabArpIntensity(profile.chordStabArpIntensity ?? 0.6);
   }, []);
 
   const applyAdvancedDefaults = React.useCallback((sty: StyleKey) => {
-    applyHelixProfile(ADVANCED_PROFILES[sty]);
+    const profile = ADVANCED_PROFILES[sty];
+    if (!profile) {
+      console.error(`[applyAdvancedDefaults] No profile found for style: ${sty}`);
+      console.log('[applyAdvancedDefaults] Available styles:', Object.keys(ADVANCED_PROFILES));
+      return;
+    }
+    applyHelixProfile(profile);
     lastAdvancedStyleRef.current = sty;
   }, [applyHelixProfile]);
 
-  const applyHumanizePreset = React.useCallback((sty: StyleKey) => {
-    applyHelixProfile(HUMANIZE_PRESETS[sty]);
-  }, [applyHelixProfile]);
+  // CRITICAL FIX: Apply style defaults IMMEDIATELY when switching to advanced mode
+  // This prevents users from seeing all zeros and feeling lost
+  const previousMode = React.useRef<'simple'|'advanced'>('simple');
+  React.useEffect(() => {
+    if (mode === 'advanced' && previousMode.current === 'simple' && algorithm === 'enhanced_helix') {
+      // User just switched to advanced mode - apply defaults immediately
+      applyAdvancedDefaults(style);
+    }
+    previousMode.current = mode;
+  }, [mode, algorithm, style, applyAdvancedDefaults]);
 
   React.useEffect(() => {
     if (mode !== 'advanced' || algorithm !== 'enhanced_helix') return;
@@ -466,6 +429,12 @@ export function GeneratorUI({ onGenerate }: { onGenerate: (x: { algorithm: Algor
     } else if (lastAdvancedStyleRef.current && lastAdvancedStyleRef.current !== style) {
       // If current values still match previous style profile, switch to new style profile
       const prev = ADVANCED_PROFILES[lastAdvancedStyleRef.current];
+      // Safety check: ensure prev exists (in case of invalid style key)
+      if (!prev) {
+        applyAdvancedDefaults(style);
+        lastAdvancedStyleRef.current = style;
+        return;
+      }
       const floatEq = (a: number, b: number) => Math.abs(a - b) < 1e-3;
       const matchesPrev =
         (grooveTemplate ?? null) === (prev.grooveTemplate ?? null) &&
@@ -498,8 +467,12 @@ export function GeneratorUI({ onGenerate }: { onGenerate: (x: { algorithm: Algor
   }, [mode, algorithm, style, grooveTemplate, humanizeTimeAmt, humanizeVelAmt, leadChordToneBias, accentMapIntensity, bassAnticipation, chordVoiceLeadingBias, leadMaxLeapSemitones, spaceAllocatorMinGapSecs, phrasing, cadenceStrength, harmonicRhythmVariance, harmonicComplexity, pedalToneStrength, callResponseIntensity, bassEchoProbability, densityGateStrength, dynamicsShape, dynamicsStrength, registerLiftStrength, extendedLfoTargets, sidechainStrength, applyAdvancedDefaults]);
 
   const handleGenerate = () => {
+    // In Simple Mode, always randomize seed for variety
+    // In Advanced Mode, use the user's seed (they can control it)
+    const finalSeed = mode === 'simple' ? Math.floor(Math.random() * 1000000) : seed;
+    
     const params: GenerationParams = { 
-      seed: seed + Math.floor(Math.random() * 1000), // randomize seed each time
+      seed: finalSeed,
       bpm, key: keySig, timeSignature, durationSecs, density, 
       style, variation, fillRate, complexityLevel, motion, brightness,
       simpleMode: mode === 'simple' ? true : undefined,
@@ -535,10 +508,6 @@ export function GeneratorUI({ onGenerate }: { onGenerate: (x: { algorithm: Algor
       ornamentation: ornamentation || undefined,
       legatoStrength: legatoStrength || undefined,
       chordStabArpIntensity: chordStabArpIntensity || undefined,
-      // Phase 8
-      evaluationStrength: evaluationStrength || undefined,
-      autoRepairStrength: autoRepairStrength || undefined,
-      autoRepairBudgetMs: autoRepairStrength > 0 ? autoRepairBudgetMs : undefined,
       // Phase 9
       adaptiveWeightingStrength: adaptiveWeightingStrength > 0 ? adaptiveWeightingStrength : undefined,
       adaptiveProfileId: adaptiveProfileId.trim() ? adaptiveProfileId.trim() : undefined,
@@ -581,9 +550,6 @@ export function GeneratorUI({ onGenerate }: { onGenerate: (x: { algorithm: Algor
       ornamentation: ornamentation || undefined,
       legatoStrength: legatoStrength || undefined,
       chordStabArpIntensity: chordStabArpIntensity || undefined,
-      evaluationStrength: evaluationStrength || undefined,
-      autoRepairStrength: autoRepairStrength || undefined,
-      autoRepairBudgetMs: autoRepairStrength > 0 ? autoRepairBudgetMs : undefined,
       adaptiveWeightingStrength: adaptiveWeightingStrength > 0 ? adaptiveWeightingStrength : undefined,
       adaptiveProfileId: adaptiveProfileId.trim() ? adaptiveProfileId.trim() : undefined,
     };
@@ -671,6 +637,17 @@ export function GeneratorUI({ onGenerate }: { onGenerate: (x: { algorithm: Algor
 
       {/* Advanced Parameters */}
       {mode === 'advanced' && (
+        <>
+          {/* Info Banner */}
+          <div className="mb-4 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+            <h4 className="text-sm font-semibold text-blue-900 dark:text-blue-100 mb-1">✨ Advanced Mode Active</h4>
+            <p className="text-xs text-blue-700 dark:text-blue-300">
+              Full control over Enhanced Helix engine with modular generators (lead, chords, bass, drums, fx), 
+              ensemble-based humanization, dynamic phrasing, and sophisticated harmony. 
+              Style presets auto-configure parameters when switching styles.
+            </p>
+          </div>
+          
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
             <label htmlFor="bpmInput" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
@@ -736,9 +713,12 @@ export function GeneratorUI({ onGenerate }: { onGenerate: (x: { algorithm: Algor
               className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             >
               <option value="edm">🎛️ EDM</option>
-              <option value="cinematic">🎬 Cinematic</option>
-              <option value="lofi">📻 Lo-Fi</option>
+              <option value="techno">🔊 Techno</option>
+              <option value="rock">🎸 Rock</option>
               <option value="jazz">🎷 Jazz</option>
+              <option value="lofi">📻 Lo-Fi</option>
+              <option value="cinematic">🎬 Cinematic</option>
+              <option value="ambient">🌌 Ambient</option>
             </select>
           </div>
 
@@ -833,10 +813,44 @@ export function GeneratorUI({ onGenerate }: { onGenerate: (x: { algorithm: Algor
 
           {/* Enhanced Helix Humanization (Phase 1 flags) */}
           {algorithm === 'enhanced_helix' && (
+            <>
+            {/* Random Seed Control */}
+            <div className="col-span-2 bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-lg p-4 mb-4">
+              <div className="flex items-center justify-between mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                  <LabelWithTooltip 
+                    label="Random Seed" 
+                    tooltip="Controls the exact output. Same seed + same parameters = identical track. Change seed for different variations." 
+                  />
+                </label>
+                <button
+                  type="button"
+                  onClick={() => setSeed(Math.floor(Math.random() * 1000000))}
+                  className="px-3 py-1 text-xs rounded bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 hover:bg-blue-200 dark:hover:bg-blue-900 transition-colors"
+                >
+                  🎲 Randomize
+                </button>
+              </div>
+              <input
+                type="number"
+                value={seed}
+                onChange={(e) => setSeed(Number(e.target.value))}
+                min="0"
+                max="999999"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                placeholder="Random seed number"
+              />
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                Current: {seed} • Save this number to recreate the exact same track later
+              </p>
+            </div>
+
             <div className="col-span-2 space-y-4 pt-4 border-t border-gray-200 dark:border-gray-600">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Humanize Distribution</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    <LabelWithTooltip label="Humanize Distribution" tooltip="Uniform: random spread. Gaussian: more natural clustering around center values." />
+                  </label>
                   <select value={humanizeDistribution} onChange={e=>setHumanizeDistribution(e.target.value as any)}
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white">
                     <option value="uniform">uniform</option>
@@ -844,35 +858,12 @@ export function GeneratorUI({ onGenerate }: { onGenerate: (x: { algorithm: Algor
                   </select>
                 </div>
               </div>
-              <div className="flex items-center justify-between">
-                <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200">Humanization Presets</h3>
-                <div className="flex gap-2 flex-wrap">
-                  <button
-                    type="button"
-                    className="px-3 py-1 text-xs rounded bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600"
-                    onClick={() => applyHumanizePreset('edm')}
-                  >EDM</button>
-                  <button
-                    type="button"
-                    className="px-3 py-1 text-xs rounded bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600"
-                    onClick={() => applyHumanizePreset('cinematic')}
-                  >Cinematic</button>
-                  <button
-                    type="button"
-                    className="px-3 py-1 text-xs rounded bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600"
-                    onClick={() => applyHumanizePreset('lofi')}
-                  >Lo‑Fi</button>
-                  <button
-                    type="button"
-                    className="px-3 py-1 text-xs rounded bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600"
-                    onClick={() => applyHumanizePreset('jazz')}
-                  >Jazz</button>
-                </div>
-              </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Groove Template</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    <LabelWithTooltip label="Groove Template" tooltip="Applies timing patterns: straight (quantized), shuffle (swing feel), mpc62 (classic sampler timing), funk (syncopated)." />
+                  </label>
                   <select value={grooveTemplate ?? ''} onChange={(e) => setGrooveTemplate((e.target.value || undefined) as any)}
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white">
                     <option value="">(straight)</option>
@@ -882,45 +873,63 @@ export function GeneratorUI({ onGenerate }: { onGenerate: (x: { algorithm: Algor
                   </select>
                 </div>
                 <div className="space-y-2">
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Humanize Time: {humanizeTimeAmt.toFixed(2)}</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    <LabelWithTooltip label={`Humanize Time: ${humanizeTimeAmt.toFixed(2)}`} tooltip="Adds subtle timing variations to make notes feel more human (±ms). 0=robotic, 0.3=realistic, 0.5+=very loose." />
+                  </label>
                   <input type="range" min="0" max="1" step="0.05" value={humanizeTimeAmt} onChange={e=>setHumanizeTimeAmt(Number(e.target.value))} className="w-full" />
                 </div>
 
                 {grooveTemplate === 'shuffle' && (
                   <div className="space-y-2">
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Swing Ratio: {(swingRatio ?? 0.66).toFixed(2)}</label>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                      <LabelWithTooltip label={`Swing Ratio: ${(swingRatio ?? 0.66).toFixed(2)}`} tooltip="Controls shuffle timing. 0.5=straight 16ths, 0.66=triplet swing, 0.75=heavy swing." />
+                    </label>
                     <input type="range" min="0.55" max="0.75" step="0.01" value={swingRatio ?? 0.66} onChange={e=>setSwingRatio(Number(e.target.value))} className="w-full" />
                   </div>
                 )}
 
                 <div className="space-y-2">
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Humanize Velocity: {humanizeVelAmt.toFixed(2)}</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    <LabelWithTooltip label={`Humanize Velocity: ${humanizeVelAmt.toFixed(2)}`} tooltip="Varies note volumes for natural dynamics. 0=uniform, 0.3=subtle, 0.5+=dramatic expression." />
+                  </label>
                   <input type="range" min="0" max="1" step="0.05" value={humanizeVelAmt} onChange={e=>setHumanizeVelAmt(Number(e.target.value))} className="w-full" />
                 </div>
                 <div className="space-y-2">
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Rushing/Dragging: {rushingDraggingStrength.toFixed(2)}</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    <LabelWithTooltip label={`Rushing/Dragging: ${rushingDraggingStrength.toFixed(2)}`} tooltip="Ensemble drifts slightly ahead/behind tempo over bars. Adds organic feel but can loosen timing." />
+                  </label>
                   <input type="range" min="0" max="1" step="0.05" value={rushingDraggingStrength} onChange={e=>setRushingDraggingStrength(Number(e.target.value))} className="w-full" />
                 </div>
                 <div className="space-y-2">
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Lead Chord‑Tone Bias: {leadChordToneBias.toFixed(2)}</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    <LabelWithTooltip label={`Lead Chord-Tone Bias: ${leadChordToneBias.toFixed(2)}`} tooltip="How strongly lead melodies stick to chord tones. 0=chromatic freedom, 0.5=balanced, 1=only chord tones (safe but bland)." />
+                  </label>
                   <input type="range" min="0" max="1" step="0.05" value={leadChordToneBias} onChange={e=>setLeadChordToneBias(Number(e.target.value))} className="w-full" />
                 </div>
 
                 <div className="space-y-2">
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Drum Accent Intensity: {accentMapIntensity.toFixed(2)}</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    <LabelWithTooltip label={`Drum Accent Intensity: ${accentMapIntensity.toFixed(2)}`} tooltip="Emphasizes downbeats and strong beats in drums. 0=flat dynamics, 0.5=natural accents, 1=heavy emphasis." />
+                  </label>
                   <input type="range" min="0" max="1" step="0.05" value={accentMapIntensity} onChange={e=>setAccentMapIntensity(Number(e.target.value))} className="w-full" />
                 </div>
                 <div className="space-y-2">
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Bass Anticipation: {bassAnticipation.toFixed(2)}</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    <LabelWithTooltip label={`Bass Anticipation: ${bassAnticipation.toFixed(2)}`} tooltip="Bass plays slightly ahead of beat (anticipation). 0=on-beat, 0.3=subtle groove, 0.5+=very forward-driving." />
+                  </label>
                   <input type="range" min="0" max="1" step="0.05" value={bassAnticipation} onChange={e=>setBassAnticipation(Number(e.target.value))} className="w-full" />
                 </div>
 
                 <div className="space-y-2">
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Rhythm Markov Strength: {rhythmMarkovStrength.toFixed(2)}</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    <LabelWithTooltip label={`Rhythm Markov Strength: ${rhythmMarkovStrength.toFixed(2)}`} tooltip="Uses probability chains for rhythm patterns. 0=random, 0.5=balanced variety, 1=highly repetitive patterns." />
+                  </label>
                   <input type="range" min="0" max="1" step="0.05" value={rhythmMarkovStrength} onChange={e=>setRhythmMarkovStrength(Number(e.target.value))} className="w-full" />
                 </div>
                 <div className="space-y-2">
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Chord Voice‑Leading Bias: {chordVoiceLeadingBias.toFixed(2)}</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    <LabelWithTooltip label={`Chord Voice-Leading Bias: ${chordVoiceLeadingBias.toFixed(2)}`} tooltip="Smooth voice leading between chords (small melodic movement). 0=random inversions, 0.7=smooth classical, 1=minimal movement." />
+                  </label>
                   <input type="range" min="0" max="1" step="0.05" value={chordVoiceLeadingBias} onChange={e=>setChordVoiceLeadingBias(Number(e.target.value))} className="w-full" />
                 </div>
                 <div className="flex items-center gap-2 pt-1">
@@ -929,7 +938,9 @@ export function GeneratorUI({ onGenerate }: { onGenerate: (x: { algorithm: Algor
                   <label htmlFor="exactVoicingToggle" className="text-sm text-gray-700 dark:text-gray-300" title="Preserves common tones and assigns each voice to the nearest chord tone; recommended for cinematic/jazz; requires Voice‑Leading Bias > 0.">Enable exact close‑voicing (preserve common tones)</label>
                 </div>
                 <div className="space-y-2">
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Lead Max Leap (semitones)</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    <LabelWithTooltip label="Lead Max Leap (semitones)" tooltip="Maximum interval jump in lead melodies. 5=smooth/stepwise, 7=singable, 12=wide/dramatic leaps." />
+                  </label>
                   <select value={leadMaxLeapSemitones} onChange={e=>setLeadMaxLeapSemitones(Number(e.target.value))}
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white">
                     {[0,7,9,12].map(n => <option key={n} value={n}>{n === 0 ? '(none)' : n}</option>)}
@@ -937,13 +948,17 @@ export function GeneratorUI({ onGenerate }: { onGenerate: (x: { algorithm: Algor
                 </div>
 
                 <div className="space-y-2">
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Min Gap (secs): {spaceAllocatorMinGapSecs.toFixed(3)}</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    <LabelWithTooltip label={`Min Gap: ${spaceAllocatorMinGapSecs.toFixed(3)}s`} tooltip="Minimum silence between lead notes. 0.01=dense/busy, 0.02=natural breathing, 0.03+=sparse/spacious." />
+                  </label>
                   <input type="range" min="0" max="0.05" step="0.005" value={spaceAllocatorMinGapSecs} onChange={e=>setSpaceAllocatorMinGapSecs(Number(e.target.value))} className="w-full" />
                 </div>
 
                 {/* Phase 2: phrasing & cadence */}
                 <div className="space-y-2">
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300" htmlFor="phrasingSelect">Phrasing</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300" htmlFor="phrasingSelect">
+                    <LabelWithTooltip label="Phrasing" tooltip="Musical phrase length. Short=2 bars (energetic), Medium=4 bars (balanced), Long=8 bars (epic/cinematic)." />
+                  </label>
                   <select id="phrasingSelect" aria-label="phrasing-select" value={phrasing ?? ''} onChange={e=>setPhrasing((e.target.value || undefined) as any)}
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white">
                     <option value="">(default)</option>
@@ -953,7 +968,9 @@ export function GeneratorUI({ onGenerate }: { onGenerate: (x: { algorithm: Algor
                   </select>
                 </div>
                 <div className="space-y-2">
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300" htmlFor="cadenceSlider">Cadence Strength: {cadenceStrength.toFixed(2)}</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300" htmlFor="cadenceSlider">
+                    <LabelWithTooltip label={`Cadence Strength: ${cadenceStrength.toFixed(2)}`} tooltip="How strongly phrases end with cadences (musical punctuation). 0=continuous flow, 0.7=clear phrases, 1=very defined endings." />
+                  </label>
                   <input id="cadenceSlider" aria-label="cadence-strength" type="range" min="0" max="1" step="0.05" value={cadenceStrength} onChange={e=>setCadenceStrength(Number(e.target.value))} className="w-full" />
                 </div>
 
@@ -962,15 +979,21 @@ export function GeneratorUI({ onGenerate }: { onGenerate: (x: { algorithm: Algor
                   <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200">Harmony</h3>
                 </div>
                 <div className="space-y-2">
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Harmonic Rhythm Variance: {harmonicRhythmVariance.toFixed(2)}</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    <LabelWithTooltip label={`Harmonic Rhythm Variance: ${harmonicRhythmVariance.toFixed(2)}`} tooltip="How often chord changes occur. 0=static harmony, 0.5=varied timing, 1=frequent changes." />
+                  </label>
                   <input type="range" min="0" max="1" step="0.05" value={harmonicRhythmVariance} onChange={e=>setHarmonicRhythmVariance(Number(e.target.value))} className="w-full" />
                 </div>
                 <div className="space-y-2">
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Harmonic Complexity (subs): {harmonicComplexity.toFixed(2)}</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    <LabelWithTooltip label={`Harmonic Complexity: ${harmonicComplexity.toFixed(2)}`} tooltip="Chord substitutions and extensions. 0=basic triads, 0.5=7th chords, 1=jazz/complex voicings." />
+                  </label>
                   <input type="range" min="0" max="1" step="0.05" value={harmonicComplexity} onChange={e=>setHarmonicComplexity(Number(e.target.value))} className="w-full" />
                 </div>
                 <div className="space-y-2">
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Pedal Tone Strength: {pedalToneStrength.toFixed(2)}</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    <LabelWithTooltip label={`Pedal Tone Strength: ${pedalToneStrength.toFixed(2)}`} tooltip="Sustained notes that hold across chord changes. 0=none, 0.5=occasional drones, 1=constant pedal tones (ambient)." />
+                  </label>
                   <input type="range" min="0" max="1" step="0.05" value={pedalToneStrength} onChange={e=>setPedalToneStrength(Number(e.target.value))} className="w-full" />
                 </div>
 
@@ -979,15 +1002,21 @@ export function GeneratorUI({ onGenerate }: { onGenerate: (x: { algorithm: Algor
                   <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200">Conversation</h3>
                 </div>
                 <div className="space-y-2">
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Call/Response Intensity: {callResponseIntensity.toFixed(2)}</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    <LabelWithTooltip label={`Call/Response: ${callResponseIntensity.toFixed(2)}`} tooltip="Lead and other instruments take turns (musical conversation). 0=independent, 0.5=some interplay, 1=strong call-response." />
+                  </label>
                   <input type="range" min="0" max="1" step="0.05" value={callResponseIntensity} onChange={e=>setCallResponseIntensity(Number(e.target.value))} className="w-full" />
                 </div>
                 <div className="space-y-2">
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Bass Echo Probability: {bassEchoProbability.toFixed(2)}</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    <LabelWithTooltip label={`Bass Echo: ${bassEchoProbability.toFixed(2)}`} tooltip="Bass echoes lead melody rhythmically. 0=independent bassline, 0.5=occasional echoes, 1=bass follows lead closely." />
+                  </label>
                   <input type="range" min="0" max="1" step="0.05" value={bassEchoProbability} onChange={e=>setBassEchoProbability(Number(e.target.value))} className="w-full" />
                 </div>
                 <div className="space-y-2">
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Density Gate Strength: {densityGateStrength.toFixed(2)}</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    <LabelWithTooltip label={`Density Gate: ${densityGateStrength.toFixed(2)}`} tooltip="Reduces note density in busy sections to prevent clutter. 0=all notes play, 0.5=moderate thinning, 1=aggressive sparse." />
+                  </label>
                   <input type="range" min="0" max="1" step="0.05" value={densityGateStrength} onChange={e=>setDensityGateStrength(Number(e.target.value))} className="w-full" />
                 </div>
 
@@ -996,7 +1025,9 @@ export function GeneratorUI({ onGenerate }: { onGenerate: (x: { algorithm: Algor
                   <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200">Dynamics & FX</h3>
                 </div>
                 <div className="space-y-2">
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Dynamics Shape</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    <LabelWithTooltip label="Dynamics Shape" tooltip="Overall volume contour. Flat=constant, Rise=builds up, Fall=decreases, Swell=grows then fades (cinematic)." />
+                  </label>
                   <select value={dynamicsShape ?? ''} onChange={(e)=>setDynamicsShape((e.target.value || undefined) as any)}
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white">
                     <option value="">(flat)</option>
@@ -1006,19 +1037,27 @@ export function GeneratorUI({ onGenerate }: { onGenerate: (x: { algorithm: Algor
                   </select>
                 </div>
                 <div className="space-y-2">
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Dynamics Strength: {dynamicsStrength.toFixed(2)}</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    <LabelWithTooltip label={`Dynamics Strength: ${dynamicsStrength.toFixed(2)}`} tooltip="Intensity of volume changes. 0=flat dynamics, 0.5=natural expression, 1=dramatic contrast." />
+                  </label>
                   <input type="range" min="0" max="1" step="0.05" value={dynamicsStrength} onChange={e=>setDynamicsStrength(Number(e.target.value))} className="w-full" />
                 </div>
                 <div className="space-y-2">
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Register Lift (lead): {registerLiftStrength.toFixed(2)}</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    <LabelWithTooltip label={`Register Lift: ${registerLiftStrength.toFixed(2)}`} tooltip="Melodic register rises during climaxes. 0=constant register, 0.5=subtle lift, 1=dramatic octave jumps." />
+                  </label>
                   <input type="range" min="0" max="1" step="0.05" value={registerLiftStrength} onChange={e=>setRegisterLiftStrength(Number(e.target.value))} className="w-full" />
                 </div>
                 <div className="space-y-2">
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Extended LFO Targets: {extendedLfoTargets.toFixed(2)}</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    <LabelWithTooltip label={`Extended LFO: ${extendedLfoTargets.toFixed(2)}`} tooltip="Modulation/automation effects (vibrato, filter sweeps). 0=static, 0.5=subtle movement, 1=heavy modulation." />
+                  </label>
                   <input type="range" min="0" max="1" step="0.05" value={extendedLfoTargets} onChange={e=>setExtendedLfoTargets(Number(e.target.value))} className="w-full" />
                 </div>
                 <div className="space-y-2">
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Sidechain Strength: {sidechainStrength.toFixed(2)}</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    <LabelWithTooltip label={`Sidechain: ${sidechainStrength.toFixed(2)}`} tooltip="Pumping effect (EDM). Other instruments duck when kick hits. 0=none, 0.5=subtle, 0.8=heavy pumping." />
+                  </label>
                   <input type="range" min="0" max="1" step="0.05" value={sidechainStrength} onChange={e=>setSidechainStrength(Number(e.target.value))} className="w-full" />
                 </div>
 
@@ -1027,30 +1066,28 @@ export function GeneratorUI({ onGenerate }: { onGenerate: (x: { algorithm: Algor
                   <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200">Ornamentation & Articulation</h3>
                 </div>
                 <div className="space-y-2">
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Ornamentation: {ornamentation.toFixed(2)}</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    <LabelWithTooltip label={`Ornamentation: ${ornamentation.toFixed(2)}`} tooltip="Grace notes, trills, slides. 0=plain notes, 0.5=occasional ornaments, 1=heavily decorated (baroque)." />
+                  </label>
                   <input type="range" min="0" max="1" step="0.05" value={ornamentation} onChange={e=>setOrnamentation(Number(e.target.value))} className="w-full" />
                 </div>
                 <div className="space-y-2">
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Legato Strength: {legatoStrength.toFixed(2)}</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    <LabelWithTooltip label={`Legato Strength: ${legatoStrength.toFixed(2)}`} tooltip="Smooth, connected notes (overlapping). 0=staccato/detached, 0.5=balanced, 1=fully legato/flowing (ambient)." />
+                  </label>
                   <input type="range" min="0" max="1" step="0.05" value={legatoStrength} onChange={e=>setLegatoStrength(Number(e.target.value))} className="w-full" />
                 </div>
                 <div className="space-y-2">
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Chord Stab/Arp Intensity: {chordStabArpIntensity.toFixed(2)}</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    <LabelWithTooltip label={`Chord Stab/Arp: ${chordStabArpIntensity.toFixed(2)}`} tooltip="Chords as stabs or arpeggios. 0=block chords, 0.5=mix, 1=broken/arpeggiated chords (EDM/techno)." />
+                  </label>
                   <input type="range" min="0" max="1" step="0.05" value={chordStabArpIntensity} onChange={e=>setChordStabArpIntensity(Number(e.target.value))} className="w-full" />
                 </div>
 
-                {/* Phase 8: Evaluation & Auto-Repair */}
+                {/* Phase 9: Adaptive Bias (Optional) */}
                 <div className="col-span-2 pt-2">
-                  <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200">Evaluation & Auto-Repair</h3>
-                </div>
-                <div className="space-y-2">
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Evaluation Strength: {evaluationStrength.toFixed(2)}</label>
-                  <input type="range" min="0" max="1" step="0.05" value={evaluationStrength} onChange={e=>setEvaluationStrength(Number(e.target.value))} className="w-full" />
-                </div>
-
-                {/* Phase 9: Adaptive Bias */}
-                <div className="col-span-2 pt-2">
-                  <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200">Adaptive Bias (Phase 9)</h3>
+                  <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200">🔬 Experimental: Adaptive Bias</h3>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Optional AI-driven parameter adjustment</p>
                 </div>
                 <div className="space-y-2">
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Adaptive Weighting: {adaptiveWeightingStrength.toFixed(2)}</label>
@@ -1059,21 +1096,15 @@ export function GeneratorUI({ onGenerate }: { onGenerate: (x: { algorithm: Algor
                 <div className="space-y-2">
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Profile Id (optional)</label>
                   <input type="text" value={adaptiveProfileId} onChange={e=>setAdaptiveProfileId(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white" />
-                </div>
-                <div className="space-y-2">
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Auto-Repair Strength: {autoRepairStrength.toFixed(2)}</label>
-                  <input type="range" min="0" max="1" step="0.05" value={autoRepairStrength} onChange={e=>setAutoRepairStrength(Number(e.target.value))} className="w-full" />
-                </div>
-                <div className="space-y-2">
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Auto-Repair Budget (ms)</label>
-                  <input type="number" min="0" max="50" step="1" value={autoRepairBudgetMs} onChange={e=>setAutoRepairBudgetMs(Number(e.target.value))}
+                    placeholder="Leave empty for auto"
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white" />
                 </div>
               </div>
             </div>
+            </>
           )}
         </div>
+        </>
       )}
 
       {/* Action Buttons */}

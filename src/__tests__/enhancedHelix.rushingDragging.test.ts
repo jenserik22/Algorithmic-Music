@@ -25,8 +25,8 @@ describe('EnhancedHelix – rushing/dragging drift and swingRatio', () => {
   });
 
   it('applies measurable onset drift when rushingDraggingStrength>0 without harming acceptance metrics materially', () => {
-    const out0 = EnhancedHelixEngine.generate({ ...baseParams, rushingDraggingStrength: 0, autoRepairStrength: 0, evaluationStrength: 0 });
-    const out1 = EnhancedHelixEngine.generate({ ...baseParams, rushingDraggingStrength: 0.7, autoRepairStrength: 0, evaluationStrength: 0 });
+    const out0 = EnhancedHelixEngine.generate({ ...baseParams, rushingDraggingStrength: 0 });
+    const out1 = EnhancedHelixEngine.generate({ ...baseParams, rushingDraggingStrength: 0.7 });
     // Median absolute delta of event times (non-kick) should be >= 2ms
     const a = out0.events;
     const b = out1.events;

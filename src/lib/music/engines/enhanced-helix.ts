@@ -2,6 +2,9 @@ import type { Engine, EngineOutput, GenerationParams, NoteEvent, LfoSpec, Adapti
 import { mulberry32, gaussianJitter } from '@/lib/music/seededRandom';
 import { assignCloseVoicing, roleOf } from './voiceLeading';
 import { getAdaptiveProfile } from './adaptiveMemory';
+import { createTimingEngine, type TimingEngine } from '../timing';
+import { createDynamicsEngine, type DynamicsEngine } from '../dynamics';
+import { generateLeadLine } from './generators/lead';
 
 // Enhanced song structures with more sophisticated arrangements
 type EnhancedSongConfig = {
@@ -141,6 +144,85 @@ const ENHANCED_TEMPLATES: Record<NonNullable<GenerationParams['style']>, Enhance
       swing: 0.4,
     },
     register: { lead: [62, 86], bass: [28, 52], chords: [52, 76] },
+  },
+  
+  techno: {
+    sections: [
+      { name: 'intro', bars: 4, density: 0.4, energy: 0.3, instruments: ['bass', 'drums'] },
+      { name: 'buildup', bars: 4, density: 0.7, energy: 0.6, instruments: ['lead', 'bass', 'drums'], riserBefore: true },
+      { name: 'main', bars: 16, density: 1.0, energy: 1.0, instruments: ['lead', 'chords', 'bass', 'drums', 'fx'], crash: true, fill: true },
+      { name: 'breakdown', bars: 4, density: 0.5, energy: 0.4, instruments: ['chords', 'fx'] },
+      { name: 'drop', bars: 8, density: 1.0, energy: 1.0, instruments: ['lead', 'chords', 'bass', 'drums', 'fx'], crash: true },
+      { name: 'outro', bars: 4, density: 0.4, energy: 0.3, instruments: ['bass', 'drums'] },
+    ],
+    scale: 'aeolian',
+    chordProgression: [
+      { degree: 0, quality: 'minor' },     // i
+      { degree: 4, quality: 'minor' },     // iv
+      { degree: 0, quality: 'minor' },     // i
+      { degree: 6, quality: 'major' },     // VI
+    ],
+    rhythmPattern: {
+      kick: [0, 4, 8, 12],
+      snare: [4, 12],
+      hats: [2, 6, 10, 14],
+      ghostNotes: [1, 5, 9, 13],
+      swing: 0.05,
+    },
+    register: { lead: [60, 84], bass: [24, 48], chords: [48, 72] },
+  },
+  
+  rock: {
+    sections: [
+      { name: 'intro', bars: 4, density: 0.5, energy: 0.4, instruments: ['lead', 'chords', 'bass', 'drums'] },
+      { name: 'verse', bars: 8, density: 0.6, energy: 0.5, instruments: ['lead', 'chords', 'bass', 'drums'] },
+      { name: 'chorus', bars: 8, density: 0.9, energy: 0.9, instruments: ['lead', 'chords', 'bass', 'drums'], crash: true, fill: true },
+      { name: 'verse2', bars: 8, density: 0.6, energy: 0.5, instruments: ['lead', 'chords', 'bass', 'drums'] },
+      { name: 'bridge', bars: 8, density: 0.7, energy: 0.7, instruments: ['lead', 'chords', 'bass', 'drums'], riserBefore: true },
+      { name: 'chorus2', bars: 8, density: 1.0, energy: 1.0, instruments: ['lead', 'chords', 'bass', 'drums', 'fx'], crash: true, fill: true },
+      { name: 'outro', bars: 4, density: 0.5, energy: 0.4, instruments: ['chords', 'bass', 'drums'] },
+    ],
+    scale: 'ionian',
+    chordProgression: [
+      { degree: 0, quality: 'major' },     // I
+      { degree: 5, quality: 'minor' },     // vi
+      { degree: 3, quality: 'major' },     // IV
+      { degree: 4, quality: 'major' },     // V
+    ],
+    rhythmPattern: {
+      kick: [0, 8],
+      snare: [4, 12],
+      hats: [2, 6, 10, 14],
+      ghostNotes: [3, 7, 11, 15],
+      swing: 0.08,
+    },
+    register: { lead: [64, 88], bass: [28, 52], chords: [52, 76] },
+  },
+  
+  ambient: {
+    sections: [
+      { name: 'emergence', bars: 8, density: 0.2, energy: 0.1, instruments: ['fx'] },
+      { name: 'texture1', bars: 16, density: 0.3, energy: 0.2, instruments: ['chords', 'fx'] },
+      { name: 'development', bars: 16, density: 0.5, energy: 0.4, instruments: ['lead', 'chords', 'bass', 'fx'] },
+      { name: 'climax', bars: 8, density: 0.7, energy: 0.6, instruments: ['lead', 'chords', 'bass', 'fx'], crash: true },
+      { name: 'resolution', bars: 16, density: 0.3, energy: 0.2, instruments: ['chords', 'fx'] },
+      { name: 'fade', bars: 8, density: 0.1, energy: 0.1, instruments: ['fx'] },
+    ],
+    scale: 'dorian',
+    chordProgression: [
+      { degree: 0, quality: 'minor7' },    // im7
+      { degree: 6, quality: 'major7' },    // VIImaj7
+      { degree: 3, quality: 'major7' },    // IVmaj7
+      { degree: 0, quality: 'minor7' },    // im7
+    ],
+    rhythmPattern: {
+      kick: [0],
+      snare: [8],
+      hats: [4, 12],
+      ghostNotes: [2, 6, 10, 14],
+      swing: 0.0,
+    },
+    register: { lead: [60, 84], bass: [28, 52], chords: [48, 72] },
   },
 };
 
@@ -306,9 +388,29 @@ export const EnhancedHelixEngine: Engine = {
     const sixteenth = beat / 4;
     const keySemi = KEY_TO_SEMITONE[params.key] ?? 0;
     const rootC4 = 60 + keySemi;
-    const scale = SCALES[config.scale];
+    
+    // CRITICAL FIX: Respect user's key choice (major vs minor)
+    // If key ends with 'm' or 'min', use aeolian (minor), otherwise use template's scale
+    const isMinorKey = params.key.toLowerCase().endsWith('m');
+    let scaleMode = config.scale;
+    if (isMinorKey && scaleMode === 'ionian') {
+      scaleMode = 'aeolian'; // User wants minor, override to minor
+    } else if (!isMinorKey && scaleMode === 'aeolian') {
+      scaleMode = 'ionian'; // User wants major, override to major
+    }
+    const scale = SCALES[scaleMode];
     const complexity = params.complexityLevel ?? 'intermediate';
     const variation = Math.max(0, Math.min(1, params.variation ?? 0.4));
+    
+    // Week 2 Refactor: Create timing and dynamics engines for musical humanization
+    const timingEngine = createTimingEngine(seed + 1000, {
+      bpm,
+      style,
+      variation,
+      groove: params.grooveTemplate ?? 'straight'
+    });
+    
+    const dynamicsEngine = createDynamicsEngine(mulberry32(seed + 2000));
     // Phase 9: resolve adaptive profile
     const adaptiveStrength = Math.max(0, Math.min(1, params.adaptiveWeightingStrength ?? 0));
     const resolvedProfile: AdaptiveBiasProfile | undefined = (() => {
@@ -402,6 +504,26 @@ export const EnhancedHelixEngine: Engine = {
       val = 0.55 + (val - 0.55) * (1 + 0.6 * extraVelHumanize);
       return Math.max(0.1, Math.min(1, val));
     };
+    
+    // Week 2 Refactor: Track-aware velocity humanization using DynamicsEngine
+    // This provides consistent, musical velocity variations per instrument
+    const humanizeVelocityForTrack = (v: number, track: NoteEvent['track']): number => {
+      // Use dynamics engine with track-specific variance
+      const humanized = dynamicsEngine.humanizeVelocity(v, track ?? 'chords', variation);
+      
+      // Add extra humanization if requested (backward compatibility)
+      if (extraVelHumanize > 0) {
+        const headroom = Math.max(0, Math.min(1 - humanized, humanized - 0.1));
+        const extraAmp = 0.5 * extraVelHumanize;
+        const extra = dist === 'gaussian'
+          ? gaussianJitter(rand, (headroom * extraAmp) / 1.96, headroom * extraAmp)
+          : (rand() - 0.5) * 2 * headroom * extraAmp;
+        return Math.max(0.1, Math.min(1.0, humanized + extra));
+      }
+      
+      return humanized;
+    };
+    
     const applySwing = (time: number, swing: number) => {
       const beatPos = (time % beat) / (beat / 4); // Position within beat (0-4 sixteenths)
       const isOffbeat = Math.floor(beatPos) % 2 === 1;
@@ -451,15 +573,22 @@ export const EnhancedHelixEngine: Engine = {
       params.leadMaxLeapSemitones ||
       params.spaceAllocatorMinGapSecs
     );
+    // Week 2 Refactor: Use TimingEngine for coordinated humanization
     const finalizeTime = (t: number, pos16: number, swing: number, track: NoteEvent['track']): number => {
-      // Baseline (Phase 0):
-      // - lead/drums: humanizeTime + swing
-      // - chords/bass/fx: humanizeTime only (no swing)
-      // Phase 1 (when active): add groove offsets before swing for lead/drums
+      // Calculate bar index for ensemble drift
+      const barIndex = Math.floor(t / (4 * beat));
+      
+      // Add legacy humanizeTime if extra humanization requested (backward compatibility)
       const base = humanizeTime(t);
+      
+      // Add Phase 1 groove offset if active (backward compatibility)
       const withGroove = isPhase1Active ? base + grooveOffset(pos16, track) : base;
-      const needsSwing = track === 'lead' || track === 'drums';
-      return needsSwing ? applySwing(withGroove, swing) : withGroove;
+      
+      // Use timing engine for ensemble drift + micro-timing + swing
+      // Note: swing parameter overrides groove template swing if provided
+      const finalTime = timingEngine.finalizeTime(withGroove, pos16, barIndex, track ?? 'chords', swing);
+      
+      return finalTime;
     };
 
     // Phase 2 activation (phrasing & cadence)
@@ -482,16 +611,34 @@ export const EnhancedHelixEngine: Engine = {
       (params.legatoStrength && params.legatoStrength > 0) ||
       (params.chordStabArpIntensity && params.chordStabArpIntensity > 0)
     );
-    // Phase 8 activation (evaluation & auto-repair)
-    const isPhase8Active = Boolean(
-      (params.evaluationStrength && params.evaluationStrength > 0) ||
-      (params.autoRepairStrength && params.autoRepairStrength > 0)
-    );
+    // Week 3 Refactor: Phase 8 (auto-repair) removed
+    // Reasoning: If generation is correct, repair isn't needed
+    // Auto-repair was masking bugs rather than fixing root causes
 
-    const events: NoteEvent[] = [];
+    let events: NoteEvent[] = [];
 
-    // Simple mode presets (engine-side safety net)
+    // Week 3 Refactor: Simple Mode as parameter overrides (not separate code paths)
+    // When simpleMode is true, we override certain parameters to create simpler, more predictable output
     const simpleMode = Boolean(params.simpleMode);
+    if (simpleMode) {
+      // Override complexity parameters to create simpler output
+      params.harmonicComplexity = params.harmonicComplexity ?? 0;
+      params.callResponseIntensity = params.callResponseIntensity ?? 0;
+      params.ornamentation = params.ornamentation ?? 0;
+      params.harmonicRhythmVariance = params.harmonicRhythmVariance ?? 0;
+      params.bassEchoProbability = params.bassEchoProbability ?? 0;
+      params.legatoStrength = params.legatoStrength ?? 0;
+      params.chordStabArpIntensity = params.chordStabArpIntensity ?? 0;
+      params.pedalToneStrength = params.pedalToneStrength ?? 0;
+      // Cap humanization for tighter feel
+      params.variation = Math.min(params.variation ?? 0.3, 0.3);
+      // Set sensible defaults for lead/chord behavior
+      params.leadChordToneBias = params.leadChordToneBias ?? (params.style === 'edm' ? 0.6 : 0.5);
+      params.chordVoiceLeadingBias = params.chordVoiceLeadingBias ?? 0.6;
+      params.leadMaxLeapSemitones = params.leadMaxLeapSemitones ?? (params.style === 'edm' ? 9 : 7);
+    }
+    // Legacy Simple Mode helper (kept for backward compatibility with existing code)
+    // Note: With parameter overrides above, these defaults are redundant but preserved
     const simpleDefaults = simpleMode && params.style === 'edm' ? {
       leadChordToneBias: 0.6,
       chordVoiceLeadingBias: 0.6,
@@ -568,7 +715,8 @@ export const EnhancedHelixEngine: Engine = {
       // Generate events for this section based on included instruments
       if (section.instruments.includes('lead')) {
         generateLeadLine(events, currentTime, sectionDuration, section, config, leadMotif, {
-          rand, roll, humanizeTime, humanizeVelocity, applySwing, scalePitch, beat, sixteenth, choose, finalizeTime, params,
+          rand, roll, humanizeTime, humanizeVelocity, humanizeVelocityForTrack, applySwing, scalePitch, beat, sixteenth, choose, finalizeTime, params,
+          timingEngine, dynamicsEngine,
           cr: { intensity: crIntensity, responseEven, densityGate },
           simple: { simpleMode, simpleDefaults, motifMemory, motifCounters, progressionAtTime }
         });
@@ -576,14 +724,16 @@ export const EnhancedHelixEngine: Engine = {
       
       if (section.instruments.includes('chords')) {
         generateChordProgression(events, currentTime, sectionDuration, section, config, {
-          rand, roll, humanizeTime, humanizeVelocity, scalePitch, beat, rootC4, scale, choose, finalizeTime, params,
+          rand, roll, humanizeTime, humanizeVelocity, humanizeVelocityForTrack, scalePitch, beat, rootC4, scale, choose, finalizeTime, params,
+          timingEngine, dynamicsEngine,
           cr: { intensity: crIntensity, responseEven, densityGate }
         });
       }
       
       if (section.instruments.includes('bass')) {
         generateBassLine(events, currentTime, sectionDuration, section, config, {
-          rand, roll, humanizeTime, humanizeVelocity, scalePitch, beat, sixteenth, choose, finalizeTime, params,
+          rand, roll, humanizeTime, humanizeVelocity, humanizeVelocityForTrack, scalePitch, beat, sixteenth, choose, finalizeTime, params,
+          timingEngine, dynamicsEngine,
           cr: { intensity: crIntensity, responseEven, densityGate },
           simple: { simpleMode, progressionAtTime }
         });
@@ -591,14 +741,16 @@ export const EnhancedHelixEngine: Engine = {
       
       if (section.instruments.includes('drums')) {
         generateDrumPattern(events, currentTime, sectionDuration, section, config, {
-          rand, roll, humanizeTime, humanizeVelocity, applySwing, beat, sixteenth, choose, finalizeTime, params,
+          rand, roll, humanizeTime, humanizeVelocity, humanizeVelocityForTrack, applySwing, beat, sixteenth, choose, finalizeTime, params,
+          timingEngine, dynamicsEngine,
           phase9: isPhase9Active ? { hatBias: hatBias16, s: adaptiveStrength } : undefined,
         });
       }
       
       if (section.instruments.includes('fx')) {
         generateFXEvents(events, currentTime, sectionDuration, section, config, {
-          rand, roll, humanizeTime, humanizeVelocity, beat
+          rand, roll, humanizeTime, humanizeVelocity, humanizeVelocityForTrack, beat,
+          timingEngine, dynamicsEngine
         });
       }
 
@@ -1084,26 +1236,19 @@ export const EnhancedHelixEngine: Engine = {
       }
     }
 
-    // Phase 5: Dynamics/Automation — section envelopes and sidechain metadata
+    // Week 4 Enhancement: Phase 5 dynamics using DynamicsEngine
     const dynShape = params.dynamicsShape ?? 'flat';
     const dynStr = Math.max(0, Math.min(1, params.dynamicsStrength ?? 0));
     const regLift = Math.max(0, Math.min(1, params.registerLiftStrength ?? 0));
     const scStrength = Math.max(0, Math.min(1, params.sidechainStrength ?? 0));
 
-    const applyEnv = (x01: number) => {
-      switch (dynShape) {
-        case 'rise':
-          return 1 + (x01 - 0.5) * 0.4 * dynStr; // -0.2..+0.2 range
-        case 'fall':
-          return 1 + ((0.5 - x01)) * 0.4 * dynStr;
-        case 'swell': {
-          const s = Math.sin(Math.PI * x01); // 0..1..0
-          return 1 + s * 0.25 * dynStr; // up to +0.25 at center
-        }
-        case 'flat':
-        default:
-          return 1;
-      }
+    // Use DynamicsEngine for section envelope (more musical than old implementation)
+    const applyEnv = (timeInSection: number, sectionDuration: number) => {
+      if (dynStr === 0) return 1.0;
+      
+      const envValue = dynamicsEngine.getSectionDynamics(timeInSection, sectionDuration, dynShape);
+      // Scale envelope effect by dynStr parameter
+      return 1.0 + (envValue - 1.0) * dynStr;
     };
 
     if (dynStr > 0 || regLift > 0 || scStrength > 0 || params.phrasing) {
@@ -1121,8 +1266,8 @@ export const EnhancedHelixEngine: Engine = {
         // Section envelope for velocity and note length
         if (dynStr > 0) {
           const sec = findSection(e.time);
-          const x = Math.max(0, Math.min(1, (e.time - sec.start) / Math.max(0.0001, sec.duration)));
-          const f = applyEnv(x);
+          const timeInSection = e.time - sec.start;
+          const f = applyEnv(timeInSection, sec.duration);
           e.velocity = Math.max(0.1, Math.min(1, e.velocity * f));
           // Note length scaling a bit milder
           e.duration = Math.max(0.02, e.duration * (1 + (f - 1) * 0.6));
@@ -1174,8 +1319,9 @@ export const EnhancedHelixEngine: Engine = {
       }
     }
 
-    // Phase 8: Evaluation & Auto-Repair
-    if (isPhase8Active) {
+    // Week 3 Refactor: Phase 8 removed (was lines 1222-1448, ~226 lines)
+    // All auto-repair logic deleted - proper generation shouldn't need repair
+    if (false) {
       const evalStr = Math.max(0, Math.min(1, params.evaluationStrength ?? 0));
       const repStr = Math.max(0, Math.min(1, params.autoRepairStrength ?? 0));
       const budgetMs = Math.max(0, Math.min(50, params.autoRepairBudgetMs ?? 6));
@@ -1404,6 +1550,16 @@ export const EnhancedHelixEngine: Engine = {
       }
     }
 
+    // CRITICAL FIX: Remove any events that start beyond duration limit
+    events = events.filter(e => e.time < params.durationSecs);
+
+    // Clamp durations that extend past limit
+    for (const e of events) {
+      if (e.time + (e.duration ?? 0) > params.durationSecs) {
+        e.duration = Math.max(0, params.durationSecs - e.time);
+      }
+    }
+
     const output: EngineOutput = {
       events,
       meta: {
@@ -1416,7 +1572,8 @@ export const EnhancedHelixEngine: Engine = {
         sidechain: (scStrength > 0) ? { pulses: events.filter(e => e.track === 'drums' && e.pitch === 36).map(e => e.time), strength: scStrength } : undefined,
         versionTag: (
           isPhase9Active ? 'v2-phase9' : (
-          isPhase8Active ? 'v2-phase8' : (
+          // Phase 8 removed in Week 3 refactor
+          (
           isPhase7Active ? 'v2-phase7' : (
             (dynStr > 0 || regLift > 0 || scStrength > 0 || (params.extendedLfoTargets ?? 0) > 0)
               ? 'v2-phase5'
@@ -1442,218 +1599,8 @@ export const EnhancedHelixEngine: Engine = {
   },
 };
 
-// Helper function implementations
-function generateLeadLine(
-  events: NoteEvent[], 
-  startTime: number, 
-  duration: number, 
-  section: SectionConfig,
-  config: EnhancedSongConfig,
-  motif: number[],
-  utils: any
-) {
-  const { rand, roll, humanizeTime, humanizeVelocity, applySwing, scalePitch, beat, sixteenth, choose, finalizeTime, params } = utils;
-  const cr = (utils && utils.cr) ? utils.cr as { intensity?: number; responseEven?: boolean; densityGate?: number } : {};
-  const simple = (utils && utils.simple) ? utils.simple as { simpleMode?: boolean; simpleDefaults?: any; motifMemory?: Map<number, number[][]>; motifCounters?: Map<number, number>; progressionAtTime?: (t:number, s:number)=>number } : {};
-  const noteCount = Math.floor(duration / sixteenth);
-  let lastLeadPitch: number | undefined;
-
-  // Call and response structure
-  const call = motif.slice(0, motif.length / 2);
-  const response = call.map(d => (d + choose([-1, 1, 2])) % 7).reverse();
-  const fullMotif = call.concat(response);
-
-  // Melodic contour
-  const contours = {
-    rising: (i: number) => Math.floor(i / 4),
-    falling: (i: number) => -Math.floor(i / 4),
-    arch: (i: number) => {
-      const mid = noteCount / 2;
-      return Math.round(Math.sin((i / mid) * Math.PI) * 3);
-    },
-  };
-  const contour = roll(0.3) ? choose(Object.values(contours)) : null;
-  
-  // Precompute bias for strong-beat targeting
-  const chordBiasGlobal = Math.max(0, Math.min(1, params?.leadChordToneBias ?? 0));
-  // Phase 2: phrasing & cadence settings
-  const cadenceStrength = Math.max(0, Math.min(1, params?.cadenceStrength ?? 0));
-  const phraseBars = params?.phrasing ? (params.phrasing === 'short' ? 2 : (params.phrasing === 'medium' ? 4 : 8)) : (cadenceStrength > 0 ? 4 : undefined);
-  const phraseLen16 = phraseBars ? phraseBars * 16 : 0;
-  const sectionBars = Math.max(1, Math.floor(duration / (4 * beat)));
-  const phrasesInSection = phraseBars ? Math.max(1, Math.floor(sectionBars / phraseBars)) : 0;
-  const climaxPhraseIndex = phraseBars && phrasesInSection > 0 ? Math.floor(rand() * phrasesInSection) : -1;
-
-  // Simple Mode helpers: assign a motif pattern per 2-beat slot
-  const slotPatternIdx = new Map<number, number>();
-
-  for (let i = 0; i < noteCount; i++) {
-    const time = startTime + i * sixteenth;
-    if (time >= startTime + duration) break;
-    
-    // Density-based note triggering with musical phrasing
-    const phrasePosition = (i % 16) / 16; // Position in 4/4 bar
-    const pos16 = i % 16;
-    const isDownbeat = pos16 === 0;
-    const isOffbeat = i % 8 === 4;
-    const isStrongBeat = pos16 === 0 || pos16 === 8; // beats 1 and 3
-    
-    let triggerProbability = section.density * section.energy;
-    if (isDownbeat) triggerProbability *= 1.5;
-    if (isOffbeat) triggerProbability *= 1.2;
-    // Phase 4: call/response — thin lead on designated response bars
-    if ((cr?.intensity ?? 0) > 0) {
-      const barInSection = Math.floor((time - startTime) / (4 * beat));
-      const isResponseBar = ((barInSection % 2 === 0) === Boolean(cr.responseEven));
-      if (isResponseBar) {
-        triggerProbability *= (1 - 0.6 * Math.max(0, Math.min(1, cr.intensity ?? 0)));
-      }
-    }
-    // Phase 2: create a small breath before cadence by thinning just before last beat of the phrase
-    if (phraseBars) {
-      const idxInPhrase = i % phraseLen16;
-      const inPreCadence = idxInPhrase >= phraseLen16 - 8 && idxInPhrase < phraseLen16 - 4;
-      if (inPreCadence && cadenceStrength > 0) {
-        triggerProbability *= (1 - 0.6 * cadenceStrength);
-      }
-    }
-    // If chord-tone bias is requested, slightly boost the chance to place notes on strong beats
-    if (chordBiasGlobal > 0 && isStrongBeat) {
-      triggerProbability = Math.max(0.9, Math.min(1, triggerProbability + 0.2 * chordBiasGlobal));
-    }
-    
-    const doCadenceNow = phraseBars ? ((i % phraseLen16) === (phraseLen16 - 4) && cadenceStrength > 0) : false;
-    // Simple Mode: anchor strong beats and reuse per-slot motif memory
-    if (simple?.simpleMode) {
-      const slotLen = 2 * beat; // 2 beats per progression step
-      const slotIndex = Math.floor((time - startTime) / slotLen);
-      const posInSlot16 = Math.floor(((time - startTime) % slotLen) / sixteenth); // 0..7
-      const progIdx = simple.progressionAtTime ? simple.progressionAtTime(time, startTime) : 0;
-      const memory = simple.motifMemory?.get(progIdx) ?? [];
-      if (!slotPatternIdx.has(slotIndex)) {
-        const counter = simple.motifCounters?.get(progIdx) ?? 0;
-        const patIdx = memory.length > 0 ? (counter % memory.length) : 0;
-        slotPatternIdx.set(slotIndex, patIdx);
-        if (simple.motifCounters) simple.motifCounters.set(progIdx, counter + 1);
-      }
-      // Adjust trigger prob: always place notes on 1 and 3; thin others
-      if (isStrongBeat) triggerProbability = 1;
-      else triggerProbability = Math.min(1, 0.5 * (section.density + 0.4));
-    }
-
-    if (doCadenceNow || (chordBiasGlobal > 0 && isStrongBeat) || roll(triggerProbability)) {
-      let degree: number;
-      if (simple?.simpleMode) {
-        const slotLen = 2 * beat;
-        const slotIndex = Math.floor((time - startTime) / slotLen);
-        const posInSlot16 = Math.floor(((time - startTime) % slotLen) / sixteenth); // 0..7
-        const progIdx = simple.progressionAtTime ? simple.progressionAtTime(time, startTime) : 0;
-        const memory = simple.motifMemory?.get(progIdx) ?? [];
-        const patIdx = slotPatternIdx.get(slotIndex) ?? 0;
-        const pattern = memory[patIdx] ?? fullMotif; // fallback to existing motif
-        degree = pattern[posInSlot16 % (pattern.length || 1)] ?? (fullMotif[i % fullMotif.length]);
-      } else {
-        const motifIndex = i % fullMotif.length;
-        degree = fullMotif[motifIndex];
-      }
-
-      if (contour) {
-        degree = (degree + contour(i) + 7) % 7;
-      }
-
-      // Harmonic cohesion and chord-tone targeting
-      const barPosition = Math.floor(i / 16);
-      const progressionIndex = Math.floor(barPosition / 2) % config.chordProgression.length;
-      const chordDef = config.chordProgression[progressionIndex];
-      // Phase 0 default: snap to chord root on downbeats with 50% chance.
-      // Preserve baseline by default; allow disabling only if explicitly set to false.
-      if ((params?.enableLeadDownbeatChordRoot ?? true) && isDownbeat && roll(0.5)) {
-        degree = chordDef.degree;
-      }
-      const chordBias = chordBiasGlobal;
-      if (doCadenceNow) {
-        // Enforce cadential resolution on phrase end: prefer root or fifth
-        const cadenceDegrees = [chordDef.degree, (chordDef.degree + 4) % 7];
-        degree = choose(cadenceDegrees);
-      } else if ((simple?.simpleMode && isStrongBeat)) {
-        // Simple Mode: force strong beats to chord tones (root/third/fifth)
-        const chordToneDegrees = [chordDef.degree, (chordDef.degree + 2) % 7, (chordDef.degree + 4) % 7];
-        degree = choose(chordToneDegrees);
-      } else if (chordBias > 0 && isStrongBeat) {
-        const chordToneDegrees = [chordDef.degree, (chordDef.degree + 2) % 7, (chordDef.degree + 4) % 7];
-        degree = choose(chordToneDegrees);
-      } else if (chordBias > 0 && !isStrongBeat && roll(chordBias * 0.3)) {
-        // Passing/neighbor tones near chord
-        degree = (chordDef.degree + choose([-1, 1])) % 7;
-        if (degree < 0) degree += 7;
-      }
-
-      const octave = 1 + Math.floor(rand() * 2); // Vary octave
-      let pitch = clampPitch(scalePitch(degree, octave), config.register.lead[0], config.register.lead[1]);
-      // Optional Phase 1: limit melodic leaps via octave folding
-      const maxLeap = Math.max(0, params?.leadMaxLeapSemitones ?? 0);
-      if (maxLeap > 0 && lastLeadPitch != null) {
-        // Fold by octaves towards previous pitch until within maxLeap or register bounds
-        let tries = 0;
-        while (Math.abs(pitch - lastLeadPitch) > maxLeap && tries < 4) {
-          if (pitch > lastLeadPitch) pitch -= 12; else pitch += 12;
-          // Keep within register; if out of bounds, break
-          if (pitch < config.register.lead[0] || pitch > config.register.lead[1]) break;
-          tries++;
-        }
-        // Final clamp just in case
-        pitch = clampPitch(pitch, config.register.lead[0], config.register.lead[1]);
-      }
-      // Phase 2: motif climax — select one phrase per section to emphasize by register/velocity
-      if (phraseBars) {
-        const curPhrase = Math.floor((i) / phraseLen16);
-        const isClimaxPhrase = curPhrase === climaxPhraseIndex;
-        if (isClimaxPhrase && roll(0.8)) {
-          pitch = clampPitch(pitch + 12, config.register.lead[0], config.register.lead[1]);
-        }
-      }
-      
-      // Musical note durations
-      const durationChoices = [sixteenth, sixteenth * 2, sixteenth * 3, sixteenth * 4];
-      const noteDuration = choose(durationChoices);
-      
-      let velBase = 0.6 + section.energy * 0.3;
-      if (phraseBars) {
-        const curPhrase = Math.floor((i) / phraseLen16);
-        const isClimaxPhrase = curPhrase === climaxPhraseIndex;
-        if (isClimaxPhrase) velBase += 0.08;
-      }
-      if (doCadenceNow) velBase += 0.1; // highlight cadence resolution
-      const velocity = humanizeVelocity(velBase);
-      let finalTime = finalizeTime(time, pos16, config.rhythmPattern.swing, 'lead');
-      // Pin strong-beat notes tightly to the beat to align with chord onset for metrics
-      if ((chordBiasGlobal > 0 && isStrongBeat) || (simple?.simpleMode && isStrongBeat)) {
-        finalTime = Math.round(finalTime / beat) * beat;
-      }
-      if (doCadenceNow) {
-        finalTime = Math.round(finalTime / beat) * beat;
-      }
-      
-      const ev = {
-        time: finalTime,
-        pitch,
-        duration: noteDuration,
-        velocity,
-        track: 'lead' as const,
-      };
-      // Phase 4: density gate — reduce simultaneous onsets across tracks
-      const gate = Math.max(0, Math.min(1, cr?.densityGate ?? 0));
-      if (gate > 0) {
-        const near = events.reduce((acc, e) => acc + (Math.abs(e.time - finalTime) < sixteenth * 0.25 ? 1 : 0), 0);
-        if (near >= 3 && roll(gate * 0.7)) {
-          continue;
-        }
-      }
-      events.push(ev);
-      lastLeadPitch = ev.pitch;
-    }
-  }
-}
+// Week 5: generateLeadLine extracted to generators/lead.ts
+// Helper function implementations below
 
 const CHORD_SUBSTITUTIONS: Record<number, { degree: number; quality: ChordProgression['quality'] }[]> = {
   0: [{ degree: 5, quality: 'minor' }, { degree: 2, quality: 'minor' }], // I -> vi, iii
@@ -1670,7 +1617,7 @@ function generateChordProgression(
   config: EnhancedSongConfig,
   utils: any
 ) {
-  const { rand, roll, humanizeTime, humanizeVelocity, scalePitch, beat, rootC4, scale, choose, finalizeTime, params } = utils;
+  const { rand, roll, humanizeTime, humanizeVelocity, humanizeVelocityForTrack, scalePitch, beat, rootC4, scale, choose, finalizeTime, params, timingEngine, dynamicsEngine } = utils;
   const cr = (utils && utils.cr) ? utils.cr as { intensity?: number; responseEven?: boolean; densityGate?: number } : {};
   const chordChanges = Math.floor(duration / beat); // One chord per beat potentially
   let lastChordPitches: number[] | undefined; // previous assigned chord voices (bass→treble)
@@ -1943,7 +1890,7 @@ function generateBassLine(
   config: EnhancedSongConfig,
   utils: any
 ) {
-  const { rand, roll, humanizeTime, humanizeVelocity, scalePitch, beat, sixteenth, choose, finalizeTime, params } = utils;
+  const { rand, roll, humanizeTime, humanizeVelocity, humanizeVelocityForTrack, scalePitch, beat, sixteenth, choose, finalizeTime, params, timingEngine, dynamicsEngine } = utils;
   const cr = (utils && utils.cr) ? utils.cr as { intensity?: number; responseEven?: boolean; densityGate?: number } : {};
   const simple = (utils && utils.simple) ? utils.simple as { simpleMode?: boolean; progressionAtTime?: (t:number, s:number)=>number } : {};
   const noteCount = Math.floor(duration / sixteenth);
@@ -2109,7 +2056,7 @@ function generateDrumPattern(
   config: EnhancedSongConfig,
   utils: any
 ) {
-  const { rand, roll, humanizeTime, humanizeVelocity, applySwing, beat, sixteenth, choose, finalizeTime, params } = utils;
+  const { rand, roll, humanizeTime, humanizeVelocity, humanizeVelocityForTrack, applySwing, beat, sixteenth, choose, finalizeTime, params, timingEngine, dynamicsEngine } = utils;
   const s9 = Math.max(0, Math.min(1, utils?.phase9?.s ?? 0));
   const hatBias: number[] | undefined = utils?.phase9?.hatBias;
   const pattern = config.rhythmPattern;
@@ -2140,17 +2087,23 @@ function generateDrumPattern(
       // Kicks
       for (const i of pattern.kick) {
         const t = barStart + i * sixteenth;
+        if (t >= startTime + duration) break;
+        if (t >= params.durationSecs) break;
         events.push({ time: finalizeTime(t, i, pattern.swing, 'drums'), pitch: 36, duration: sixteenth * 2, velocity: humanizeVelocity(0.8 + section.energy * 0.15), track: 'drums' });
       }
       // Snares
       for (const i of pattern.snare) {
         const t = barStart + i * sixteenth;
+        if (t >= startTime + duration) break;
+        if (t >= params.durationSecs) break;
         events.push({ time: finalizeTime(t, i, pattern.swing, 'drums'), pitch: 38, duration: sixteenth * 1.5, velocity: humanizeVelocity(0.7 + section.energy * 0.2), track: 'drums' });
       }
       // Hats at listed positions; if none, place closed hats on all 8ths
       const hatPos = pattern.hats && pattern.hats.length > 0 ? pattern.hats : [0,4,8,12];
       for (const i of hatPos) {
         const t = barStart + i * sixteenth;
+        if (t >= startTime + duration) break;
+        if (t >= params.durationSecs) break;
         const isAccent = i % 4 === 0;
         const vel = humanizeVelocity((isAccent ? 0.6 : 0.45) + section.energy * 0.1);
         events.push({ time: finalizeTime(t, i, pattern.swing, 'drums'), pitch: 42, duration: sixteenth * 0.5, velocity: vel, track: 'drums' });
@@ -2188,25 +2141,29 @@ function generateDrumPattern(
       // Regular pattern
       for (let i = 0; i < 16; i++) {
         const time = barStart + i * sixteenth;
+        if (time >= startTime + duration) break;
+        if (time >= params.durationSecs) break;
 
         // Probabilistic kick
         if (pattern.kick.includes(i) && roll(0.9)) {
+          const kickVel = 0.8 + section.energy * 0.15;
           events.push({
             time: finalizeTime(time, i, pattern.swing, 'drums'),
             pitch: 36, // Kick
             duration: sixteenth * 2,
-            velocity: humanizeVelocity(0.8 + section.energy * 0.15),
+            velocity: humanizeVelocityForTrack(kickVel, 'drums'),
             track: 'drums',
           });
         }
 
         // Probabilistic snare
         if (pattern.snare.includes(i) && roll(0.9)) {
+          const snareVel = 0.7 + section.energy * 0.2;
           events.push({
             time: finalizeTime(time, i, pattern.swing, 'drums'),
             pitch: 38, // Snare
             duration: sixteenth * 1.5,
-            velocity: humanizeVelocity(0.7 + section.energy * 0.2),
+            velocity: humanizeVelocityForTrack(snareVel, 'drums'),
             track: 'drums',
           });
         }
@@ -2225,17 +2182,24 @@ function generateDrumPattern(
         if (roll(pBiased)) {
           const isAccent = i % 4 === 0;
           let velBase = (isAccent ? 0.6 : 0.4) + section.energy * 0.1;
-          const accent = Math.max(0, Math.min(1, params?.accentMapIntensity ?? 0));
-          if (accent > 0) {
+          
+          // Week 4 Enhancement: Use groove template accent pattern
+          const grooveAccent = timingEngine.getAccent(i);
+          velBase *= grooveAccent;
+          
+          // Legacy accent map (Phase 1) - still applied if parameter set
+          const accentParam = Math.max(0, Math.min(1, params?.accentMapIntensity ?? 0));
+          if (accentParam > 0) {
             // Simple accent map: boost 0,4,8,12; lighten 2,6,10,14
-            if ([0,4,8,12].includes(i)) velBase += 0.15 * accent;
-            if ([2,6,10,14].includes(i)) velBase -= 0.08 * accent;
+            if ([0,4,8,12].includes(i)) velBase += 0.15 * accentParam;
+            if ([2,6,10,14].includes(i)) velBase -= 0.08 * accentParam;
           }
+          
           events.push({
             time: finalizeTime(time, i, pattern.swing, 'drums'),
             pitch: 42, // Hi-hat
             duration: sixteenth * 0.5,
-            velocity: humanizeVelocity(velBase),
+            velocity: humanizeVelocityForTrack(velBase, 'drums'),
             track: 'drums',
           });
           hatCountThisBar++;
@@ -2246,11 +2210,12 @@ function generateDrumPattern(
 
         // Probabilistic ghost notes
         if (pattern.ghostNotes.includes(i) && roll(section.energy * 0.5)) {
+          const ghostVel = 0.2 + section.energy * 0.1;
           events.push({
             time: finalizeTime(time, i, pattern.swing, 'drums'),
             pitch: 38, // Snare
             duration: sixteenth * 0.3,
-            velocity: humanizeVelocity(0.2 + section.energy * 0.1),
+            velocity: humanizeVelocityForTrack(ghostVel, 'drums'),
             track: 'drums',
           });
         }
@@ -2282,7 +2247,7 @@ function generateFXEvents(
   config: EnhancedSongConfig,
   utils: any
 ) {
-  const { rand, roll, humanizeTime, humanizeVelocity, beat } = utils;
+  const { rand, roll, humanizeTime, humanizeVelocity, humanizeVelocityForTrack, beat, timingEngine, dynamicsEngine } = utils;
   
   // Crashes at section starts
   if (section.crash) {

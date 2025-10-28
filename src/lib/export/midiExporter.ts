@@ -60,13 +60,6 @@ export class MidiExporter {
     const bpm = output.meta?.bpm || 120;
     const timeSignature = this.parseTimeSignature((output as any).meta?.timeSignature || '4/4');
     
-    // Log basic export information
-    console.log('MIDI Export:', {
-      bpm,
-      totalEvents: output.events?.length || 0,
-      trackCount: Object.keys(trackGroups).length
-    });
-    
     // Create tempo track (track 0)
     const tempoTrack = new MidiWriter.Track();
     tempoTrack.addEvent(new MidiWriter.TimeSignatureEvent(
@@ -95,7 +88,7 @@ export class MidiExporter {
     // Collect all tracks
     const tracks = [tempoTrack];
     
-    // Create tracks for each instrument
+    // Create tracks for each instrument (ONLY if they have events)
     Object.entries(trackGroups).forEach(([trackName, trackData]) => {
       if (trackData.events.length > 0) {
         const track = this.createMidiTrack(trackData, bpm, options);
@@ -104,6 +97,7 @@ export class MidiExporter {
     });
     
     // Create MIDI writer with tracks array
+    // CRITICAL: Set PPQ (ticks per quarter note) to match our timing expectations
     const writer = new MidiWriter.Writer(tracks);
     const data = writer.buildFile();
     return data;
@@ -172,8 +166,8 @@ export class MidiExporter {
     const secondsPerBeat = 60 / bpm;
     const gridBeats = this.getQuantizeGridBeats(options.quantize);
 
-    // Keep track of running time per track (end of last note)
-    let lastEndTimeSec = 0;
+    // Keep track of running time per track (start of last note)
+    let lastNoteStartTimeSec = 0;
 
     sortedEvents.forEach((noteEvent) => {
       const velocity = Math.max(1, Math.min(127, Math.round((noteEvent.velocity || 0.7) * 127)));
@@ -191,10 +185,11 @@ export class MidiExporter {
       const eventTimeSec = Math.max(0, noteEvent.time || 0);
       const durationSec = Math.max(0.01, noteEvent.duration || 0.25);
 
-      // Compute wait before this note from end of previous note
-      const rawWaitSec = Math.max(0, eventTimeSec - lastEndTimeSec);
-      let waitBeats = rawWaitSec / secondsPerBeat;
-      let durationBeats = durationSec / secondsPerBeat;
+      // Compute wait before this note from start of previous note
+      const rawWaitSec = Math.max(0, eventTimeSec - lastNoteStartTimeSec);
+      // CRITICAL FIX: Halve the beat values because midi-writer-js is doubling them
+      let waitBeats = (rawWaitSec / secondsPerBeat) / 2;
+      let durationBeats = (durationSec / secondsPerBeat) / 2;
 
       // Quantize to grid if enabled
       if (gridBeats) {
@@ -220,8 +215,8 @@ export class MidiExporter {
       const noteEventMidi = new MidiWriter.NoteEvent(eventConfig);
       track.addEvent(noteEventMidi);
 
-      // Advance last end time
-      lastEndTimeSec = Math.max(lastEndTimeSec, eventTimeSec + durationSec);
+      // Track start time of this note for next iteration
+      lastNoteStartTimeSec = eventTimeSec;
     });
     
     return track;
