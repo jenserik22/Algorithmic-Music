@@ -34,7 +34,9 @@ Every generation uses a random "seed" number that determines the exact output. T
 - **Same seed = Same output** - Perfect for reproducing a track you liked
 - **Different seed = Different variation** - Same parameters, different melody/rhythm
 
-**Note:** The seed is managed automatically by the UI. The current seed is not displayed, but each generation creates unique results. To recreate a track exactly, you would need to save the MIDI file.
+**Note:** 
+- **Simple Mode:** Seed is automatic - new random seed each time
+- **Advanced Mode:** You can see and control the seed! Use the seed input box at the top of the Enhanced Helix section to view, edit, or randomize the seed.
 
 ---
 
@@ -114,6 +116,21 @@ Advanced Mode unlocks 30+ parameters for fine-grained control over music generat
 5. **Generate** - Create your customized track
 
 ### Advanced Mode Sections
+
+#### 0. **Random Seed Control** (At the top)
+The first thing you'll see in Enhanced Helix Advanced Mode is the **Random Seed** box.
+
+**What it does:**
+- Displays your current seed number
+- **Input field:** Type any number (0-999999) to use a specific seed
+- **🎲 Randomize button:** Click to generate a new random seed instantly
+- **Current display:** Shows the active seed below the input
+
+**Use cases:**
+- **Reproducing tracks:** Note the seed number to recreate the exact same track later
+- **Sharing:** Give someone your seed + parameters and they'll get identical output
+- **Variations:** Change seed slightly (e.g., 12345 → 12346) for similar but different results
+- **Experimentation:** Lock seed to compare how different parameters affect the same base
 
 #### 1. **Humanization** (6 parameters)
 Controls timing and velocity variations to make music feel human-played.
@@ -450,9 +467,9 @@ The modern algorithm with all features:
 
 **Want to recreate a track?**
 - Each generation uses a random seed number for uniqueness
-- The seed is **not displayed** in the UI currently
-- **Best practice:** Download MIDI files you like immediately
-- **Future feature:** Display and set seed in Advanced Mode
+- **In Simple Mode:** Seed is automatic, download MIDI to save tracks
+- **In Advanced Mode:** Seed is displayed! Copy the number to recreate later
+- **Best practice:** Note down the seed number from Advanced Mode or download MIDI
 
 **Want variations on the same theme?**
 - Keep all parameters the same
@@ -520,7 +537,7 @@ A: Yes! Download the MIDI and import into any DAW.
 A: Each generation uses a different random seed for uniqueness. The seed determines the exact melody, rhythm, and note choices. This is intentional - you get fresh variations every time!
 
 **Q: How do I recreate the exact same track?**
-A: Currently, the random seed is not displayed in the UI. The best way is to download the MIDI file immediately. A future update may add seed display/input in Advanced Mode.
+A: In Advanced Mode (with Enhanced Helix), you'll see a "Random Seed" box at the top showing your current seed number. Save this number along with your parameter settings. To recreate: enter the same seed, set the same parameters, and generate. In Simple Mode, download the MIDI file to keep tracks you like.
 
 **Q: What's the best style for [use case]?**
 A: See the [Style Comparison Table](#style-comparison-table) above.
