@@ -368,17 +368,6 @@ export function GeneratorUI({ onGenerate }: { onGenerate: (x: { algorithm: Algor
     }
   }, [mode, base, durationSecs]);
 
-  // CRITICAL FIX: Apply style defaults IMMEDIATELY when switching to advanced mode
-  // This prevents users from seeing all zeros and feeling lost
-  const previousMode = React.useRef<'simple'|'advanced'>('simple');
-  React.useEffect(() => {
-    if (mode === 'advanced' && previousMode.current === 'simple' && algorithm === 'enhanced_helix') {
-      // User just switched to advanced mode - apply defaults immediately
-      applyAdvancedDefaults(style);
-    }
-    previousMode.current = mode;
-  }, [mode, algorithm, style, applyAdvancedDefaults]);
-
   // --- Advanced defaults application for Enhanced Helix ---
   const lastAdvancedStyleRef = React.useRef<StyleKey | null>(null);
 
@@ -420,6 +409,17 @@ export function GeneratorUI({ onGenerate }: { onGenerate: (x: { algorithm: Algor
   const applyHumanizePreset = React.useCallback((sty: StyleKey) => {
     applyHelixProfile(HUMANIZE_PRESETS[sty]);
   }, [applyHelixProfile]);
+
+  // CRITICAL FIX: Apply style defaults IMMEDIATELY when switching to advanced mode
+  // This prevents users from seeing all zeros and feeling lost
+  const previousMode = React.useRef<'simple'|'advanced'>('simple');
+  React.useEffect(() => {
+    if (mode === 'advanced' && previousMode.current === 'simple' && algorithm === 'enhanced_helix') {
+      // User just switched to advanced mode - apply defaults immediately
+      applyAdvancedDefaults(style);
+    }
+    previousMode.current = mode;
+  }, [mode, algorithm, style, applyAdvancedDefaults]);
 
   React.useEffect(() => {
     if (mode !== 'advanced' || algorithm !== 'enhanced_helix') return;
