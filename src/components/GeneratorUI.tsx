@@ -1245,7 +1245,9 @@ export function GeneratorUI({ onGenerate }: { onGenerate: (x: { algorithm: Algor
                   <input type="range" min="0" max="1" step="0.05" value={dynamicsStrength} onChange={e=>setDynamicsStrength(Number(e.target.value))} className="w-full" />
                 </div>
                 <div className="space-y-2">
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Register Lift (lead): {registerLiftStrength.toFixed(2)}</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    <LabelWithTooltip label={`Register Lift: ${registerLiftStrength.toFixed(2)}`} tooltip="Melodic register rises during climaxes. 0=constant register, 0.5=subtle lift, 1=dramatic octave jumps." />
+                  </label>
                   <input type="range" min="0" max="1" step="0.05" value={registerLiftStrength} onChange={e=>setRegisterLiftStrength(Number(e.target.value))} className="w-full" />
                 </div>
                 <div className="space-y-2">
@@ -1262,15 +1264,21 @@ export function GeneratorUI({ onGenerate }: { onGenerate: (x: { algorithm: Algor
                   <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200">Ornamentation & Articulation</h3>
                 </div>
                 <div className="space-y-2">
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Ornamentation: {ornamentation.toFixed(2)}</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    <LabelWithTooltip label={`Ornamentation: ${ornamentation.toFixed(2)}`} tooltip="Grace notes, trills, slides. 0=plain notes, 0.5=occasional ornaments, 1=heavily decorated (baroque)." />
+                  </label>
                   <input type="range" min="0" max="1" step="0.05" value={ornamentation} onChange={e=>setOrnamentation(Number(e.target.value))} className="w-full" />
                 </div>
                 <div className="space-y-2">
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Legato Strength: {legatoStrength.toFixed(2)}</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    <LabelWithTooltip label={`Legato Strength: ${legatoStrength.toFixed(2)}`} tooltip="Smooth, connected notes (overlapping). 0=staccato/detached, 0.5=balanced, 1=fully legato/flowing (ambient)." />
+                  </label>
                   <input type="range" min="0" max="1" step="0.05" value={legatoStrength} onChange={e=>setLegatoStrength(Number(e.target.value))} className="w-full" />
                 </div>
                 <div className="space-y-2">
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Chord Stab/Arp Intensity: {chordStabArpIntensity.toFixed(2)}</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    <LabelWithTooltip label={`Chord Stab/Arp: ${chordStabArpIntensity.toFixed(2)}`} tooltip="Chords as stabs or arpeggios. 0=block chords, 0.5=mix, 1=broken/arpeggiated chords (EDM/techno)." />
+                  </label>
                   <input type="range" min="0" max="1" step="0.05" value={chordStabArpIntensity} onChange={e=>setChordStabArpIntensity(Number(e.target.value))} className="w-full" />
                 </div>
 
