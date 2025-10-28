@@ -172,8 +172,8 @@ export class MidiExporter {
     const secondsPerBeat = 60 / bpm;
     const gridBeats = this.getQuantizeGridBeats(options.quantize);
 
-    // Keep track of running time per track (end of last note)
-    let lastEndTimeSec = 0;
+    // Keep track of running time per track (start of last note)
+    let lastNoteStartTimeSec = 0;
 
     sortedEvents.forEach((noteEvent) => {
       const velocity = Math.max(1, Math.min(127, Math.round((noteEvent.velocity || 0.7) * 127)));
@@ -191,8 +191,8 @@ export class MidiExporter {
       const eventTimeSec = Math.max(0, noteEvent.time || 0);
       const durationSec = Math.max(0.01, noteEvent.duration || 0.25);
 
-      // Compute wait before this note from end of previous note
-      const rawWaitSec = Math.max(0, eventTimeSec - lastEndTimeSec);
+      // Compute wait before this note from start of previous note
+      const rawWaitSec = Math.max(0, eventTimeSec - lastNoteStartTimeSec);
       let waitBeats = rawWaitSec / secondsPerBeat;
       let durationBeats = durationSec / secondsPerBeat;
 
@@ -220,8 +220,8 @@ export class MidiExporter {
       const noteEventMidi = new MidiWriter.NoteEvent(eventConfig);
       track.addEvent(noteEventMidi);
 
-      // Advance last end time
-      lastEndTimeSec = Math.max(lastEndTimeSec, eventTimeSec + durationSec);
+      // Track start time of this note for next iteration
+      lastNoteStartTimeSec = eventTimeSec;
     });
     
     return track;

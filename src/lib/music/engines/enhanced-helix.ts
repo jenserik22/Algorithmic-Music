@@ -488,7 +488,7 @@ export const EnhancedHelixEngine: Engine = {
       (params.autoRepairStrength && params.autoRepairStrength > 0)
     );
 
-    const events: NoteEvent[] = [];
+    let events: NoteEvent[] = [];
 
     // Simple mode presets (engine-side safety net)
     const simpleMode = Boolean(params.simpleMode);
@@ -1404,6 +1404,16 @@ export const EnhancedHelixEngine: Engine = {
       }
     }
 
+    // CRITICAL FIX: Remove any events that start beyond duration limit
+    events = events.filter(e => e.time < params.durationSecs);
+
+    // Clamp durations that extend past limit
+    for (const e of events) {
+      if (e.time + (e.duration ?? 0) > params.durationSecs) {
+        e.duration = Math.max(0, params.durationSecs - e.time);
+      }
+    }
+
     const output: EngineOutput = {
       events,
       meta: {
@@ -2140,17 +2150,23 @@ function generateDrumPattern(
       // Kicks
       for (const i of pattern.kick) {
         const t = barStart + i * sixteenth;
+        if (t >= startTime + duration) break;
+        if (t >= params.durationSecs) break;
         events.push({ time: finalizeTime(t, i, pattern.swing, 'drums'), pitch: 36, duration: sixteenth * 2, velocity: humanizeVelocity(0.8 + section.energy * 0.15), track: 'drums' });
       }
       // Snares
       for (const i of pattern.snare) {
         const t = barStart + i * sixteenth;
+        if (t >= startTime + duration) break;
+        if (t >= params.durationSecs) break;
         events.push({ time: finalizeTime(t, i, pattern.swing, 'drums'), pitch: 38, duration: sixteenth * 1.5, velocity: humanizeVelocity(0.7 + section.energy * 0.2), track: 'drums' });
       }
       // Hats at listed positions; if none, place closed hats on all 8ths
       const hatPos = pattern.hats && pattern.hats.length > 0 ? pattern.hats : [0,4,8,12];
       for (const i of hatPos) {
         const t = barStart + i * sixteenth;
+        if (t >= startTime + duration) break;
+        if (t >= params.durationSecs) break;
         const isAccent = i % 4 === 0;
         const vel = humanizeVelocity((isAccent ? 0.6 : 0.45) + section.energy * 0.1);
         events.push({ time: finalizeTime(t, i, pattern.swing, 'drums'), pitch: 42, duration: sixteenth * 0.5, velocity: vel, track: 'drums' });
@@ -2188,6 +2204,8 @@ function generateDrumPattern(
       // Regular pattern
       for (let i = 0; i < 16; i++) {
         const time = barStart + i * sixteenth;
+        if (time >= startTime + duration) break;
+        if (time >= params.durationSecs) break;
 
         // Probabilistic kick
         if (pattern.kick.includes(i) && roll(0.9)) {
