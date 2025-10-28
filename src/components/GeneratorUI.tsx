@@ -1025,7 +1025,9 @@ export function GeneratorUI({ onGenerate }: { onGenerate: (x: { algorithm: Algor
                   <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200">Dynamics & FX</h3>
                 </div>
                 <div className="space-y-2">
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Dynamics Shape</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    <LabelWithTooltip label="Dynamics Shape" tooltip="Overall volume contour. Flat=constant, Rise=builds up, Fall=decreases, Swell=grows then fades (cinematic)." />
+                  </label>
                   <select value={dynamicsShape ?? ''} onChange={(e)=>setDynamicsShape((e.target.value || undefined) as any)}
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white">
                     <option value="">(flat)</option>
