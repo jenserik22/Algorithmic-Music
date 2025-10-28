@@ -527,8 +527,28 @@ export const EnhancedHelixEngine: Engine = {
 
     let events: NoteEvent[] = [];
 
-    // Simple mode presets (engine-side safety net)
+    // Week 3 Refactor: Simple Mode as parameter overrides (not separate code paths)
+    // When simpleMode is true, we override certain parameters to create simpler, more predictable output
     const simpleMode = Boolean(params.simpleMode);
+    if (simpleMode) {
+      // Override complexity parameters to create simpler output
+      params.harmonicComplexity = params.harmonicComplexity ?? 0;
+      params.callResponseIntensity = params.callResponseIntensity ?? 0;
+      params.ornamentation = params.ornamentation ?? 0;
+      params.harmonicRhythmVariance = params.harmonicRhythmVariance ?? 0;
+      params.bassEchoProbability = params.bassEchoProbability ?? 0;
+      params.legatoStrength = params.legatoStrength ?? 0;
+      params.chordStabArpIntensity = params.chordStabArpIntensity ?? 0;
+      params.pedalToneStrength = params.pedalToneStrength ?? 0;
+      // Cap humanization for tighter feel
+      params.variation = Math.min(params.variation ?? 0.3, 0.3);
+      // Set sensible defaults for lead/chord behavior
+      params.leadChordToneBias = params.leadChordToneBias ?? (params.style === 'edm' ? 0.6 : 0.5);
+      params.chordVoiceLeadingBias = params.chordVoiceLeadingBias ?? 0.6;
+      params.leadMaxLeapSemitones = params.leadMaxLeapSemitones ?? (params.style === 'edm' ? 9 : 7);
+    }
+    // Legacy Simple Mode helper (kept for backward compatibility with existing code)
+    // Note: With parameter overrides above, these defaults are redundant but preserved
     const simpleDefaults = simpleMode && params.style === 'edm' ? {
       leadChordToneBias: 0.6,
       chordVoiceLeadingBias: 0.6,
