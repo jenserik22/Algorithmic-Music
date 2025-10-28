@@ -2,6 +2,8 @@ import type { Engine, EngineOutput, GenerationParams, NoteEvent, LfoSpec, Adapti
 import { mulberry32, gaussianJitter } from '@/lib/music/seededRandom';
 import { assignCloseVoicing, roleOf } from './voiceLeading';
 import { getAdaptiveProfile } from './adaptiveMemory';
+import { createTimingEngine, type TimingEngine } from '../timing';
+import { createDynamicsEngine, type DynamicsEngine } from '../dynamics';
 
 // Enhanced song structures with more sophisticated arrangements
 type EnhancedSongConfig = {
@@ -309,6 +311,16 @@ export const EnhancedHelixEngine: Engine = {
     const scale = SCALES[config.scale];
     const complexity = params.complexityLevel ?? 'intermediate';
     const variation = Math.max(0, Math.min(1, params.variation ?? 0.4));
+    
+    // Week 2 Refactor: Create timing and dynamics engines for musical humanization
+    const timingEngine = createTimingEngine(seed + 1000, {
+      bpm,
+      style,
+      variation,
+      groove: params.grooveTemplate ?? 'straight'
+    });
+    
+    const dynamicsEngine = createDynamicsEngine(mulberry32(seed + 2000));
     // Phase 9: resolve adaptive profile
     const adaptiveStrength = Math.max(0, Math.min(1, params.adaptiveWeightingStrength ?? 0));
     const resolvedProfile: AdaptiveBiasProfile | undefined = (() => {
