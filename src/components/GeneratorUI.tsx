@@ -1107,25 +1107,35 @@ export function GeneratorUI({ onGenerate }: { onGenerate: (x: { algorithm: Algor
                   <input type="range" min="0" max="1" step="0.05" value={rushingDraggingStrength} onChange={e=>setRushingDraggingStrength(Number(e.target.value))} className="w-full" />
                 </div>
                 <div className="space-y-2">
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Lead Chord‑Tone Bias: {leadChordToneBias.toFixed(2)}</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    <LabelWithTooltip label={`Lead Chord-Tone Bias: ${leadChordToneBias.toFixed(2)}`} tooltip="How strongly lead melodies stick to chord tones. 0=chromatic freedom, 0.5=balanced, 1=only chord tones (safe but bland)." />
+                  </label>
                   <input type="range" min="0" max="1" step="0.05" value={leadChordToneBias} onChange={e=>setLeadChordToneBias(Number(e.target.value))} className="w-full" />
                 </div>
 
                 <div className="space-y-2">
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Drum Accent Intensity: {accentMapIntensity.toFixed(2)}</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    <LabelWithTooltip label={`Drum Accent Intensity: ${accentMapIntensity.toFixed(2)}`} tooltip="Emphasizes downbeats and strong beats in drums. 0=flat dynamics, 0.5=natural accents, 1=heavy emphasis." />
+                  </label>
                   <input type="range" min="0" max="1" step="0.05" value={accentMapIntensity} onChange={e=>setAccentMapIntensity(Number(e.target.value))} className="w-full" />
                 </div>
                 <div className="space-y-2">
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Bass Anticipation: {bassAnticipation.toFixed(2)}</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    <LabelWithTooltip label={`Bass Anticipation: ${bassAnticipation.toFixed(2)}`} tooltip="Bass plays slightly ahead of beat (anticipation). 0=on-beat, 0.3=subtle groove, 0.5+=very forward-driving." />
+                  </label>
                   <input type="range" min="0" max="1" step="0.05" value={bassAnticipation} onChange={e=>setBassAnticipation(Number(e.target.value))} className="w-full" />
                 </div>
 
                 <div className="space-y-2">
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Rhythm Markov Strength: {rhythmMarkovStrength.toFixed(2)}</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    <LabelWithTooltip label={`Rhythm Markov Strength: ${rhythmMarkovStrength.toFixed(2)}`} tooltip="Uses probability chains for rhythm patterns. 0=random, 0.5=balanced variety, 1=highly repetitive patterns." />
+                  </label>
                   <input type="range" min="0" max="1" step="0.05" value={rhythmMarkovStrength} onChange={e=>setRhythmMarkovStrength(Number(e.target.value))} className="w-full" />
                 </div>
                 <div className="space-y-2">
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Chord Voice‑Leading Bias: {chordVoiceLeadingBias.toFixed(2)}</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    <LabelWithTooltip label={`Chord Voice-Leading Bias: ${chordVoiceLeadingBias.toFixed(2)}`} tooltip="Smooth voice leading between chords (small melodic movement). 0=random inversions, 0.7=smooth classical, 1=minimal movement." />
+                  </label>
                   <input type="range" min="0" max="1" step="0.05" value={chordVoiceLeadingBias} onChange={e=>setChordVoiceLeadingBias(Number(e.target.value))} className="w-full" />
                 </div>
                 <div className="flex items-center gap-2 pt-1">
