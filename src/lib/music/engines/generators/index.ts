@@ -6,9 +6,9 @@
  */
 
 export { generateLeadLine } from './lead';
+export { generateChordProgression } from './chords';
 
 // TODO: Extract remaining generators
-// export { generateChordProgression } from './chords';
 // export { generateBassLine } from './bass';
 // export { generateDrumPattern } from './drums';
 // export { generateFXLayer } from './fx';
