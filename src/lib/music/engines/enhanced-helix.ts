@@ -1146,26 +1146,19 @@ export const EnhancedHelixEngine: Engine = {
       }
     }
 
-    // Phase 5: Dynamics/Automation — section envelopes and sidechain metadata
+    // Week 4 Enhancement: Phase 5 dynamics using DynamicsEngine
     const dynShape = params.dynamicsShape ?? 'flat';
     const dynStr = Math.max(0, Math.min(1, params.dynamicsStrength ?? 0));
     const regLift = Math.max(0, Math.min(1, params.registerLiftStrength ?? 0));
     const scStrength = Math.max(0, Math.min(1, params.sidechainStrength ?? 0));
 
-    const applyEnv = (x01: number) => {
-      switch (dynShape) {
-        case 'rise':
-          return 1 + (x01 - 0.5) * 0.4 * dynStr; // -0.2..+0.2 range
-        case 'fall':
-          return 1 + ((0.5 - x01)) * 0.4 * dynStr;
-        case 'swell': {
-          const s = Math.sin(Math.PI * x01); // 0..1..0
-          return 1 + s * 0.25 * dynStr; // up to +0.25 at center
-        }
-        case 'flat':
-        default:
-          return 1;
-      }
+    // Use DynamicsEngine for section envelope (more musical than old implementation)
+    const applyEnv = (timeInSection: number, sectionDuration: number) => {
+      if (dynStr === 0) return 1.0;
+      
+      const envValue = dynamicsEngine.getSectionDynamics(timeInSection, sectionDuration, dynShape);
+      // Scale envelope effect by dynStr parameter
+      return 1.0 + (envValue - 1.0) * dynStr;
     };
 
     if (dynStr > 0 || regLift > 0 || scStrength > 0 || params.phrasing) {
@@ -1183,8 +1176,8 @@ export const EnhancedHelixEngine: Engine = {
         // Section envelope for velocity and note length
         if (dynStr > 0) {
           const sec = findSection(e.time);
-          const x = Math.max(0, Math.min(1, (e.time - sec.start) / Math.max(0.0001, sec.duration)));
-          const f = applyEnv(x);
+          const timeInSection = e.time - sec.start;
+          const f = applyEnv(timeInSection, sec.duration);
           e.velocity = Math.max(0.1, Math.min(1, e.velocity * f));
           // Note length scaling a bit milder
           e.duration = Math.max(0.02, e.duration * (1 + (f - 1) * 0.6));
@@ -1526,7 +1519,7 @@ function generateLeadLine(
   motif: number[],
   utils: any
 ) {
-  const { rand, roll, humanizeTime, humanizeVelocity, applySwing, scalePitch, beat, sixteenth, choose, finalizeTime, params } = utils;
+  const { rand, roll, humanizeTime, humanizeVelocity, humanizeVelocityForTrack, applySwing, scalePitch, beat, sixteenth, choose, finalizeTime, params, timingEngine, dynamicsEngine } = utils;
   const cr = (utils && utils.cr) ? utils.cr as { intensity?: number; responseEven?: boolean; densityGate?: number } : {};
   const simple = (utils && utils.simple) ? utils.simple as { simpleMode?: boolean; simpleDefaults?: any; motifMemory?: Map<number, number[][]>; motifCounters?: Map<number, number>; progressionAtTime?: (t:number, s:number)=>number } : {};
   const noteCount = Math.floor(duration / sixteenth);
@@ -1698,7 +1691,15 @@ function generateLeadLine(
         if (isClimaxPhrase) velBase += 0.08;
       }
       if (doCadenceNow) velBase += 0.1; // highlight cadence resolution
-      const velocity = humanizeVelocity(velBase);
+      
+      // Week 4 Enhancement: Apply phrase dynamics (breathing)
+      if (phraseBars) {
+        const phraseLength = phraseBars * 4 * beat;
+        const phraseDynamics = dynamicsEngine.getPhraseDynamics(time, phraseLength);
+        velBase *= phraseDynamics;
+      }
+      
+      const velocity = humanizeVelocityForTrack(velBase, 'lead');
       let finalTime = finalizeTime(time, pos16, config.rhythmPattern.swing, 'lead');
       // Pin strong-beat notes tightly to the beat to align with chord onset for metrics
       if ((chordBiasGlobal > 0 && isStrongBeat) || (simple?.simpleMode && isStrongBeat)) {
@@ -1744,7 +1745,7 @@ function generateChordProgression(
   config: EnhancedSongConfig,
   utils: any
 ) {
-  const { rand, roll, humanizeTime, humanizeVelocity, scalePitch, beat, rootC4, scale, choose, finalizeTime, params } = utils;
+  const { rand, roll, humanizeTime, humanizeVelocity, humanizeVelocityForTrack, scalePitch, beat, rootC4, scale, choose, finalizeTime, params, timingEngine, dynamicsEngine } = utils;
   const cr = (utils && utils.cr) ? utils.cr as { intensity?: number; responseEven?: boolean; densityGate?: number } : {};
   const chordChanges = Math.floor(duration / beat); // One chord per beat potentially
   let lastChordPitches: number[] | undefined; // previous assigned chord voices (bass→treble)
@@ -2017,7 +2018,7 @@ function generateBassLine(
   config: EnhancedSongConfig,
   utils: any
 ) {
-  const { rand, roll, humanizeTime, humanizeVelocity, scalePitch, beat, sixteenth, choose, finalizeTime, params } = utils;
+  const { rand, roll, humanizeTime, humanizeVelocity, humanizeVelocityForTrack, scalePitch, beat, sixteenth, choose, finalizeTime, params, timingEngine, dynamicsEngine } = utils;
   const cr = (utils && utils.cr) ? utils.cr as { intensity?: number; responseEven?: boolean; densityGate?: number } : {};
   const simple = (utils && utils.simple) ? utils.simple as { simpleMode?: boolean; progressionAtTime?: (t:number, s:number)=>number } : {};
   const noteCount = Math.floor(duration / sixteenth);
@@ -2183,7 +2184,7 @@ function generateDrumPattern(
   config: EnhancedSongConfig,
   utils: any
 ) {
-  const { rand, roll, humanizeTime, humanizeVelocity, applySwing, beat, sixteenth, choose, finalizeTime, params } = utils;
+  const { rand, roll, humanizeTime, humanizeVelocity, humanizeVelocityForTrack, applySwing, beat, sixteenth, choose, finalizeTime, params, timingEngine, dynamicsEngine } = utils;
   const s9 = Math.max(0, Math.min(1, utils?.phase9?.s ?? 0));
   const hatBias: number[] | undefined = utils?.phase9?.hatBias;
   const pattern = config.rhythmPattern;
@@ -2273,22 +2274,24 @@ function generateDrumPattern(
 
         // Probabilistic kick
         if (pattern.kick.includes(i) && roll(0.9)) {
+          const kickVel = 0.8 + section.energy * 0.15;
           events.push({
             time: finalizeTime(time, i, pattern.swing, 'drums'),
             pitch: 36, // Kick
             duration: sixteenth * 2,
-            velocity: humanizeVelocity(0.8 + section.energy * 0.15),
+            velocity: humanizeVelocityForTrack(kickVel, 'drums'),
             track: 'drums',
           });
         }
 
         // Probabilistic snare
         if (pattern.snare.includes(i) && roll(0.9)) {
+          const snareVel = 0.7 + section.energy * 0.2;
           events.push({
             time: finalizeTime(time, i, pattern.swing, 'drums'),
             pitch: 38, // Snare
             duration: sixteenth * 1.5,
-            velocity: humanizeVelocity(0.7 + section.energy * 0.2),
+            velocity: humanizeVelocityForTrack(snareVel, 'drums'),
             track: 'drums',
           });
         }
@@ -2307,17 +2310,24 @@ function generateDrumPattern(
         if (roll(pBiased)) {
           const isAccent = i % 4 === 0;
           let velBase = (isAccent ? 0.6 : 0.4) + section.energy * 0.1;
-          const accent = Math.max(0, Math.min(1, params?.accentMapIntensity ?? 0));
-          if (accent > 0) {
+          
+          // Week 4 Enhancement: Use groove template accent pattern
+          const grooveAccent = timingEngine.getAccent(i);
+          velBase *= grooveAccent;
+          
+          // Legacy accent map (Phase 1) - still applied if parameter set
+          const accentParam = Math.max(0, Math.min(1, params?.accentMapIntensity ?? 0));
+          if (accentParam > 0) {
             // Simple accent map: boost 0,4,8,12; lighten 2,6,10,14
-            if ([0,4,8,12].includes(i)) velBase += 0.15 * accent;
-            if ([2,6,10,14].includes(i)) velBase -= 0.08 * accent;
+            if ([0,4,8,12].includes(i)) velBase += 0.15 * accentParam;
+            if ([2,6,10,14].includes(i)) velBase -= 0.08 * accentParam;
           }
+          
           events.push({
             time: finalizeTime(time, i, pattern.swing, 'drums'),
             pitch: 42, // Hi-hat
             duration: sixteenth * 0.5,
-            velocity: humanizeVelocity(velBase),
+            velocity: humanizeVelocityForTrack(velBase, 'drums'),
             track: 'drums',
           });
           hatCountThisBar++;
@@ -2328,11 +2338,12 @@ function generateDrumPattern(
 
         // Probabilistic ghost notes
         if (pattern.ghostNotes.includes(i) && roll(section.energy * 0.5)) {
+          const ghostVel = 0.2 + section.energy * 0.1;
           events.push({
             time: finalizeTime(time, i, pattern.swing, 'drums'),
             pitch: 38, // Snare
             duration: sixteenth * 0.3,
-            velocity: humanizeVelocity(0.2 + section.energy * 0.1),
+            velocity: humanizeVelocityForTrack(ghostVel, 'drums'),
             track: 'drums',
           });
         }
@@ -2364,7 +2375,7 @@ function generateFXEvents(
   config: EnhancedSongConfig,
   utils: any
 ) {
-  const { rand, roll, humanizeTime, humanizeVelocity, beat } = utils;
+  const { rand, roll, humanizeTime, humanizeVelocity, humanizeVelocityForTrack, beat, timingEngine, dynamicsEngine } = utils;
   
   // Crashes at section starts
   if (section.crash) {
