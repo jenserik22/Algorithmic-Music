@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import type { GenerationParams, Complexity } from '@/lib/music/engines/types';
 import { MusicIcon, RefreshIcon } from '@/components/icons';
+import { LabelWithTooltip } from '@/components/Tooltip';
 
 type Algorithm = 'stochastic' | 'markov' | 'cellular_automata' | 'l_system' | 'generative_grammar' | 'euclidean' | 'helix' | 'enhanced_helix' | 'enhanced_cellular' | 'enhanced_markov';
 
@@ -1028,7 +1029,9 @@ export function GeneratorUI({ onGenerate }: { onGenerate: (x: { algorithm: Algor
             <div className="col-span-2 space-y-4 pt-4 border-t border-gray-200 dark:border-gray-600">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Humanize Distribution</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    <LabelWithTooltip label="Humanize Distribution" tooltip="Uniform: random spread. Gaussian: more natural clustering around center values." />
+                  </label>
                   <select value={humanizeDistribution} onChange={e=>setHumanizeDistribution(e.target.value as any)}
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white">
                     <option value="uniform">uniform</option>
@@ -1064,7 +1067,9 @@ export function GeneratorUI({ onGenerate }: { onGenerate: (x: { algorithm: Algor
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Groove Template</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    <LabelWithTooltip label="Groove Template" tooltip="Applies timing patterns: straight (quantized), shuffle (swing feel), mpc62 (classic sampler timing), funk (syncopated)." />
+                  </label>
                   <select value={grooveTemplate ?? ''} onChange={(e) => setGrooveTemplate((e.target.value || undefined) as any)}
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white">
                     <option value="">(straight)</option>
@@ -1074,23 +1079,31 @@ export function GeneratorUI({ onGenerate }: { onGenerate: (x: { algorithm: Algor
                   </select>
                 </div>
                 <div className="space-y-2">
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Humanize Time: {humanizeTimeAmt.toFixed(2)}</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    <LabelWithTooltip label={`Humanize Time: ${humanizeTimeAmt.toFixed(2)}`} tooltip="Adds subtle timing variations to make notes feel more human (±ms). 0=robotic, 0.3=realistic, 0.5+=very loose." />
+                  </label>
                   <input type="range" min="0" max="1" step="0.05" value={humanizeTimeAmt} onChange={e=>setHumanizeTimeAmt(Number(e.target.value))} className="w-full" />
                 </div>
 
                 {grooveTemplate === 'shuffle' && (
                   <div className="space-y-2">
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Swing Ratio: {(swingRatio ?? 0.66).toFixed(2)}</label>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                      <LabelWithTooltip label={`Swing Ratio: ${(swingRatio ?? 0.66).toFixed(2)}`} tooltip="Controls shuffle timing. 0.5=straight 16ths, 0.66=triplet swing, 0.75=heavy swing." />
+                    </label>
                     <input type="range" min="0.55" max="0.75" step="0.01" value={swingRatio ?? 0.66} onChange={e=>setSwingRatio(Number(e.target.value))} className="w-full" />
                   </div>
                 )}
 
                 <div className="space-y-2">
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Humanize Velocity: {humanizeVelAmt.toFixed(2)}</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    <LabelWithTooltip label={`Humanize Velocity: ${humanizeVelAmt.toFixed(2)}`} tooltip="Varies note volumes for natural dynamics. 0=uniform, 0.3=subtle, 0.5+=dramatic expression." />
+                  </label>
                   <input type="range" min="0" max="1" step="0.05" value={humanizeVelAmt} onChange={e=>setHumanizeVelAmt(Number(e.target.value))} className="w-full" />
                 </div>
                 <div className="space-y-2">
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Rushing/Dragging: {rushingDraggingStrength.toFixed(2)}</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    <LabelWithTooltip label={`Rushing/Dragging: ${rushingDraggingStrength.toFixed(2)}`} tooltip="Ensemble drifts slightly ahead/behind tempo over bars. Adds organic feel but can loosen timing." />
+                  </label>
                   <input type="range" min="0" max="1" step="0.05" value={rushingDraggingStrength} onChange={e=>setRushingDraggingStrength(Number(e.target.value))} className="w-full" />
                 </div>
                 <div className="space-y-2">
