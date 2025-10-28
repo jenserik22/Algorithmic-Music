@@ -1251,11 +1251,15 @@ export function GeneratorUI({ onGenerate }: { onGenerate: (x: { algorithm: Algor
                   <input type="range" min="0" max="1" step="0.05" value={registerLiftStrength} onChange={e=>setRegisterLiftStrength(Number(e.target.value))} className="w-full" />
                 </div>
                 <div className="space-y-2">
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Extended LFO Targets: {extendedLfoTargets.toFixed(2)}</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    <LabelWithTooltip label={`Extended LFO: ${extendedLfoTargets.toFixed(2)}`} tooltip="Modulation/automation effects (vibrato, filter sweeps). 0=static, 0.5=subtle movement, 1=heavy modulation." />
+                  </label>
                   <input type="range" min="0" max="1" step="0.05" value={extendedLfoTargets} onChange={e=>setExtendedLfoTargets(Number(e.target.value))} className="w-full" />
                 </div>
                 <div className="space-y-2">
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Sidechain Strength: {sidechainStrength.toFixed(2)}</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    <LabelWithTooltip label={`Sidechain: ${sidechainStrength.toFixed(2)}`} tooltip="Pumping effect (EDM). Other instruments duck when kick hits. 0=none, 0.5=subtle, 0.8=heavy pumping." />
+                  </label>
                   <input type="range" min="0" max="1" step="0.05" value={sidechainStrength} onChange={e=>setSidechainStrength(Number(e.target.value))} className="w-full" />
                 </div>
 
