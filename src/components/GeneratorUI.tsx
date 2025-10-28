@@ -27,7 +27,7 @@ const ALGORITHM_INFO: Record<Algorithm, { name: string; description: string }> =
 };
 
 // Style-aware advanced defaults for Enhanced Helix
-type StyleKey = 'edm' | 'cinematic' | 'lofi' | 'jazz';
+type StyleKey = 'edm' | 'cinematic' | 'lofi' | 'jazz' | 'techno' | 'rock' | 'ambient';
 
 type HelixAdvancedProfile = {
   grooveTemplate?: GenerationParams['grooveTemplate'];
@@ -284,6 +284,93 @@ const HUMANIZE_PRESETS: Record<StyleKey, HelixAdvancedProfile> = {
     ornamentation: 0.5,
     legatoStrength: 0.5,
     chordStabArpIntensity: 0.25,
+  },
+  techno: {
+    grooveTemplate: 'mpc62',
+    humanizeDistribution: 'uniform',
+    humanizeTime: 0.08,
+    humanizeVel: 0.18,
+    leadChordToneBias: 0.35,
+    accentMapIntensity: 0.65,
+    bassAnticipation: 0.48,
+    chordVoiceLeadingBias: 0.38,
+    enableExactChordVoiceAssignment: false,
+    leadMaxLeapSemitones: 5,
+    spaceMinGap: 0.008,
+    phrasing: 'short',
+    cadenceStrength: 0.42,
+    harmonicRhythmVariance: 0.68,
+    harmonicComplexity: 0.22,
+    pedalToneStrength: 0.65,
+    callResponseIntensity: 0.52,
+    bassEchoProbability: 0.45,
+    densityGateStrength: 0.58,
+    dynamicsShape: 'swell',
+    dynamicsStrength: 0.48,
+    registerLiftStrength: 0.22,
+    extendedLfoTargets: 0.55,
+    sidechainStrength: 0.78,
+    ornamentation: 0.3,
+    legatoStrength: 0.2,
+    chordStabArpIntensity: 0.75,
+  },
+  rock: {
+    grooveTemplate: 'straight',
+    humanizeDistribution: 'gaussian',
+    humanizeTime: 0.22,
+    humanizeVel: 0.32,
+    leadChordToneBias: 0.52,
+    accentMapIntensity: 0.62,
+    bassAnticipation: 0.35,
+    chordVoiceLeadingBias: 0.48,
+    enableExactChordVoiceAssignment: false,
+    leadMaxLeapSemitones: 12,
+    spaceMinGap: 0.018,
+    phrasing: 'medium',
+    cadenceStrength: 0.72,
+    harmonicRhythmVariance: 0.52,
+    harmonicComplexity: 0.32,
+    pedalToneStrength: 0.48,
+    callResponseIntensity: 0.58,
+    bassEchoProbability: 0.38,
+    densityGateStrength: 0.42,
+    dynamicsShape: 'swell',
+    dynamicsStrength: 0.68,
+    registerLiftStrength: 0.38,
+    extendedLfoTargets: 0.28,
+    sidechainStrength: 0.35,
+    ornamentation: 0.45,
+    legatoStrength: 0.3,
+    chordStabArpIntensity: 0.65,
+  },
+  ambient: {
+    grooveTemplate: undefined,
+    humanizeDistribution: 'gaussian',
+    humanizeTime: 0.15,
+    humanizeVel: 0.22,
+    leadChordToneBias: 0.82,
+    accentMapIntensity: 0.08,
+    bassAnticipation: 0.12,
+    chordVoiceLeadingBias: 0.92,
+    enableExactChordVoiceAssignment: true,
+    leadMaxLeapSemitones: 5,
+    spaceMinGap: 0.035,
+    phrasing: 'long',
+    cadenceStrength: 0.28,
+    harmonicRhythmVariance: 0.18,
+    harmonicComplexity: 0.38,
+    pedalToneStrength: 0.78,
+    callResponseIntensity: 0.18,
+    bassEchoProbability: 0.15,
+    densityGateStrength: 0.15,
+    dynamicsShape: 'rise',
+    dynamicsStrength: 0.42,
+    registerLiftStrength: 0.32,
+    extendedLfoTargets: 0.45,
+    sidechainStrength: 0.12,
+    ornamentation: 0.25,
+    legatoStrength: 0.75,
+    chordStabArpIntensity: 0.15,
   },
 };
 
@@ -728,9 +815,12 @@ export function GeneratorUI({ onGenerate }: { onGenerate: (x: { algorithm: Algor
               className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             >
               <option value="edm">🎛️ EDM</option>
-              <option value="cinematic">🎬 Cinematic</option>
-              <option value="lofi">📻 Lo-Fi</option>
+              <option value="techno">🔊 Techno</option>
+              <option value="rock">🎸 Rock</option>
               <option value="jazz">🎷 Jazz</option>
+              <option value="lofi">📻 Lo-Fi</option>
+              <option value="cinematic">🎬 Cinematic</option>
+              <option value="ambient">🌌 Ambient</option>
             </select>
           </div>
 
