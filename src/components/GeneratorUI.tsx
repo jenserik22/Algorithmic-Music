@@ -458,7 +458,12 @@ export function GeneratorUI({ onGenerate }: { onGenerate: (x: { algorithm: Algor
   // --- Advanced defaults application for Enhanced Helix ---
   const lastAdvancedStyleRef = React.useRef<StyleKey | null>(null);
 
-  const applyHelixProfile = React.useCallback((profile: HelixAdvancedProfile) => {
+  const applyHelixProfile = React.useCallback((profile: HelixAdvancedProfile | undefined) => {
+    // Safety check: if profile is undefined, bail out
+    if (!profile) {
+      console.error('[applyHelixProfile] Received undefined profile');
+      return;
+    }
     setGrooveTemplate(profile.grooveTemplate);
     if (profile.humanizeDistribution) setHumanizeDistribution(profile.humanizeDistribution);
     setHumanizeTimeAmt(profile.humanizeTime);
@@ -490,12 +495,24 @@ export function GeneratorUI({ onGenerate }: { onGenerate: (x: { algorithm: Algor
   }, []);
 
   const applyAdvancedDefaults = React.useCallback((sty: StyleKey) => {
-    applyHelixProfile(ADVANCED_PROFILES[sty]);
+    const profile = ADVANCED_PROFILES[sty];
+    if (!profile) {
+      console.error(`[applyAdvancedDefaults] No profile found for style: ${sty}`);
+      console.log('[applyAdvancedDefaults] Available styles:', Object.keys(ADVANCED_PROFILES));
+      return;
+    }
+    applyHelixProfile(profile);
     lastAdvancedStyleRef.current = sty;
   }, [applyHelixProfile]);
 
   const applyHumanizePreset = React.useCallback((sty: StyleKey) => {
-    applyHelixProfile(HUMANIZE_PRESETS[sty]);
+    const profile = HUMANIZE_PRESETS[sty];
+    if (!profile) {
+      console.error(`[applyHumanizePreset] No profile found for style: ${sty}`);
+      console.log('[applyHumanizePreset] Available styles:', Object.keys(HUMANIZE_PRESETS));
+      return;
+    }
+    applyHelixProfile(profile);
   }, [applyHelixProfile]);
 
   // CRITICAL FIX: Apply style defaults IMMEDIATELY when switching to advanced mode
