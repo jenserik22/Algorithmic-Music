@@ -414,6 +414,26 @@ export const EnhancedHelixEngine: Engine = {
       val = 0.55 + (val - 0.55) * (1 + 0.6 * extraVelHumanize);
       return Math.max(0.1, Math.min(1, val));
     };
+    
+    // Week 2 Refactor: Track-aware velocity humanization using DynamicsEngine
+    // This provides consistent, musical velocity variations per instrument
+    const humanizeVelocityForTrack = (v: number, track: NoteEvent['track']): number => {
+      // Use dynamics engine with track-specific variance
+      const humanized = dynamicsEngine.humanizeVelocity(v, track ?? 'chords', variation);
+      
+      // Add extra humanization if requested (backward compatibility)
+      if (extraVelHumanize > 0) {
+        const headroom = Math.max(0, Math.min(1 - humanized, humanized - 0.1));
+        const extraAmp = 0.5 * extraVelHumanize;
+        const extra = dist === 'gaussian'
+          ? gaussianJitter(rand, (headroom * extraAmp) / 1.96, headroom * extraAmp)
+          : (rand() - 0.5) * 2 * headroom * extraAmp;
+        return Math.max(0.1, Math.min(1.0, humanized + extra));
+      }
+      
+      return humanized;
+    };
+    
     const applySwing = (time: number, swing: number) => {
       const beatPos = (time % beat) / (beat / 4); // Position within beat (0-4 sixteenths)
       const isOffbeat = Math.floor(beatPos) % 2 === 1;
@@ -463,15 +483,22 @@ export const EnhancedHelixEngine: Engine = {
       params.leadMaxLeapSemitones ||
       params.spaceAllocatorMinGapSecs
     );
+    // Week 2 Refactor: Use TimingEngine for coordinated humanization
     const finalizeTime = (t: number, pos16: number, swing: number, track: NoteEvent['track']): number => {
-      // Baseline (Phase 0):
-      // - lead/drums: humanizeTime + swing
-      // - chords/bass/fx: humanizeTime only (no swing)
-      // Phase 1 (when active): add groove offsets before swing for lead/drums
+      // Calculate bar index for ensemble drift
+      const barIndex = Math.floor(t / (4 * beat));
+      
+      // Add legacy humanizeTime if extra humanization requested (backward compatibility)
       const base = humanizeTime(t);
+      
+      // Add Phase 1 groove offset if active (backward compatibility)
       const withGroove = isPhase1Active ? base + grooveOffset(pos16, track) : base;
-      const needsSwing = track === 'lead' || track === 'drums';
-      return needsSwing ? applySwing(withGroove, swing) : withGroove;
+      
+      // Use timing engine for ensemble drift + micro-timing + swing
+      // Note: swing parameter overrides groove template swing if provided
+      const finalTime = timingEngine.finalizeTime(withGroove, pos16, barIndex, track ?? 'chords', swing);
+      
+      return finalTime;
     };
 
     // Phase 2 activation (phrasing & cadence)
@@ -580,7 +607,8 @@ export const EnhancedHelixEngine: Engine = {
       // Generate events for this section based on included instruments
       if (section.instruments.includes('lead')) {
         generateLeadLine(events, currentTime, sectionDuration, section, config, leadMotif, {
-          rand, roll, humanizeTime, humanizeVelocity, applySwing, scalePitch, beat, sixteenth, choose, finalizeTime, params,
+          rand, roll, humanizeTime, humanizeVelocity, humanizeVelocityForTrack, applySwing, scalePitch, beat, sixteenth, choose, finalizeTime, params,
+          timingEngine, dynamicsEngine,
           cr: { intensity: crIntensity, responseEven, densityGate },
           simple: { simpleMode, simpleDefaults, motifMemory, motifCounters, progressionAtTime }
         });
@@ -588,14 +616,16 @@ export const EnhancedHelixEngine: Engine = {
       
       if (section.instruments.includes('chords')) {
         generateChordProgression(events, currentTime, sectionDuration, section, config, {
-          rand, roll, humanizeTime, humanizeVelocity, scalePitch, beat, rootC4, scale, choose, finalizeTime, params,
+          rand, roll, humanizeTime, humanizeVelocity, humanizeVelocityForTrack, scalePitch, beat, rootC4, scale, choose, finalizeTime, params,
+          timingEngine, dynamicsEngine,
           cr: { intensity: crIntensity, responseEven, densityGate }
         });
       }
       
       if (section.instruments.includes('bass')) {
         generateBassLine(events, currentTime, sectionDuration, section, config, {
-          rand, roll, humanizeTime, humanizeVelocity, scalePitch, beat, sixteenth, choose, finalizeTime, params,
+          rand, roll, humanizeTime, humanizeVelocity, humanizeVelocityForTrack, scalePitch, beat, sixteenth, choose, finalizeTime, params,
+          timingEngine, dynamicsEngine,
           cr: { intensity: crIntensity, responseEven, densityGate },
           simple: { simpleMode, progressionAtTime }
         });
@@ -603,14 +633,16 @@ export const EnhancedHelixEngine: Engine = {
       
       if (section.instruments.includes('drums')) {
         generateDrumPattern(events, currentTime, sectionDuration, section, config, {
-          rand, roll, humanizeTime, humanizeVelocity, applySwing, beat, sixteenth, choose, finalizeTime, params,
+          rand, roll, humanizeTime, humanizeVelocity, humanizeVelocityForTrack, applySwing, beat, sixteenth, choose, finalizeTime, params,
+          timingEngine, dynamicsEngine,
           phase9: isPhase9Active ? { hatBias: hatBias16, s: adaptiveStrength } : undefined,
         });
       }
       
       if (section.instruments.includes('fx')) {
         generateFXEvents(events, currentTime, sectionDuration, section, config, {
-          rand, roll, humanizeTime, humanizeVelocity, beat
+          rand, roll, humanizeTime, humanizeVelocity, humanizeVelocityForTrack, beat,
+          timingEngine, dynamicsEngine
         });
       }
 
