@@ -314,12 +314,19 @@ export const EnhancedHelixEngine: Engine = {
     // If key ends with 'm' or 'min', use aeolian (minor), otherwise use template's scale
     const isMinorKey = params.key.toLowerCase().endsWith('m');
     let scaleMode = config.scale;
+    console.log('[DEBUG] Key detection:', {
+      userKey: params.key,
+      isMinorKey,
+      templateScale: config.scale,
+      style
+    });
     if (isMinorKey && scaleMode === 'ionian') {
       scaleMode = 'aeolian'; // User wants minor, override to minor
     } else if (!isMinorKey && scaleMode === 'aeolian') {
       scaleMode = 'ionian'; // User wants major, override to major
     }
     const scale = SCALES[scaleMode];
+    console.log('[DEBUG] Final scale mode:', scaleMode, '(', scale, ')');
     const complexity = params.complexityLevel ?? 'intermediate';
     const variation = Math.max(0, Math.min(1, params.variation ?? 0.4));
     

@@ -132,11 +132,22 @@ export class MidiExporter {
     const groups: Record<string, MidiTrackData> = {};
     const mapping = (() => { try { return loadMapping(); } catch { return defaultMapping(); } })();
 
+    console.log('[DEBUG] Mapping loaded:', {
+      channelCount: mapping?.channels?.length || 0,
+      channelIds: mapping?.channels?.map(ch => ch.id) || []
+    });
+
     if (mapping?.channels?.length) {
       for (const ch of mapping.channels) {
         const key = ch.id;
         const source = ch.source;
         const evs = events.filter((e) => (e.track || 'lead') === source);
+        console.log('[DEBUG] Processing channel:', {
+          id: key,
+          source,
+          eventCount: evs.length,
+          willCreate: evs.length > 0
+        });
         if (!evs.length) continue;
         groups[key] = {
           trackName: ch.name || source,
@@ -145,6 +156,7 @@ export class MidiExporter {
           events: evs,
         };
       }
+      console.log('[DEBUG] Groups created from mapping:', Object.keys(groups).length);
       return groups;
     }
 

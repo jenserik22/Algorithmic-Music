@@ -58,10 +58,6 @@ type HelixAdvancedProfile = {
   ornamentation?: number;
   legatoStrength?: number;
   chordStabArpIntensity?: number;
-  // Phase 8 (optional in profiles)
-  evaluationStrength?: number;
-  autoRepairStrength?: number;
-  autoRepairBudgetMs?: number;
 };
 
 const ADVANCED_PROFILES: Record<StyleKey, HelixAdvancedProfile> = {
@@ -201,10 +197,6 @@ const HUMANIZE_PRESETS: Record<StyleKey, HelixAdvancedProfile> = {
     ornamentation: 0.5,
     legatoStrength: 0.4,
     chordStabArpIntensity: 0.6,
-    // Phase 8
-    evaluationStrength: 0.5,
-    autoRepairStrength: 0.4,
-    autoRepairBudgetMs: 6,
   },
   cinematic: {
     grooveTemplate: undefined,
@@ -234,9 +226,6 @@ const HUMANIZE_PRESETS: Record<StyleKey, HelixAdvancedProfile> = {
     ornamentation: 0.35,
     legatoStrength: 0.5,
     chordStabArpIntensity: 0.3,
-    evaluationStrength: 0.4,
-    autoRepairStrength: 0.35,
-    autoRepairBudgetMs: 6,
   },
   lofi: {
     grooveTemplate: 'shuffle',
@@ -266,9 +255,6 @@ const HUMANIZE_PRESETS: Record<StyleKey, HelixAdvancedProfile> = {
     ornamentation: 0.4,
     legatoStrength: 0.6,
     chordStabArpIntensity: 0.2,
-    evaluationStrength: 0.5,
-    autoRepairStrength: 0.3,
-    autoRepairBudgetMs: 6,
   },
   jazz: {
     grooveTemplate: 'shuffle',
@@ -298,9 +284,6 @@ const HUMANIZE_PRESETS: Record<StyleKey, HelixAdvancedProfile> = {
     ornamentation: 0.5,
     legatoStrength: 0.5,
     chordStabArpIntensity: 0.25,
-    evaluationStrength: 0.5,
-    autoRepairStrength: 0.35,
-    autoRepairBudgetMs: 6,
   },
 };
 
@@ -365,10 +348,6 @@ export function GeneratorUI({ onGenerate }: { onGenerate: (x: { algorithm: Algor
   const [legatoStrength, setLegatoStrength] = useState<number>(0);
   const [chordStabArpIntensity, setChordStabArpIntensity] = useState<number>(0);
 
-  // Phase 8 evaluation & auto-repair (Enhanced Helix only)
-  const [evaluationStrength, setEvaluationStrength] = useState<number>(0);
-  const [autoRepairStrength, setAutoRepairStrength] = useState<number>(0);
-  const [autoRepairBudgetMs, setAutoRepairBudgetMs] = useState<number>(6);
   // Phase 9 adaptive weighting (Enhanced Helix only)
   const [adaptiveWeightingStrength, setAdaptiveWeightingStrength] = useState<number>(0);
   const [adaptiveProfileId, setAdaptiveProfileId] = useState<string>('');
@@ -388,6 +367,17 @@ export function GeneratorUI({ onGenerate }: { onGenerate: (x: { algorithm: Algor
       setDurationSecs(16);
     }
   }, [mode, base, durationSecs]);
+
+  // CRITICAL FIX: Apply style defaults IMMEDIATELY when switching to advanced mode
+  // This prevents users from seeing all zeros and feeling lost
+  const previousMode = React.useRef<'simple'|'advanced'>('simple');
+  React.useEffect(() => {
+    if (mode === 'advanced' && previousMode.current === 'simple' && algorithm === 'enhanced_helix') {
+      // User just switched to advanced mode - apply defaults immediately
+      applyAdvancedDefaults(style);
+    }
+    previousMode.current = mode;
+  }, [mode, algorithm, style, applyAdvancedDefaults]);
 
   // --- Advanced defaults application for Enhanced Helix ---
   const lastAdvancedStyleRef = React.useRef<StyleKey | null>(null);
@@ -420,9 +410,6 @@ export function GeneratorUI({ onGenerate }: { onGenerate: (x: { algorithm: Algor
     if (profile.ornamentation !== undefined) setOrnamentation(profile.ornamentation);
     if (profile.legatoStrength !== undefined) setLegatoStrength(profile.legatoStrength);
     if (profile.chordStabArpIntensity !== undefined) setChordStabArpIntensity(profile.chordStabArpIntensity);
-    if (profile.evaluationStrength !== undefined) setEvaluationStrength(profile.evaluationStrength);
-    if (profile.autoRepairStrength !== undefined) setAutoRepairStrength(profile.autoRepairStrength);
-    if (profile.autoRepairBudgetMs !== undefined) setAutoRepairBudgetMs(profile.autoRepairBudgetMs);
   }, []);
 
   const applyAdvancedDefaults = React.useCallback((sty: StyleKey) => {
@@ -535,10 +522,6 @@ export function GeneratorUI({ onGenerate }: { onGenerate: (x: { algorithm: Algor
       ornamentation: ornamentation || undefined,
       legatoStrength: legatoStrength || undefined,
       chordStabArpIntensity: chordStabArpIntensity || undefined,
-      // Phase 8
-      evaluationStrength: evaluationStrength || undefined,
-      autoRepairStrength: autoRepairStrength || undefined,
-      autoRepairBudgetMs: autoRepairStrength > 0 ? autoRepairBudgetMs : undefined,
       // Phase 9
       adaptiveWeightingStrength: adaptiveWeightingStrength > 0 ? adaptiveWeightingStrength : undefined,
       adaptiveProfileId: adaptiveProfileId.trim() ? adaptiveProfileId.trim() : undefined,
@@ -581,9 +564,6 @@ export function GeneratorUI({ onGenerate }: { onGenerate: (x: { algorithm: Algor
       ornamentation: ornamentation || undefined,
       legatoStrength: legatoStrength || undefined,
       chordStabArpIntensity: chordStabArpIntensity || undefined,
-      evaluationStrength: evaluationStrength || undefined,
-      autoRepairStrength: autoRepairStrength || undefined,
-      autoRepairBudgetMs: autoRepairStrength > 0 ? autoRepairBudgetMs : undefined,
       adaptiveWeightingStrength: adaptiveWeightingStrength > 0 ? adaptiveWeightingStrength : undefined,
       adaptiveProfileId: adaptiveProfileId.trim() ? adaptiveProfileId.trim() : undefined,
     };
@@ -671,6 +651,17 @@ export function GeneratorUI({ onGenerate }: { onGenerate: (x: { algorithm: Algor
 
       {/* Advanced Parameters */}
       {mode === 'advanced' && (
+        <>
+          {/* Info Banner */}
+          <div className="mb-4 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+            <h4 className="text-sm font-semibold text-blue-900 dark:text-blue-100 mb-1">✨ Advanced Mode Active</h4>
+            <p className="text-xs text-blue-700 dark:text-blue-300">
+              Full control over Enhanced Helix engine with modular generators (lead, chords, bass, drums, fx), 
+              ensemble-based humanization, dynamic phrasing, and sophisticated harmony. 
+              Style presets auto-configure parameters when switching styles.
+            </p>
+          </div>
+          
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
             <label htmlFor="bpmInput" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
@@ -1039,18 +1030,10 @@ export function GeneratorUI({ onGenerate }: { onGenerate: (x: { algorithm: Algor
                   <input type="range" min="0" max="1" step="0.05" value={chordStabArpIntensity} onChange={e=>setChordStabArpIntensity(Number(e.target.value))} className="w-full" />
                 </div>
 
-                {/* Phase 8: Evaluation & Auto-Repair */}
+                {/* Phase 9: Adaptive Bias (Optional) */}
                 <div className="col-span-2 pt-2">
-                  <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200">Evaluation & Auto-Repair</h3>
-                </div>
-                <div className="space-y-2">
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Evaluation Strength: {evaluationStrength.toFixed(2)}</label>
-                  <input type="range" min="0" max="1" step="0.05" value={evaluationStrength} onChange={e=>setEvaluationStrength(Number(e.target.value))} className="w-full" />
-                </div>
-
-                {/* Phase 9: Adaptive Bias */}
-                <div className="col-span-2 pt-2">
-                  <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200">Adaptive Bias (Phase 9)</h3>
+                  <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200">🔬 Experimental: Adaptive Bias</h3>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Optional AI-driven parameter adjustment</p>
                 </div>
                 <div className="space-y-2">
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Adaptive Weighting: {adaptiveWeightingStrength.toFixed(2)}</label>
@@ -1059,21 +1042,14 @@ export function GeneratorUI({ onGenerate }: { onGenerate: (x: { algorithm: Algor
                 <div className="space-y-2">
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Profile Id (optional)</label>
                   <input type="text" value={adaptiveProfileId} onChange={e=>setAdaptiveProfileId(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white" />
-                </div>
-                <div className="space-y-2">
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Auto-Repair Strength: {autoRepairStrength.toFixed(2)}</label>
-                  <input type="range" min="0" max="1" step="0.05" value={autoRepairStrength} onChange={e=>setAutoRepairStrength(Number(e.target.value))} className="w-full" />
-                </div>
-                <div className="space-y-2">
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Auto-Repair Budget (ms)</label>
-                  <input type="number" min="0" max="50" step="1" value={autoRepairBudgetMs} onChange={e=>setAutoRepairBudgetMs(Number(e.target.value))}
+                    placeholder="Leave empty for auto"
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white" />
                 </div>
               </div>
             </div>
           )}
         </div>
+        </>
       )}
 
       {/* Action Buttons */}
