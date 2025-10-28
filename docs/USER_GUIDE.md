@@ -209,6 +209,129 @@ The modern algorithm with all features:
 
 ## Parameter Reference
 
+### Basic Parameters
+
+These parameters are available in both Simple and Advanced modes.
+
+#### **Algorithm**
+- **Values:** Enhanced Helix | Baseline
+- **Effect:** Generation engine selection
+- **Tooltip:** "Generation engine. Enhanced Helix (recommended): modern multi-track with 32 parameters. Baseline: original simple algorithm."
+- **Recommended:** Enhanced Helix for all use cases
+
+#### **Preset** (Simple Mode only)
+- **Values:** All styles available as presets
+- **Effect:** Quick start templates
+- **Tooltip:** "Quick start templates. Each preset is pre-configured with style-specific parameters for instant results."
+
+#### **BPM (Beats Per Minute)**
+- **Range:** 60-180
+- **Effect:** Overall tempo of the track
+- **Tooltip:** "Beats per minute (tempo). Slower: 60-90 (ambient, ballads), Medium: 100-130 (pop, rock), Fast: 130-180 (EDM, techno)."
+- **By Style:**
+  - Ambient: 60 BPM
+  - Lo-Fi: 85 BPM
+  - Cinematic: 90 BPM
+  - Rock: 120 BPM
+  - Jazz: 120-140 BPM
+  - EDM: 128 BPM
+  - Techno: 130 BPM
+
+#### **Key**
+- **Values:** C, C#/Db, D, D#/Eb, E, F, F#/Gb, G, G#/Ab, A, A#/Bb, B (+ major/minor)
+- **Effect:** Tonal center of the track
+- **Tooltip:** "Musical key (tonal center). Add 'm' for minor (sad/dark). Examples: C major (bright), Am (melancholic), F#m (dark energy)."
+- **Examples:**
+  - C: Bright, open (major)
+  - Am: Melancholic, introspective (minor)
+  - F#m: Dark, energetic (minor)
+  - Eb: Warm, jazzy (major)
+
+#### **Time Signature**
+- **Values:** 4/4, 3/4, 7/8, 5/4, 6/8
+- **Effect:** Rhythmic structure
+- **Tooltip:** "Rhythm structure. 4/4 (common time, most music), 3/4 (waltz), 7/8 (progressive/complex)."
+- **Common uses:**
+  - 4/4: Most popular music (rock, pop, EDM, jazz)
+  - 3/4: Waltz, ballads
+  - 7/8: Progressive rock, experimental
+  - 6/8: Compound time, flowing feel
+
+#### **Duration (seconds)**
+- **Range:** 15-120 seconds
+- **Effect:** Total track length
+- **Tooltip:** "Total track length. Simple Mode: 15-120s. Advanced Mode: typically 16s for testing, 30-60s for full tracks."
+- **Typical:**
+  - Testing: 16-30 seconds
+  - Full loops: 30-60 seconds
+  - Extended: 90-120 seconds
+
+#### **Style**
+- **Values:** EDM, Techno, Rock, Jazz, Lo-Fi, Cinematic, Ambient
+- **Effect:** Musical genre template
+- **Tooltip:** "Musical genre/template. Each style auto-configures tempo, groove, harmony, and instrumentation. In Advanced Mode, switching styles updates all parameters."
+- **Behavior:** In Advanced Mode, selecting a style auto-populates all 32 parameters with style-appropriate defaults
+
+#### **Complexity**
+- **Values:** Beginner, Intermediate, Expert
+- **Effect:** Overall musical sophistication
+- **Tooltip:** "Overall musical sophistication. Beginner: simple patterns, Intermediate: balanced, Expert: complex rhythms/harmony."
+- **Impact:**
+  - Beginner: Simple rhythms, basic harmony, predictable patterns
+  - Intermediate: Balanced complexity, varied patterns
+  - Expert: Complex rhythms, sophisticated harmony, intricate patterns
+
+#### **Density**
+- **Range:** 0.0 - 1.0
+- **Effect:** Note quantity across all tracks
+- **Tooltip:** "How many notes are generated. 0.3=sparse/minimal, 0.5=balanced, 0.8=busy/dense. Affects all tracks."
+- **Typical:**
+  - Sparse: 0.3 (ambient, minimal)
+  - Balanced: 0.5 (most styles)
+  - Dense: 0.7-0.8 (jazz, complex EDM)
+
+#### **Variation**
+- **Range:** 0.0 - 1.0
+- **Effect:** Randomness vs. repetition
+- **Tooltip:** "Randomness vs. repetition. 0=highly repetitive patterns, 0.5=balanced, 1=maximum variety/unpredictability."
+- **Typical:**
+  - Repetitive: 0.2-0.3 (techno, minimal)
+  - Balanced: 0.5 (most styles)
+  - High variety: 0.7-0.9 (jazz, experimental)
+
+#### **Fill Rate**
+- **Range:** 0.0 - 1.0
+- **Effect:** Drum fills and transitions
+- **Tooltip:** "Drum fills and transitions. 0=none (minimal techno), 0.5=occasional fills, 1.0=frequent fills (rock/jazz)."
+- **By Style:**
+  - Techno: 0.2 (minimal fills)
+  - EDM: 0.5 (balanced)
+  - Rock/Jazz: 0.7-1.0 (frequent fills)
+
+#### **Motion** (Helix algorithms only)
+- **Range:** 0.0 - 1.0
+- **Effect:** Melodic movement tendency
+- **Tooltip:** "Melodic movement tendency (Helix algorithm). 0=static/pedal tones, 0.5=balanced, 1=constant movement/arpeggios."
+- **Typical:**
+  - Static: 0.1-0.2 (ambient, drones)
+  - Balanced: 0.5 (most melodies)
+  - Active: 0.8-1.0 (arpeggios, runs)
+
+#### **Brightness** (Helix algorithms only)
+- **Range:** 0.0 - 1.0
+- **Effect:** Register/pitch range
+- **Tooltip:** "Timbral character (Helix algorithm). 0=dark/low register, 0.5=balanced, 1=bright/high register. Affects note range selection."
+- **Typical:**
+  - Dark: 0.2-0.3 (bass-heavy, moody)
+  - Balanced: 0.5 (natural range)
+  - Bright: 0.7-0.9 (high leads, sparkle)
+
+---
+
+### Advanced Parameters (Enhanced Helix Only)
+
+The following parameters are only available in Advanced Mode with the Enhanced Helix algorithm.
+
 ### Humanization
 
 #### **Humanize Distribution**
@@ -402,6 +525,26 @@ The modern algorithm with all features:
 - **Effect:** Block chords vs arpeggios
 - **Tooltip:** "Chords as stabs or arpeggios. 0=block chords, 0.5=mix, 1=broken/arpeggiated chords (EDM/techno)"
 - **Typical:** 0.30-0.70 (higher for electronic styles)
+
+---
+
+### Experimental Parameters
+
+These parameters are experimental and should be used with caution. They may override manual settings.
+
+#### **Adaptive Weighting**
+- **Range:** 0.0 - 1.0
+- **Effect:** AI-driven parameter adjustment
+- **Tooltip:** "[EXPERIMENTAL] AI-driven parameter adjustment. 0=disabled, 1=full AI control. May override manual settings. Use with caution."
+- **Warning:** When enabled, this feature may automatically adjust other parameters based on AI analysis
+- **Recommended:** Leave at 0.0 unless experimenting with AI-assisted generation
+
+#### **Profile Id**
+- **Type:** Text input (optional)
+- **Effect:** Custom AI profile identifier
+- **Tooltip:** "[EXPERIMENTAL] Custom AI profile identifier. Leave empty for auto-detection. Advanced use only."
+- **Usage:** Leave empty for automatic behavior
+- **Advanced:** Provide custom profile ID for specialized AI behavior (requires deep knowledge of system)
 
 ---
 

@@ -599,7 +599,7 @@ export function GeneratorUI({ onGenerate }: { onGenerate: (x: { algorithm: Algor
       {/* Algorithm Selection */}
       <div className="space-y-2">
         <label htmlFor="algorithmSelect" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-          Algorithm
+          <LabelWithTooltip label="Algorithm" tooltip="Generation engine. Enhanced Helix (recommended): modern multi-track with 32 parameters. Baseline: original simple algorithm." />
         </label>
         <select
           id="algorithmSelect"
@@ -620,7 +620,7 @@ export function GeneratorUI({ onGenerate }: { onGenerate: (x: { algorithm: Algor
       {mode === 'simple' && (
         <div className="space-y-2">
           <label htmlFor="presetSelect" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-            Preset
+            <LabelWithTooltip label="Preset" tooltip="Quick start templates. Each preset is pre-configured with style-specific parameters for instant results." />
           </label>
           <select
             id="presetSelect"
@@ -651,7 +651,7 @@ export function GeneratorUI({ onGenerate }: { onGenerate: (x: { algorithm: Algor
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
             <label htmlFor="bpmInput" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-              BPM
+              <LabelWithTooltip label="BPM" tooltip="Beats per minute (tempo). Slower: 60-90 (ambient, ballads), Medium: 100-130 (pop, rock), Fast: 130-180 (EDM, techno)." />
             </label>
             <input
               id="bpmInput"
@@ -665,7 +665,7 @@ export function GeneratorUI({ onGenerate }: { onGenerate: (x: { algorithm: Algor
 
           <div className="space-y-2">
             <label htmlFor="keySelect" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-              Key
+              <LabelWithTooltip label="Key" tooltip="Musical key (tonal center). Add 'm' for minor (sad/dark). Examples: C major (bright), Am (melancholic), F#m (dark energy)." />
             </label>
             <select
               id="keySelect"
@@ -679,7 +679,7 @@ export function GeneratorUI({ onGenerate }: { onGenerate: (x: { algorithm: Algor
 
           <div className="space-y-2">
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-              Time Signature
+              <LabelWithTooltip label="Time Signature" tooltip="Rhythm structure. 4/4 (common time, most music), 3/4 (waltz), 7/8 (progressive/complex)." />
             </label>
             <select 
               value={timeSignature} 
@@ -692,7 +692,7 @@ export function GeneratorUI({ onGenerate }: { onGenerate: (x: { algorithm: Algor
 
           <div className="space-y-2">
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-              Duration (seconds)
+              <LabelWithTooltip label="Duration (seconds)" tooltip="Total track length. Simple Mode: 15-120s. Advanced Mode: typically 16s for testing, 30-60s for full tracks." />
             </label>
             <input 
               type="number" 
@@ -705,7 +705,7 @@ export function GeneratorUI({ onGenerate }: { onGenerate: (x: { algorithm: Algor
 
           <div className="space-y-2">
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-              Style
+              <LabelWithTooltip label="Style" tooltip="Musical genre/template. Each style auto-configures tempo, groove, harmony, and instrumentation. In Advanced Mode, switching styles updates all parameters." />
             </label>
             <select 
               value={style} 
@@ -724,7 +724,7 @@ export function GeneratorUI({ onGenerate }: { onGenerate: (x: { algorithm: Algor
 
           <div className="space-y-2">
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-              Complexity
+              <LabelWithTooltip label="Complexity" tooltip="Overall musical sophistication. Beginner: simple patterns, Intermediate: balanced, Expert: complex rhythms/harmony." />
             </label>
             <select 
               value={complexityLevel} 
@@ -742,7 +742,7 @@ export function GeneratorUI({ onGenerate }: { onGenerate: (x: { algorithm: Algor
           <div className="col-span-2 grid grid-cols-3 gap-4">
             <div className="space-y-2">
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                Density: {density.toFixed(2)}
+                <LabelWithTooltip label={`Density: ${density.toFixed(2)}`} tooltip="How many notes are generated. 0.3=sparse/minimal, 0.5=balanced, 0.8=busy/dense. Affects all tracks." />
               </label>
               <input 
                 type="range" 
@@ -755,7 +755,7 @@ export function GeneratorUI({ onGenerate }: { onGenerate: (x: { algorithm: Algor
 
             <div className="space-y-2">
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                Variation: {variation.toFixed(2)}
+                <LabelWithTooltip label={`Variation: ${variation.toFixed(2)}`} tooltip="Randomness vs. repetition. 0=highly repetitive patterns, 0.5=balanced, 1=maximum variety/unpredictability." />
               </label>
               <input 
                 type="range" 
@@ -768,7 +768,7 @@ export function GeneratorUI({ onGenerate }: { onGenerate: (x: { algorithm: Algor
 
             <div className="space-y-2">
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                Fill Rate: {fillRate.toFixed(1)}
+                <LabelWithTooltip label={`Fill Rate: ${fillRate.toFixed(1)}`} tooltip="Drum fills and transitions. 0=none (minimal techno), 0.5=occasional fills, 1.0=frequent fills (rock/jazz)." />
               </label>
               <input 
                 type="range" 
@@ -785,7 +785,7 @@ export function GeneratorUI({ onGenerate }: { onGenerate: (x: { algorithm: Algor
             <div className="col-span-2 grid grid-cols-2 gap-4 pt-4 border-t border-gray-200 dark:border-gray-600">
               <div className="space-y-2">
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Motion: {motion.toFixed(2)}
+                  <LabelWithTooltip label={`Motion: ${motion.toFixed(2)}`} tooltip="Melodic movement tendency (Helix algorithm). 0=static/pedal tones, 0.5=balanced, 1=constant movement/arpeggios." />
                 </label>
                 <input 
                   type="range" 
@@ -798,7 +798,7 @@ export function GeneratorUI({ onGenerate }: { onGenerate: (x: { algorithm: Algor
 
               <div className="space-y-2">
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Brightness: {brightness.toFixed(2)}
+                  <LabelWithTooltip label={`Brightness: ${brightness.toFixed(2)}`} tooltip="Timbral character (Helix algorithm). 0=dark/low register, 0.5=balanced, 1=bright/high register. Affects note range selection." />
                 </label>
                 <input 
                   type="range" 
@@ -1090,11 +1090,15 @@ export function GeneratorUI({ onGenerate }: { onGenerate: (x: { algorithm: Algor
                   <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Optional AI-driven parameter adjustment</p>
                 </div>
                 <div className="space-y-2">
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Adaptive Weighting: {adaptiveWeightingStrength.toFixed(2)}</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    <LabelWithTooltip label={`Adaptive Weighting: ${adaptiveWeightingStrength.toFixed(2)}`} tooltip="[EXPERIMENTAL] AI-driven parameter adjustment. 0=disabled, 1=full AI control. May override manual settings. Use with caution." />
+                  </label>
                   <input type="range" min="0" max="1" step="0.05" value={adaptiveWeightingStrength} onChange={e=>setAdaptiveWeightingStrength(Number(e.target.value))} className="w-full" />
                 </div>
                 <div className="space-y-2">
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Profile Id (optional)</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    <LabelWithTooltip label="Profile Id (optional)" tooltip="[EXPERIMENTAL] Custom AI profile identifier. Leave empty for auto-detection. Advanced use only." />
+                  </label>
                   <input type="text" value={adaptiveProfileId} onChange={e=>setAdaptiveProfileId(e.target.value)}
                     placeholder="Leave empty for auto"
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white" />
