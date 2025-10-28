@@ -213,17 +213,7 @@ export function useGeneration() {
         c.timer = setTimeout(() => {
           if (c.canceled) return reject(new Error('cancelled'));
           try {
-            console.log('[DEBUG] useGeneration.generate() calling engine with params:', {
-              durationSecs: params.durationSecs,
-              bpm: params.bpm,
-              key: params.key,
-              style: params.style
-            });
             const out = engine.generate(params);
-            console.log('[DEBUG] useGeneration.generate() got output:', {
-              eventCount: out.events.length,
-              maxTime: out.events.length > 0 ? Math.max(...out.events.map(e => e.time + e.duration)) : 0
-            });
             setProgress(100);
             setStatus('success');
             setOutput(out);

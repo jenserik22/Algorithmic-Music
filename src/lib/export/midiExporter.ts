@@ -53,26 +53,12 @@ export class MidiExporter {
    * Generate MIDI file data from engine output
    */
   private static generateMidiData(output: EngineOutput, options: MidiExportOptions): Uint8Array {
-    // DEBUG: Check what we're receiving
-    console.log('[DEBUG] MIDI Export receiving:', {
-      eventCount: output.events?.length || 0,
-      maxTime: output.events?.length > 0 ? Math.max(...output.events.map(e => e.time + e.duration)) : 0,
-      firstFewEvents: output.events?.slice(0, 5).map(e => ({ track: e.track, time: e.time, duration: e.duration }))
-    });
-    
     // Group events by track
     const trackGroups = this.groupEventsByTrack(output.events);
     
     // Add tempo and time signature
     const bpm = output.meta?.bpm || 120;
     const timeSignature = this.parseTimeSignature((output as any).meta?.timeSignature || '4/4');
-    
-    // Log basic export information
-    console.log('MIDI Export:', {
-      bpm,
-      totalEvents: output.events?.length || 0,
-      trackCount: Object.keys(trackGroups).length
-    });
     
     // Create tempo track (track 0)
     const tempoTrack = new MidiWriter.Track();
@@ -105,22 +91,14 @@ export class MidiExporter {
     // Create tracks for each instrument (ONLY if they have events)
     Object.entries(trackGroups).forEach(([trackName, trackData]) => {
       if (trackData.events.length > 0) {
-        console.log('[DEBUG] Creating MIDI track:', trackName, 'with', trackData.events.length, 'events');
         const track = this.createMidiTrack(trackData, bpm, options);
         tracks.push(track);
-      } else {
-        console.log('[DEBUG] Skipping empty track:', trackName);
       }
     });
-    
-    console.log('[DEBUG] Total MIDI tracks created:', tracks.length, '(including tempo track)');
     
     // Create MIDI writer with tracks array
     // CRITICAL: Set PPQ (ticks per quarter note) to match our timing expectations
     const writer = new MidiWriter.Writer(tracks);
-    
-    console.log('[DEBUG] MIDI Writer PPQ:', (writer as any).header?.ticksPerBeat || 'unknown');
-    
     const data = writer.buildFile();
     return data;
   }
@@ -132,22 +110,11 @@ export class MidiExporter {
     const groups: Record<string, MidiTrackData> = {};
     const mapping = (() => { try { return loadMapping(); } catch { return defaultMapping(); } })();
 
-    console.log('[DEBUG] Mapping loaded:', {
-      channelCount: mapping?.channels?.length || 0,
-      channelIds: mapping?.channels?.map(ch => ch.id) || []
-    });
-
     if (mapping?.channels?.length) {
       for (const ch of mapping.channels) {
         const key = ch.id;
         const source = ch.source;
         const evs = events.filter((e) => (e.track || 'lead') === source);
-        console.log('[DEBUG] Processing channel:', {
-          id: key,
-          source,
-          eventCount: evs.length,
-          willCreate: evs.length > 0
-        });
         if (!evs.length) continue;
         groups[key] = {
           trackName: ch.name || source,
@@ -156,7 +123,6 @@ export class MidiExporter {
           events: evs,
         };
       }
-      console.log('[DEBUG] Groups created from mapping:', Object.keys(groups).length);
       return groups;
     }
 
@@ -235,20 +201,6 @@ export class MidiExporter {
       const waitStr = this.beatsToDurationString(waitBeats);
       const durStr = this.beatsToDurationString(durationBeats) || '16';
 
-      // DEBUG: Log first few notes to see timing
-      if (sortedEvents.indexOf(noteEvent) < 3) {
-        console.log('[DEBUG] MIDI Note timing:', {
-          track: trackData.trackName,
-          eventTimeSec,
-          lastNoteStartTimeSec,
-          rawWaitSec,
-          waitBeats,
-          waitStr,
-          durationBeats,
-          durStr
-        });
-      }
-
       // Create MIDI note event with optional wait
       const eventConfig: any = {
         pitch: [pitch],
@@ -265,12 +217,6 @@ export class MidiExporter {
 
       // Track start time of this note for next iteration
       lastNoteStartTimeSec = eventTimeSec;
-    });
-    
-    console.log('[DEBUG] MIDI Track created:', {
-      trackName: trackData.trackName,
-      eventCount: sortedEvents.length,
-      lastNoteTime: lastNoteStartTimeSec
     });
     
     return track;
