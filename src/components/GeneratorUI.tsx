@@ -1144,7 +1144,9 @@ export function GeneratorUI({ onGenerate }: { onGenerate: (x: { algorithm: Algor
                   <label htmlFor="exactVoicingToggle" className="text-sm text-gray-700 dark:text-gray-300" title="Preserves common tones and assigns each voice to the nearest chord tone; recommended for cinematic/jazz; requires Voice‑Leading Bias > 0.">Enable exact close‑voicing (preserve common tones)</label>
                 </div>
                 <div className="space-y-2">
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Lead Max Leap (semitones)</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    <LabelWithTooltip label="Lead Max Leap (semitones)" tooltip="Maximum interval jump in lead melodies. 5=smooth/stepwise, 7=singable, 12=wide/dramatic leaps." />
+                  </label>
                   <select value={leadMaxLeapSemitones} onChange={e=>setLeadMaxLeapSemitones(Number(e.target.value))}
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white">
                     {[0,7,9,12].map(n => <option key={n} value={n}>{n === 0 ? '(none)' : n}</option>)}
@@ -1152,13 +1154,17 @@ export function GeneratorUI({ onGenerate }: { onGenerate: (x: { algorithm: Algor
                 </div>
 
                 <div className="space-y-2">
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Min Gap (secs): {spaceAllocatorMinGapSecs.toFixed(3)}</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    <LabelWithTooltip label={`Min Gap: ${spaceAllocatorMinGapSecs.toFixed(3)}s`} tooltip="Minimum silence between lead notes. 0.01=dense/busy, 0.02=natural breathing, 0.03+=sparse/spacious." />
+                  </label>
                   <input type="range" min="0" max="0.05" step="0.005" value={spaceAllocatorMinGapSecs} onChange={e=>setSpaceAllocatorMinGapSecs(Number(e.target.value))} className="w-full" />
                 </div>
 
                 {/* Phase 2: phrasing & cadence */}
                 <div className="space-y-2">
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300" htmlFor="phrasingSelect">Phrasing</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300" htmlFor="phrasingSelect">
+                    <LabelWithTooltip label="Phrasing" tooltip="Musical phrase length. Short=2 bars (energetic), Medium=4 bars (balanced), Long=8 bars (epic/cinematic)." />
+                  </label>
                   <select id="phrasingSelect" aria-label="phrasing-select" value={phrasing ?? ''} onChange={e=>setPhrasing((e.target.value || undefined) as any)}
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white">
                     <option value="">(default)</option>
@@ -1168,7 +1174,9 @@ export function GeneratorUI({ onGenerate }: { onGenerate: (x: { algorithm: Algor
                   </select>
                 </div>
                 <div className="space-y-2">
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300" htmlFor="cadenceSlider">Cadence Strength: {cadenceStrength.toFixed(2)}</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300" htmlFor="cadenceSlider">
+                    <LabelWithTooltip label={`Cadence Strength: ${cadenceStrength.toFixed(2)}`} tooltip="How strongly phrases end with cadences (musical punctuation). 0=continuous flow, 0.7=clear phrases, 1=very defined endings." />
+                  </label>
                   <input id="cadenceSlider" aria-label="cadence-strength" type="range" min="0" max="1" step="0.05" value={cadenceStrength} onChange={e=>setCadenceStrength(Number(e.target.value))} className="w-full" />
                 </div>
 
@@ -1177,15 +1185,21 @@ export function GeneratorUI({ onGenerate }: { onGenerate: (x: { algorithm: Algor
                   <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200">Harmony</h3>
                 </div>
                 <div className="space-y-2">
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Harmonic Rhythm Variance: {harmonicRhythmVariance.toFixed(2)}</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    <LabelWithTooltip label={`Harmonic Rhythm Variance: ${harmonicRhythmVariance.toFixed(2)}`} tooltip="How often chord changes occur. 0=static harmony, 0.5=varied timing, 1=frequent changes." />
+                  </label>
                   <input type="range" min="0" max="1" step="0.05" value={harmonicRhythmVariance} onChange={e=>setHarmonicRhythmVariance(Number(e.target.value))} className="w-full" />
                 </div>
                 <div className="space-y-2">
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Harmonic Complexity (subs): {harmonicComplexity.toFixed(2)}</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    <LabelWithTooltip label={`Harmonic Complexity: ${harmonicComplexity.toFixed(2)}`} tooltip="Chord substitutions and extensions. 0=basic triads, 0.5=7th chords, 1=jazz/complex voicings." />
+                  </label>
                   <input type="range" min="0" max="1" step="0.05" value={harmonicComplexity} onChange={e=>setHarmonicComplexity(Number(e.target.value))} className="w-full" />
                 </div>
                 <div className="space-y-2">
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Pedal Tone Strength: {pedalToneStrength.toFixed(2)}</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    <LabelWithTooltip label={`Pedal Tone Strength: ${pedalToneStrength.toFixed(2)}`} tooltip="Sustained notes that hold across chord changes. 0=none, 0.5=occasional drones, 1=constant pedal tones (ambient)." />
+                  </label>
                   <input type="range" min="0" max="1" step="0.05" value={pedalToneStrength} onChange={e=>setPedalToneStrength(Number(e.target.value))} className="w-full" />
                 </div>
 
@@ -1194,15 +1208,21 @@ export function GeneratorUI({ onGenerate }: { onGenerate: (x: { algorithm: Algor
                   <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200">Conversation</h3>
                 </div>
                 <div className="space-y-2">
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Call/Response Intensity: {callResponseIntensity.toFixed(2)}</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    <LabelWithTooltip label={`Call/Response: ${callResponseIntensity.toFixed(2)}`} tooltip="Lead and other instruments take turns (musical conversation). 0=independent, 0.5=some interplay, 1=strong call-response." />
+                  </label>
                   <input type="range" min="0" max="1" step="0.05" value={callResponseIntensity} onChange={e=>setCallResponseIntensity(Number(e.target.value))} className="w-full" />
                 </div>
                 <div className="space-y-2">
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Bass Echo Probability: {bassEchoProbability.toFixed(2)}</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    <LabelWithTooltip label={`Bass Echo: ${bassEchoProbability.toFixed(2)}`} tooltip="Bass echoes lead melody rhythmically. 0=independent bassline, 0.5=occasional echoes, 1=bass follows lead closely." />
+                  </label>
                   <input type="range" min="0" max="1" step="0.05" value={bassEchoProbability} onChange={e=>setBassEchoProbability(Number(e.target.value))} className="w-full" />
                 </div>
                 <div className="space-y-2">
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Density Gate Strength: {densityGateStrength.toFixed(2)}</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    <LabelWithTooltip label={`Density Gate: ${densityGateStrength.toFixed(2)}`} tooltip="Reduces note density in busy sections to prevent clutter. 0=all notes play, 0.5=moderate thinning, 1=aggressive sparse." />
+                  </label>
                   <input type="range" min="0" max="1" step="0.05" value={densityGateStrength} onChange={e=>setDensityGateStrength(Number(e.target.value))} className="w-full" />
                 </div>
 
