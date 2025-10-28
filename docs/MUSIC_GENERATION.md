@@ -187,13 +187,16 @@ swingRatio: 0.75  // Maximum swing
 Overall musical style/genre.
 
 ```typescript
-style: 'edm'        // Electronic Dance Music
-style: 'cinematic'  // Film/Game Score
-style: 'lofi'       // Lo-Fi Hip-Hop
-style: 'jazz'       // Jazz
+style: 'edm'        // Electronic Dance Music (128 BPM)
+style: 'techno'     // Minimal Techno (130 BPM)
+style: 'rock'       // Rock/Alternative (120 BPM)
+style: 'jazz'       // Jazz/Swing (120-140 BPM)
+style: 'lofi'       // Lo-Fi Hip-Hop (85 BPM)
+style: 'cinematic'  // Film/Game Score (90 BPM)
+style: 'ambient'    // Atmospheric Soundscapes (60 BPM)
 ```
 
-See [Style Guide](#style-guide) for detailed characteristics.
+See [Style Guide](#style-guide) for detailed characteristics and recommended settings for all 7 styles.
 
 ### `simpleMode: boolean`
 Simplified generation with automatic quality settings.
@@ -413,6 +416,82 @@ accentMapIntensity: 1.0  // Strong accents
 }
 ```
 
+### Techno
+
+**Characteristics**:
+- Driving, machine-like precision
+- Minimal, hypnotic repetition
+- Heavy sidechain pumping
+- Tight, locked groove
+- Underground club atmosphere
+
+**Recommended Settings**:
+```typescript
+{
+  style: 'techno',
+  bpm: 130,
+  variation: 0.25,          // Tight, mechanical feel
+  grooveTemplate: 'straight',
+  harmonicComplexity: 0.3,
+  sidechainStrength: 0.78,  // Heavy pumping
+  legatoStrength: 0.2,      // Short, punchy notes
+  chordStabArpIntensity: 0.6,
+  fillRate: 0.2             // Minimal fills
+}
+```
+
+### Rock
+
+**Characteristics**:
+- Verse-chorus-bridge structure
+- Guitar-driven sound
+- I-vi-IV-V progressions
+- Organic, live band feel
+- Anthemic melodies
+
+**Recommended Settings**:
+```typescript
+{
+  style: 'rock',
+  bpm: 120,
+  variation: 0.4,
+  grooveTemplate: 'straight',
+  harmonicComplexity: 0.4,
+  sidechainStrength: 0.2,   // Minimal EDM effects
+  legatoStrength: 0.4,
+  phrasing: 'medium',       // 4-bar phrases
+  cadenceStrength: 0.7,     // Strong phrase endings
+  fillRate: 0.4             // Frequent drum fills
+}
+```
+
+### Ambient
+
+**Characteristics**:
+- Sparse, atmospheric textures
+- Minimal percussion
+- Sustained notes and drones
+- Meditative, floating quality
+- Long, evolving phrases
+
+**Recommended Settings**:
+```typescript
+{
+  style: 'ambient',
+  bpm: 60,
+  variation: 0.3,
+  grooveTemplate: 'straight',
+  density: 0.3,             // Sparse note placement
+  harmonicComplexity: 0.4,
+  pedalToneStrength: 0.6,   // Sustained drones
+  legatoStrength: 0.75,     // Very smooth, connected
+  sidechainStrength: 0.05,  // Minimal pumping
+  dynamicsShape: 'swell',
+  phrasing: 'long',         // 8-bar phrases
+  fillRate: 0.1             // Very minimal drums
+}
+```
+
 ---
 
 ## Best Practices
@@ -596,6 +675,59 @@ const simple = EnhancedHelixEngine.generate({
   density: 0.6,
   style: 'lofi',
   simpleMode: true  // ✅ That's it! Automatic quality settings
+});
+```
+
+### Example 5: Hypnotic Techno
+```typescript
+const techno = EnhancedHelixEngine.generate({
+  seed: 77777,
+  durationSecs: 16,
+  bpm: 130,
+  key: 'Dm',
+  timeSignature: '4/4',
+  density: 0.7,
+  style: 'techno',
+  variation: 0.25,          // Tight, mechanical
+  grooveTemplate: 'straight',
+  sidechainStrength: 0.78,  // Heavy pumping
+  legatoStrength: 0.2,
+  fillRate: 0.2
+});
+```
+
+### Example 6: Driving Rock
+```typescript
+const rock = EnhancedHelixEngine.generate({
+  seed: 44444,
+  durationSecs: 24,
+  bpm: 120,
+  key: 'E',
+  timeSignature: '4/4',
+  density: 0.6,
+  style: 'rock',
+  variation: 0.4,
+  harmonicComplexity: 0.4,
+  cadenceStrength: 0.7,     // Strong phrase endings
+  fillRate: 0.4             // Frequent drum fills
+});
+```
+
+### Example 7: Meditative Ambient
+```typescript
+const ambient = EnhancedHelixEngine.generate({
+  seed: 33333,
+  durationSecs: 45,
+  bpm: 60,
+  key: 'F',
+  timeSignature: '4/4',
+  density: 0.3,             // Sparse
+  style: 'ambient',
+  variation: 0.3,
+  pedalToneStrength: 0.6,   // Sustained drones
+  legatoStrength: 0.75,     // Very smooth
+  phrasing: 'long',         // 8-bar phrases
+  dynamicsShape: 'swell'
 });
 ```
 
