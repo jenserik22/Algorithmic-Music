@@ -26,6 +26,28 @@ type SectionConfig = {
   fill?: boolean;
 };
 
+// SoundHelix-style activity vectors for dynamic instrumentation
+type ActivityVector = {
+  name: 'lead' | 'chords' | 'bass' | 'drums' | 'fx';
+  startAfterSection?: number;
+  startBeforeSection?: number;
+  stopAfterSection?: number;
+  stopBeforeSection?: number;
+  stopShift?: number;
+  minActive?: number;
+  maxActive?: number;
+  minSegmentLength?: number;
+  maxSegmentLength?: number;
+  maxPauseLength?: number;
+  minSegmentCount?: number;
+  maxSegmentCount?: number;
+};
+
+type ActivityConfig = {
+  vectors: ActivityVector[];
+  totalSections: number;
+};
+
 type ChordProgression = {
   degree: number;
   quality: 'major' | 'minor' | 'diminished' | 'dominant7' | 'minor7' | 'major7';
@@ -1602,12 +1624,520 @@ export const EnhancedHelixEngine: Engine = {
 // Week 5: generateLeadLine extracted to generators/lead.ts
 // Helper function implementations below
 
+// SoundHelix-style chord random tables for sophisticated chord selection
+const CHORD_RANDOM_TABLES: Record<number, string[]> = {
+  0: ['Am', 'G', 'F', 'Em', 'Dm'], // Diatonic minor options
+  1: ['Bdim', 'G', 'C', 'Am'], // Diminished with diatonic relatives
+  2: ['C', 'Am', 'F', 'G'], // Major chord options
+  3: ['F', 'Dm', 'Am', 'C'], // Subdominant options
+  4: ['G', 'Em', 'C', 'Am'], // Dominant options
+  5: ['Am', 'F', 'C', 'G'], // Relative minor options
+  6: ['C', 'F', 'Am', 'Dm'], // Leading tone options
+};
+
+// Enhanced chord substitution system with backreferences and random tables
 const CHORD_SUBSTITUTIONS: Record<number, { degree: number; quality: ChordProgression['quality'] }[]> = {
   0: [{ degree: 5, quality: 'minor' }, { degree: 2, quality: 'minor' }], // I -> vi, iii
   3: [{ degree: 1, quality: 'minor' }], // IV -> ii
   4: [{ degree: 6, quality: 'diminished' }], // V -> vii°
   5: [{ degree: 0, quality: 'major' }, { degree: 2, quality: 'minor' }], // vi -> I, iii
 };
+
+// Random table parser for chord patterns like SoundHelix
+function parseChordPattern(pattern: string, utils: any): { chords: ChordProgression[], beats: number[] } | null {
+  const { rand } = utils;
+  const chordRegex = /(\$?\d+!?|\w+)(?:\/(\d+))?/g;
+  const chords: ChordProgression[] = [];
+  const beats: number[] = [];
+  
+  let match;
+  while ((match = chordRegex.exec(pattern)) !== null) {
+    const chordStr = match[1];
+    const beatStr = match[2];
+    
+    let chord: ChordProgression | null = null;
+    
+    if (chordStr.startsWith('$')) {
+      // Backreference to previous chord
+      const index = parseInt(chordStr.substring(1));
+      if (index < chords.length) {
+        chord = { ...chords[index] };
+      }
+    } else if (chordStr.endsWith('!')) {
+      // Random table with negative backreference
+      const tableIndex = parseInt(chordStr.slice(0, -1));
+      const avoidIndex = parseInt(match[3]);
+      const table = CHORD_RANDOM_TABLES[tableIndex] || [];
+      const available = table.filter((_, idx) => idx !== avoidIndex);
+      if (available.length > 0) {
+        chord = parseChordString(available[Math.floor(rand() * available.length)]);
+      }
+    } else if (/^\d+$/.test(chordStr)) {
+      // Random table selection
+      const tableIndex = parseInt(chordStr);
+      const table = CHORD_RANDOM_TABLES[tableIndex] || [];
+      if (table.length > 0) {
+        chord = parseChordString(table[Math.floor(rand() * table.length)]);
+      }
+    } else {
+      // Direct chord name
+      chord = parseChordString(chordStr);
+    }
+    
+    if (chord) {
+      chords.push(chord);
+      beats.push(beatStr ? parseInt(beatStr) : 4); // Default to 4 beats
+    }
+  }
+  
+  return chords.length > 0 ? { chords, beats } : null;
+}
+
+function parseChordString(chordStr: string): ChordProgression | null {
+  const chordMap: Record<string, { degree: number; quality: ChordProgression['quality'] }> = {
+    'C': { degree: 0, quality: 'major' },
+    'Dm': { degree: 1, quality: 'minor' },
+    'Em': { degree: 2, quality: 'minor' },
+    'F': { degree: 3, quality: 'major' },
+    'G': { degree: 4, quality: 'major' },
+    'Am': { degree: 5, quality: 'minor' },
+    'Bdim': { degree: 6, quality: 'diminished' },
+  };
+  
+  return chordMap[chordStr] || null;
+}
+
+// SoundHelix-style chord distance calculation for voice leading optimization
+function calculateChordDistance(prevChord: number[], newChordPitches: number[]): number {
+  if (prevChord.length === 0 || newChordPitches.length === 0) return Infinity;
+  
+  // Sort pitches for consistent comparison
+  const sortedPrev = [...prevChord].sort((a, b) => a - b);
+  const sortedNew = [...newChordPitches].sort((a, b) => a - b);
+  
+  // Calculate minimal total voice movement (L1 norm)
+  let totalDistance = 0;
+  const minVoices = Math.min(sortedPrev.length, sortedNew.length);
+  
+  for (let i = 0; i < minVoices; i++) {
+    // Consider octave equivalence
+    const distance = Math.min(
+      Math.abs(sortedNew[i] - sortedPrev[i]),
+      Math.abs((sortedNew[i] + 12) - sortedPrev[i]),
+      Math.abs((sortedNew[i] - 12) - sortedPrev[i])
+    );
+    totalDistance += distance;
+  }
+  
+  // Prefer chords with similar voice count
+  const voiceCountPenalty = Math.abs(sortedPrev.length - sortedNew.length) * 6;
+  
+  return totalDistance + voiceCountPenalty;
+}
+
+// Advanced voice leading optimization with SoundHelix-style crossover pitch handling
+function optimizeVoiceLeading(
+  chordProgression: ChordProgression[],
+  scale: number[],
+  rootC4: number,
+  register: [number, number],
+  crossoverPitch = 3,
+  utils: any
+): number[][] {
+  const { rand, roll } = utils;
+  const voices: number[][] = [];
+  let previousChord: number[] = [];
+  
+  for (let chordIndex = 0; chordIndex < chordProgression.length; chordIndex++) {
+    const chordDef = chordProgression[chordIndex];
+    const rootPitch = rootC4 + scale[chordDef.degree];
+    const availableNotes = getChordNotes(rootPitch, chordDef.quality);
+    
+    // Find best octave placement and voice assignment
+    let bestVoicing: number[] = [];
+    let minCost = Infinity;
+    
+    // Test different octave configurations
+    for (let octaveShift = -2; octaveShift <= 2; octaveShift++) {
+      const testNotes = availableNotes.map(note => note + octaveShift * 12);
+      const clampedNotes = testNotes.map(note => clampPitch(note, register[0], register[1]));
+      
+      // Calculate total movement cost
+      let totalCost = 0;
+      
+      if (previousChord.length > 0) {
+        // Sort both sets for optimal matching
+        const sortedPrev = [...previousChord].sort((a, b) => a - b);
+        const sortedTest = [...clampedNotes].sort((a, b) => a - b);
+        
+        // Voice-to-voice distance calculation
+        for (let i = 0; i < Math.min(sortedPrev.length, sortedTest.length); i++) {
+          let voiceCost = Math.abs(sortedTest[i] - sortedPrev[i]);
+          
+          // Consider octave equivalence with penalty for large jumps
+          while (voiceCost > 12 && voiceCost > 6) {
+            const upOctaveVoice = sortedTest[i] + 12;
+            const downOctaveVoice = sortedTest[i] - 12;
+            
+            if (upOctaveVoice <= register[1] && Math.abs(upOctaveVoice - sortedPrev[i]) < voiceCost) {
+              voiceCost = Math.abs(upOctaveVoice - sortedPrev[i]);
+            } else if (downOctaveVoice >= register[0] && Math.abs(downOctaveVoice - sortedPrev[i]) < voiceCost) {
+              voiceCost = Math.abs(downOctaveVoice - sortedPrev[i]);
+            } else {
+              break;
+            }
+          }
+          
+          // Crossover pitch handling (SoundHelix feature)
+          const shouldCross = roll(0.3) && (i === sortedPrev.length - 1);
+          if (shouldCross && chordDef.degree >= crossoverPitch) {
+            voiceCost *= 0.7; // Encourage crossing on higher chord degrees
+          }
+          
+          totalCost += voiceCost;
+        }
+        
+        // Voice count penalty for different voice counts
+        const voiceCountDiff = Math.abs(sortedPrev.length - sortedTest.length);
+        totalCost += voiceCountDiff * 3;
+      } else {
+        // For first chord, prefer comfortable register placement
+        const centerPitch = (register[0] + register[1]) / 2;
+        totalCost = clampedNotes.reduce((sum, note) => sum + Math.abs(note - centerPitch), 0);
+      }
+      
+      // Chord stability metrics
+      const rootStability = clampedNotes.filter(n => isScaleDegree(n, rootPitch, scale)).length;
+      totalCost -= rootStability * 2; // Reward scale tones
+      const fifthStability = clampedNotes.filter(n => isScaleDegree(n, rootPitch + 7, scale)).length;
+      totalCost -= fifthStability * 1; // Reward fifths
+      
+      if (totalCost < minCost) {
+        minCost = totalCost;
+        bestVoicing = clampedNotes;
+      }
+    }
+    
+    // Final voice assignment optimization
+    if (previousChord.length > 0 && roll(0.4)) {
+      bestVoicing = assignCloseVoicing(previousChord, rootPitch, chordDef.quality, bestVoicing.length, register);
+    }
+    
+    voices.push(bestVoicing);
+    previousChord = bestVoicing;
+  }
+  
+  return voices;
+}
+
+// Helper function to check if a note is a scale degree
+function isScaleDegree(note: number, root: number, scale: number[]): boolean {
+  const noteClass = ((note - root) % 12 + 12) % 12;
+  return scale.some(degree => ((degree % 12) + 12) % 12 === noteClass);
+}
+
+// Advanced voice leading with contextual awareness
+function contextualVoiceAssignment(
+  chordDef: ChordProgression,
+  rootPitch: number,
+  previousVoices: number[],
+  sectionEnergy: number,
+  register: [number, number],
+  utils: any
+): number[] {
+  const { rand, roll, choose } = utils;
+  const baseChord = getChordNotes(rootPitch, chordDef.quality);
+  
+  // Energy-based voice density
+  const targetVoiceCount = sectionEnergy > 0.7 ? 4 : sectionEnergy > 0.4 ? 3 : 2;
+  const availableVoices = baseChord.slice(0, targetVoiceCount);
+  
+  if (previousVoices.length === 0) {
+    // First chord - distribute across register
+    const registerSpan = register[1] - register[0];
+    const spacing = registerSpan / (availableVoices.length + 1);
+    
+    return availableVoices.map((note, idx) => {
+      let octaveOctave = Math.floor((register[0] + spacing * (idx + 1)) / 12);
+      let pitch = note + octaveOctave * 12;
+      return clampPitch(pitch, register[0], register[1]);
+    });
+  }
+  
+  // Subsequent chords - use sophisticated voice matching
+  const sortedPrev = [...previousVoices].sort((a, b) => a - b);
+  const sortedCurrent = [...availableVoices].sort((a, b) => a - b);
+  
+  const assignedVoices: number[] = [];
+  const usedPrev = new Set<number>();
+  
+  // First pass: Assign closest voices preserving common tones
+  for (let i = 0; i < sortedCurrent.length; i++) {
+    let bestPrevIdx = -1;
+    let bestScore = -Infinity;
+    
+    for (let j = 0; j < sortedPrev.length; j++) {
+      if (usedPrev.has(j)) continue;
+      
+      const prevNote = sortedPrev[j];
+      const currentBase = sortedCurrent[i];
+      
+      // Score based on proximity and scale relationship
+      let score = 1 / (1 + Math.abs(currentBase - prevNote));
+      
+      // Bonus for common tones
+      if (((currentBase - prevNote) % 12 + 12) % 12 === 0) {
+        score *= 3;
+      }
+      
+      if (score > bestScore) {
+        bestScore = score;
+        bestPrevIdx = j;
+      }
+    }
+    
+    if (bestPrevIdx >= 0) {
+      usedPrev.add(bestPrevIdx);
+      assignedVoices.push(sortedPrev[bestPrevIdx]);
+    } else {
+      // Find best octave for unused voice
+      let bestPitch = sortedCurrent[i];
+      let bestDistance = Infinity;
+      
+      for (let shift = -2; shift <= 2; shift++) {
+        const testPitch = sortedCurrent[i] + shift * 12;
+        if (testPitch >= register[0] && testPitch <= register[1]) {
+          const avgPitch = assignedVoices.reduce((sum, p) => sum + p, 0) / Math.max(1, assignedVoices.length);
+          const distance = Math.abs(testPitch - avgPitch);
+          if (distance < bestDistance) {
+            bestDistance = distance;
+            bestPitch = testPitch;
+          }
+        }
+      }
+      
+      assignedVoices.push(clampPitch(bestPitch, register[0], register[1]));
+    }
+  }
+  
+  return assignedVoices.sort((a, b) => a - b);
+}
+
+// SoundHelix-style activity vector processor for dynamic instrumentation
+// SoundHelix-style pattern engine framework with string notation
+type PatternEngine = {
+  name: string;
+  type: 'drums' | 'bass' | 'lead' | 'chords' | 'fx';
+  patterns: string[];
+  variations?: boolean;
+};
+
+// String pattern notation like SoundHelix: "0:26000,1:26000,2:26000,1:26000"
+// Format: position:duration[,position:duration,...]
+function parseStringPattern(patternStr: string): { position: number; duration: number }[] {
+  const events: { position: number; duration: number }[] = [];
+  const parts = patternStr.split(',');
+  
+  for (const part of parts) {
+    const [posStr, durStr] = part.split(':');
+    if (posStr && durStr) {
+      const position = parseInt(posStr.trim());
+      const duration = parseInt(durStr.trim());
+      if (!isNaN(position) && !isNaN(duration)) {
+        events.push({ position, duration });
+      }
+    }
+  }
+  
+  return events;
+}
+
+// Pattern mutation and variation system
+function mutatePattern(pattern: { position: number; duration: number }[], utils: any): { position: number; duration: number }[] {
+  const { rand, roll } = utils;
+  const mutated = [...pattern];
+  
+  if (roll(0.3)) {
+    // Randomly shuffle event order
+    for (let i = mutated.length - 1; i > 0; i--) {
+      if (roll(0.2)) {
+        const j = Math.floor(rand() * (i + 1));
+        [mutated[i], mutated[j]] = [mutated[j], mutated[i]];
+      }
+    }
+  }
+  
+  if (roll(0.2)) {
+    // Add or remove events
+    if (roll(0.5) && mutated.length > 1) {
+      mutated.splice(Math.floor(rand() * mutated.length), 1);
+    } else if (roll(0.5)) {
+      const newEvent = {
+        position: mutated[Math.floor(rand() * mutated.length)]?.position ?? 0,
+        duration: 1000 + Math.floor(rand() * 2000)
+      };
+      mutated.push(newEvent);
+    }
+  }
+  
+  if (roll(0.4)) {
+    // Vary durations slightly
+    return mutated.map(event => ({
+      ...event,
+      duration: event.duration * (0.8 + rand() * 0.4)
+    }));
+  }
+  
+  return mutated;
+}
+
+// Pattern pattern engines for different instruments
+const PATTERN_ENGINES: PatternEngine[] = [
+  {
+    name: 'drums-basic-four-on-the-floor',
+    type: 'drums',
+    patterns: [
+      '0:26000,2:26000,4:26000,6:26000,8:26000,10:26000,12:26000,14:26000',
+      '0:26000,4:26000,8:26000,12:26000',
+      '0:26000,2:13000,4:26000,6:13000,8:26000,10:13000,12:26000,14:13000'
+    ],
+    variations: true
+  },
+  {
+    name: 'drums-hi-hat-patterns',
+    type: 'drums', 
+    patterns: [
+      '1:26000,3:26000,5:26000,7:26000,9:26000,11:26000,13:26000,15:26000',
+      '1:13000,3:13000,5:13000,7:13000,9:13000,11:13000,13:13000,15:13000',
+      '0:13000,1:13000,2:13000,3:13000,4:13000,5:13000,6:13000,7:13000'
+    ],
+    variations: true
+  },
+  {
+    name: 'bass-walking-lines',
+    type: 'bass',
+    patterns: [
+      '0:4000,1:4000,2:4000,3:4000,4:4000,5:4000,6:4000,7:4000',
+      '0:8000,2:4000,4:8000,6:4000',
+      '0:6000,1:2000,3:6000,4:2000,6:6000,7:2000'
+    ],
+    variations: true
+  },
+  {
+    name: 'lead-scale-runs',
+    type: 'lead',
+    patterns: [
+      '0:2000,1:2000,2:2000,3:2000,4:2000,5:2000,6:2000,7:2000',
+      '0:4000,2:2000,4:2000,6:4000',
+      '0:3000,1:1000,2:3000,3:1000,4:3000,5:1000,6:3000,7:1000'
+    ],
+    variations: true
+  },
+  {
+    name: 'chord-arp-patterns',
+    type: 'chords',
+    patterns: [
+      '0:8000,4:8000',
+      '0:12000,6:12000',
+      '0:4000,2:4000,4:4000,6:4000'
+    ],
+    variations: true
+  }
+];
+
+function selectPatternEngine(type: PatternEngine['type'], style: string, utils: any): PatternEngine | null {
+  const { rand, choose } = utils;
+  const relevantEngines = PATTERN_ENGINES.filter(engine => engine.type === type);
+  
+  if (relevantEngines.length === 0) return null;
+  
+  // Style-specific engine selection
+  const stylePreferences: Record<string, string[]> = {
+    edm: ['drums-basic-four-on-the-floor', 'drums-hi-hat-patterns', 'bass-walking-lines', 'lead-scale-runs'],
+    jazz: ['bass-walking-lines', 'chord-arp-patterns'],
+    lofi: ['chord-arp-patterns', 'drums-hi-hat-patterns'],
+    cinematic: ['lead-scale-runs', 'chord-arp-patterns'],
+    techno: ['drums-basic-four-on-the-floor', 'bass-walking-lines']
+  };
+  
+  const preferred = stylePreferences[style] || [];
+  const preferredEngines = relevantEngines.filter(e => 
+    preferred.some(pref => e.name.includes(pref))
+  );
+  
+  const enginesToChoose = preferredEngines.length > 0 ? preferredEngines : relevantEngines;
+  return choose(enginesToChoose);
+}
+
+function applyPatternEngine(
+  engine: PatternEngine, 
+  utils: any, 
+  startTime: number,
+  duration: number,
+  beat: number
+): { position: number; duration: number }[] {
+  const { choose, rand, roll } = utils;
+  
+  // Select a base pattern
+  const patternStr = choose(engine.patterns);
+  let events = parseStringPattern(patternStr);
+  
+  // Apply variations if enabled
+  if (engine.variations && roll(0.4)) {
+    events = mutatePattern(events, utils);
+  }
+  
+  return events;
+}
+
+function generateActivityVectors(
+  sections: SectionConfig[],
+  utils: any
+): boolean[][] {
+  const { rand, roll } = utils;
+  const totalSections = sections.length;
+  const activeInstruments: boolean[][] = Array.from({ length: totalSections }, 
+    () => [false, false, false, false, false]); // [lead, chords, bass, drums, fx]
+  
+  // Simplified activity vector approach - ensure all instruments play in most sections
+  // This provides a working implementation while maintaining the advanced architecture
+  
+  const instrumentIndex: Record<string, number> = {
+    lead: 0, chords: 1, bass: 2, drums: 3, fx: 4
+  };
+  
+  // For each section, determine active instruments based on section properties
+  for (let i = 0; i < totalSections; i++) {
+    const section = sections[i];
+    
+    // Chords are usually active
+    if (roll(0.8 || section.instruments.includes('chords'))) {
+      activeInstruments[i][instrumentIndex.chords] = true;
+    }
+    
+    // Bass follows chord activity with slightly lower probability
+    if (activeInstruments[i][instrumentIndex.chords] && (roll(0.9) || section.instruments.includes('bass'))) {
+      activeInstruments[i][instrumentIndex.bass] = true;
+    }
+    
+    // Drums depend on section energy and instruments list
+    if (section.energy > 0.3 && (section.instruments.includes('drums') || roll(0.7))) {
+      activeInstruments[i][instrumentIndex.drums] = true;
+    }
+    
+    // Lead depends on energy level
+    if (section.energy > 0.5 && (section.instruments.includes('lead') || roll(0.6))) {
+      activeInstruments[i][instrumentIndex.lead] = true;
+    }
+    
+    // FX for high energy sections or cinematic styles
+    if ((section.energy > 0.7 || section.name.toLowerCase().includes('cinematic')) && roll(0.5)) {
+      activeInstruments[i][instrumentIndex.fx] = true;
+    }
+  }
+  
+  return activeInstruments;
+}
 
 function generateChordProgression(
   events: NoteEvent[],
@@ -1629,29 +2159,67 @@ function generateChordProgression(
     const progressionIndex = Math.floor((i / 2) % config.chordProgression.length);
     let chordDef = config.chordProgression[progressionIndex];
 
-    // Probabilistically apply chord substitution (Phase 0 default enabled)
+    // Enhanced chord selection with SoundHelix-style patterns and chord distance minimization
     if ((params?.enableChordSubstitutions ?? true)) {
       const baseSubP = 0.15;
       const hc = Math.max(0, Math.min(1, params?.harmonicComplexity ?? 0));
-      const subProb = baseSubP + 0.35 * hc; // increase substitution chance with harmonic complexity
+      const subProb = baseSubP + 0.35 * hc;
+      
       if (roll(subProb)) {
-        // Choose from diatonic substitutions, modal interchange, or secondary dominants when complexity is on
         const candidates: { degree: number; quality: ChordProgression['quality'] }[] = [];
+        
+        // Original diatonic substitutions
         if (CHORD_SUBSTITUTIONS[chordDef.degree]) {
           candidates.push(...CHORD_SUBSTITUTIONS[chordDef.degree]);
         }
+        
+        // SoundHelix-style random table selections
+        const table = CHORD_RANDOM_TABLES[chordDef.degree];
+        if (table && table.length > 0 && roll(0.3)) {
+          const randomChord = parseChordString(table[Math.floor(rand() * table.length)]);
+          if (randomChord) candidates.push(randomChord);
+        }
+        
+        // Advanced harmonic complexity features
         if (hc > 0) {
-          // Modal interchange: borrow iv (minor) or bVII (major) depending on current quality context
+          // Modal interchange
           candidates.push({ degree: (chordDef.degree + 4) % 7, quality: 'minor' }); // iv (borrowed)
-          candidates.push({ degree: 6, quality: 'major' }); // bVII (approx in degree mapping)
-          // Secondary dominant of the NEXT chord
+          candidates.push({ degree: 6, quality: 'major' }); // bVII
+          
+          // Secondary dominants
           const nextIdx = Math.floor(((i / 2) + 1) % config.chordProgression.length);
           const nextChord = config.chordProgression[nextIdx];
           const secDomDegree = (nextChord.degree + 4) % 7; // V of next
           candidates.push({ degree: secDomDegree, quality: 'dominant7' });
+          
+          // Tritone substitutions for dominant7 chords
+          if (chordDef.quality === 'dominant7') {
+            const tritoneSub = (chordDef.degree + 6) % 7; // ♭II7
+            candidates.push({ degree: tritoneSub, quality: 'dominant7' });
+          }
         }
+        
         if (candidates.length > 0) {
-          chordDef = choose(candidates);
+          // Apply chord distance minimization (SoundHelix-style)
+          if (lastChordPitches && params?.minimizeChordDistance) {
+            // Calculate chord distance to previous harmony
+            let bestCandidate = chordDef;
+            let minDistance = Infinity;
+            
+            for (const candidate of candidates) {
+              const candidatePitch = rootC4 + scale[candidate.degree];
+              const candidateChord = getChordNotes(candidatePitch, candidate.quality);
+              const distance = calculateChordDistance(lastChordPitches, candidateChord);
+              
+              if (distance < minDistance) {
+                minDistance = distance;
+                bestCandidate = candidate;
+              }
+            }
+            chordDef = bestCandidate;
+          } else {
+            chordDef = choose(candidates);
+          }
         }
       }
     }
